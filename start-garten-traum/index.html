@@ -148,7 +148,7 @@
     if(compStarted) return; compStarted=true; document.body.classList.add('comp'); fade(m,1,1400); cap.classList.add('out'); document.querySelector('.orb').style.opacity=0; document.querySelector('.who').style.opacity=0;
     var W=[].slice.call(document.querySelectorAll('.cmp .win')), n=W.length, last=W[n-1];
     // Finale auf den Höhepunkt der Musik legen (PEAK = Sekunde im Track)
-    var mt=(!m.paused&&m.currentTime>0)?m.currentTime:null, Lg=mt===null?8500:Math.max(7000,Math.min(10500,(56.25-mt)*1000));
+    var mt=(!m.paused&&m.currentTime>0)?m.currentTime:null, Lg=mt===null?8500:Math.max(7000,Math.min(10500,(53.25-mt)*1000));
     function out(w){ if(w.dataset.fx==='explode') explode(w); else { w.classList.add('tv'); flash(.35); setTimeout(function(){ w.classList.add('gone'); },950); } }
     if(n>=3){ W[0].classList.add('on'); setTimeout(function(){ out(W[0]); }, Math.min(1900,Lg-6400)); setTimeout(function(){ W[1].classList.add('on'); flash(.28); }, Lg-5500); setTimeout(function(){ out(W[1]); }, Lg-3800); }
     else if(n===2){ W[0].classList.add('on'); setTimeout(function(){ out(W[0]); }, Lg-3800); }
