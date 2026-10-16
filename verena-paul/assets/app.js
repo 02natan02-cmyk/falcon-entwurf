@@ -138,7 +138,7 @@
     };
     const pause = () => { vol(0, 400); setTimeout(() => { if (muted || ducked || !playing) a.pause(); }, 450); };
     const evs = ['pointerdown', 'touchstart', 'keydown', 'wheel', 'scroll', 'click'];
-    const onGesture = e => { if (muted || playing) return disarm(); if (e && e.target && e.target.closest && e.target.closest('[data-pl],[data-snd]')) return; webaudio(); play().then(disarm).catch(() => {}); };
+    const onGesture = e => { if (e && e.isTrusted === false) return; /* Vorführ-Klicks (Impulse) starten keine Musik */ if (muted || playing) return disarm(); if (e && e.target && e.target.closest && e.target.closest('[data-pl],[data-snd]')) return; webaudio(); play().then(disarm).catch(() => {}); };
     const arm = () => { if (armed) return; armed = true; evs.forEach(ev => addEventListener(ev, onGesture, { passive: true, capture: true })); };
     const disarm = () => { armed = false; evs.forEach(ev => removeEventListener(ev, onGesture, { capture: true })); };
     a.addEventListener('ended', () => { load(i + 1); if (playing && !muted) a.play().catch(() => {}); });
@@ -154,7 +154,7 @@
     const lb = $('[data-pl-list]', el), tl = $('[data-pl-tracks]', el);
     lb.addEventListener('click', () => { const o = tl.hidden; tl.hidden = !o; lb.setAttribute('aria-expanded', String(o)); el.classList.toggle('open', o); });
     $$('[data-pl-track]', el).forEach(b => b.addEventListener('click', () => { load(+b.dataset.plTrack); muted = false; ss.set(null); webaudio(); play(600).catch(() => {}); ui(); }));
-    document.addEventListener('click', e => { if (!tl.hidden && !e.target.closest('[data-pl]')) { tl.hidden = true; lb.setAttribute('aria-expanded', 'false'); el.classList.remove('open'); } });
+    document.addEventListener('click', e => { if (e.isTrusted !== false && !tl.hidden && !e.target.closest('[data-pl]')) { tl.hidden = true; lb.setAttribute('aria-expanded', 'false'); el.classList.remove('open'); } });
     if (sbtn) sbtn.addEventListener('click', () => (playing && !muted && !a.paused) ? stop() : start());
     return {
       duck(on) { if (on === ducked) return; ducked = on; if (!playing || muted) return; if (on) pause(); else play(1500).catch(() => {}); },
@@ -336,7 +336,7 @@
       $$('[data-fcat]').forEach(x => x.classList.toggle('on', x === b)); const k = b.dataset.fcat;
       C.forEach(c => c.classList.toggle('hide', k !== 'alle' && c.dataset.cat !== k));
       const g = $('[data-fcg]'); g.scrollLeft = 0;
-      if (window.gsap && !RM) gsap.fromTo(C.filter(c => !c.classList.contains('hide')), { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: .6, stagger: .05, ease: 'power3.out' });
+      if (window.gsap && !RM) gsap.fromTo(C.filter(c => !c.classList.contains('hide')), { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: .6, stagger: .05, ease: 'power3.out', clearProps: 'transform,opacity' });
     }));
   })();
 
@@ -378,16 +378,18 @@
 
   /* ---------- Animationen ---------- */
   if (window.gsap && !RM) {
+    /* CL: nach dem Einblenden die Inline-Transforms entfernen – sonst blockieren sie die Hover-/Tipp-Effekte aus dem CSS */
+    const CL = 'transform,opacity';
     whenIntro(() => {
-      gsap.from('.h1 .ln > *', { yPercent: 110, duration: 1.3, ease: 'power4.out', stagger: .12, delay: .15 });
-      gsap.from('.hero [data-h]:not(.h1)', { y: 30, opacity: 0, duration: 1.1, ease: 'power3.out', stagger: .1, delay: .5 });
+      gsap.from('.h1 .ln > *', { yPercent: 110, duration: 1.3, ease: 'power4.out', stagger: .12, delay: .15, clearProps: 'transform' });
+      gsap.from('.hero [data-h]:not(.h1)', { y: 30, opacity: 0, duration: 1.1, ease: 'power3.out', stagger: .1, delay: .5, clearProps: CL });
     });
-    $$('.stat').forEach((el, i) => gsap.from(el, { y: 40, opacity: 0, duration: .9, delay: i * .08, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 92%', once: true } }));
-    $$('.fc').forEach((el, i) => gsap.from(el, { y: 60, rotateY: -25, opacity: 0, duration: 1, delay: (i % 4) * .08, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 92%', once: true } }));
-    const sh = $('[data-shop]'); sh && gsap.from(sh, { y: 80, rotateY: -35, rotateX: 12, opacity: 0, duration: 1.4, ease: 'power3.out', scrollTrigger: { trigger: sh, start: 'top 85%', once: true } });
-    $$('.qs-ph, .wb-card, .al-law, .oe-vortrag').forEach(el => gsap.from(el, { y: 50, opacity: 0, scale: .96, duration: 1.1, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 88%', once: true } }));
-    $$('.sec-h, .fi-g, .at-g > *, .fl-g > *, .oe-t, .cv-l, .ko-g > *, .huna, .wb-l').forEach(el => gsap.from(el, { y: 50, opacity: 0, duration: 1.1, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 85%', once: true } }));
-    $$('[data-r]').forEach((el, i) => gsap.from(el, { y: 50, opacity: 0, duration: .9, delay: (i % 3) * .08, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 90%', once: true } }));
+    $$('.stat').forEach((el, i) => gsap.from(el, { y: 40, opacity: 0, duration: .9, delay: i * .08, ease: 'power3.out', clearProps: CL, scrollTrigger: { trigger: el, start: 'top 92%', once: true } }));
+    $$('.fc').forEach((el, i) => gsap.from(el, { y: 60, rotateY: -25, opacity: 0, duration: 1, delay: (i % 4) * .08, ease: 'power3.out', clearProps: CL, scrollTrigger: { trigger: el, start: 'top 92%', once: true } }));
+    const sh = $('[data-shop]'); sh && gsap.from(sh, { y: 80, rotateY: -35, rotateX: 12, opacity: 0, duration: 1.4, ease: 'power3.out', clearProps: CL, scrollTrigger: { trigger: sh, start: 'top 85%', once: true } });
+    $$('.qs-ph, .wb-card, .al-law, .oe-vortrag').forEach(el => gsap.from(el, { y: 50, opacity: 0, scale: .96, duration: 1.1, ease: 'power3.out', clearProps: CL, scrollTrigger: { trigger: el, start: 'top 88%', once: true } }));
+    $$('.sec-h, .fi-g, .at-g > *, .fl-g > *, .oe-t, .cv-l, .ko-g > *, .huna, .wb-l').forEach(el => gsap.from(el, { y: 50, opacity: 0, duration: 1.1, ease: 'power3.out', clearProps: CL, scrollTrigger: { trigger: el, start: 'top 85%', once: true } }));
+    $$('[data-r]').forEach((el, i) => gsap.from(el, { y: 50, opacity: 0, duration: .9, delay: (i % 3) * .08, ease: 'power3.out', clearProps: CL, scrollTrigger: { trigger: el, start: 'top 90%', once: true } }));
   }
 })();
 
@@ -539,7 +541,7 @@
   if (RM) h2.forEach(h => h.classList.add('ul')); else seen(h2, h => h.classList.add('ul'), { threshold: .6 });
   if (!RM && window.gsap && window.ScrollTrigger) {
     const g = window.gsap;
-    const batch = (sel, from, st = .08) => { const els = $$(sel); if (!els.length) return; window.ScrollTrigger.batch(els, { start: 'top 90%', once: true, onEnter: b => g.fromTo(b, from, { opacity: 1, y: 0, x: 0, scale: 1, rotate: 0, clipPath: 'inset(0% 0% 0% 0% round 0px)', duration: 1, ease: 'power3.out', stagger: st, overwrite: true, clearProps: 'clipPath' }) }); };
+    const batch = (sel, from, st = .08) => { const els = $$(sel); if (!els.length) return; window.ScrollTrigger.batch(els, { start: 'top 90%', once: true, onEnter: b => g.fromTo(b, from, { opacity: 1, y: 0, x: 0, scale: 1, rotate: 0, clipPath: 'inset(0% 0% 0% 0% round 0px)', duration: 1, ease: 'power3.out', stagger: st, overwrite: true, clearProps: 'clipPath,transform,opacity' }) }); };
     batch('.mo', { opacity: 0, y: 60, scale: .92 });
     batch('.oil', { opacity: 0, y: 30, scale: .8 }, .06);
     batch('.kc', { opacity: 0, x: -30 });
@@ -552,6 +554,172 @@
       if (im.tagName === 'IMG' && !im.classList.contains('fl-side')) im.style.scale = '1.12';
       g.fromTo(im, { '--py': -18 }, { '--py': 18, ease: 'none', scrollTrigger: { trigger: im, start: 'top bottom', end: 'bottom top', scrub: true }, onUpdate() { im.style.translate = '0 ' + (parseFloat(g.getProperty(im, '--py')) || 0).toFixed(1) + 'px'; } });
     });
-    $$('.sec-h .kick').forEach(k => g.from(k, { opacity: 0, x: -30, duration: .9, ease: 'power3.out', scrollTrigger: { trigger: k, start: 'top 92%', once: true } }));
+    $$('.sec-h .kick').forEach(k => g.from(k, { opacity: 0, x: -30, duration: .9, ease: 'power3.out', clearProps: 'transform,opacity', scrollTrigger: { trigger: k, start: 'top 92%', once: true } }));
   }
+})();
+
+/* ===== v6: Impulse & Hinweise, Kapitel-Faden, freie Sicht am Seitenende ===== */
+(function () {
+  'use strict';
+  const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const RM = matchMedia('(prefers-reduced-motion: reduce)').matches, IO = 'IntersectionObserver' in window;
+  const HAND = '<svg class="v6-hand" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 11.4V5.6a1.6 1.6 0 0 1 3.2 0v5.2m0-.4V9.7a1.6 1.6 0 0 1 3.2 0v1.6m0 0a1.6 1.6 0 0 1 3.2 0v3.1c0 4-2.7 6.6-6.4 6.6h-.6c-2.1 0-3.4-.8-4.6-2.3l-2.9-3.8a1.6 1.6 0 0 1 2.5-2l1.4 1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  /* sichtbar? – ruft cb(true/false) bei jeder Änderung */
+  const watch = (el, cb, th = .45) => { if (!el) return; if (!IO) return cb(true); new IntersectionObserver(es => es.forEach(e => cb(e.isIntersecting)), { threshold: th }).observe(el); };
+  /* echte Nutzer-Interaktion (keine Vorführ-Klicks) */
+  const touched = (el, f, evs = ['pointerdown', 'keydown', 'wheel', 'touchstart']) => evs.forEach(ev => el.addEventListener(ev, e => { if (e.isTrusted !== false) f(e); }, { passive: true }));
+  const hint = (txt, cls = '') => { const h = document.createElement('p'); h.className = 'v6-hint ' + cls; h.setAttribute('aria-hidden', 'true'); h.innerHTML = HAND + '<span>' + txt + '</span>'; return h; };
+  const gone = h => h && h.classList.add('gone');
+
+  /* ---------- 1) Horizontale Streifen: kleiner Schubs + „← wischen →“ (verschwindet nach dem ersten Wischen) ---------- */
+  const STRIPS = [['.re-track', '← wischen · Station für Station →'], ['.tr-g', '← wischen für alle Angebote →'], ['.al-g', '← wischen →'], ['.lo-facts', '← wischen →'], ['.lo-way ol', '← wischen →'], ['.fc-g', '← wischen · Karte antippen →'], ['.wi-chips', null], ['.sw-chips', null], ['.re-dots', null]];
+  STRIPS.forEach(([sel, txt]) => {
+    const s = $(sel); if (!s) return;
+    let h = null, done = false, runs = 0, inV = false, rep = 0, prog = false, raf = 0, snap = '';
+    const over = () => s.scrollWidth > s.clientWidth + 8 && getComputedStyle(s).overflowX !== 'visible';
+    const edge = () => { const o = over(); s.classList.toggle('v6-more', o && s.scrollLeft + s.clientWidth < s.scrollWidth - 6); s.classList.toggle('v6-less', o && s.scrollLeft > 6); };
+    /* echter kleiner Scroll-Schubs (keine Transforms – die würden sich mit den GSAP-Einblendungen der Karten verhaken) */
+    const stopN = () => { cancelAnimationFrame(raf); if (prog) { s.style.scrollSnapType = snap; requestAnimationFrame(() => requestAnimationFrame(() => { prog = false; })); } };
+    const nudge = () => { if (done || RM || prog || !over()) return; runs++; prog = true; snap = s.style.scrollSnapType; s.style.scrollSnapType = 'none';
+      const x0 = s.scrollLeft, d = Math.max(0, Math.min(64, s.scrollWidth - s.clientWidth - x0)), T = 2600, t0 = performance.now();
+      const f = now => { const k = Math.min(1, (now - t0) / T); s.scrollLeft = x0 + d * (1 - Math.cos(k * Math.PI * 4)) / 2; if (k < 1 && !done) raf = requestAnimationFrame(f); else { if (!done) s.scrollLeft = x0; stopN(); } };
+      raf = requestAnimationFrame(f); };
+    const finish = () => { if (done) return; done = true; stopN(); gone(h); clearTimeout(rep); };
+    s.addEventListener('scroll', () => { edge(); if (!prog) finish(); }, { passive: true });
+    touched(s, finish, ['pointerdown', 'touchstart', 'wheel']);
+    addEventListener('resize', edge); edge();
+    watch(s, v => {
+      inV = v; edge(); if (!v || done || !over()) return;
+      if (txt && !h) { h = hint(txt, 'v6-strip'); const o = getComputedStyle(s).order; if (o && o !== '0') h.style.order = o; s.after(h); }
+      if (runs < 3) { clearTimeout(rep); rep = setTimeout(() => { nudge(); rep = setTimeout(() => { if (inV && !done && runs < 3) nudge(); }, 7500); }, 700); }
+    }, .4);
+  });
+
+  /* ---------- 2) Körper-Karte: Punkte leuchten nacheinander, ein Finger zeigt „Tippen“ ---------- */
+  (() => {
+    const map = $('.bodymap'), fg = $('.fi-g'); if (!map || !fg) return;
+    const P = $$('.bp', map); if (!P.length) return;
+    const f = document.createElement('span'); f.className = 'v6-finger'; f.setAttribute('aria-hidden', 'true'); f.innerHTML = HAND + '<b>Tippen</b>'; map.appendChild(f);
+    let k = 0, t = 0, done = false;
+    const step = () => { P.forEach(p => p.classList.remove('demo')); const p = P[k % P.length]; p.classList.add('demo'); f.style.left = p.style.getPropertyValue('--x'); f.style.top = p.style.getPropertyValue('--y'); f.classList.remove('tap'); void f.offsetWidth; f.classList.add('tap', 'on'); k++; };
+    const stop = () => { clearInterval(t); t = 0; };
+    const finish = () => { if (done) return; done = true; stop(); P.forEach(p => p.classList.remove('demo')); f.classList.add('gone'); };
+    touched(fg, finish, ['pointerdown', 'keydown']);
+    watch(map, v => { if (done) return; stop(); if (v) { step(); if (!RM) t = setInterval(step, 2300); } }, .55);
+  })();
+
+  /* ---------- 3) Lomi: drei Seiten wechseln von selbst, bis jemand tippt ---------- */
+  (() => {
+    const g = $('.lo-sides'); if (!g) return; const B = $$('[data-lside]', g), live = $('[data-lsidet]'); if (!B.length) return;
+    const h = hint('Tippen', 'v6-inline'); g.appendChild(h);
+    let t = 0, done = false, k = B.findIndex(b => b.classList.contains('on'));
+    const stop = () => { clearInterval(t); t = 0; };
+    const finish = () => { if (done) return; done = true; stop(); gone(h); live && live.setAttribute('aria-live', 'polite'); };
+    touched(g, finish, ['pointerdown', 'keydown']);
+    watch(g, v => { if (done || RM) return; stop(); if (v) { live && live.setAttribute('aria-live', 'off'); t = setInterval(() => { k = (k + 1) % B.length; B[k].click(); }, 3600); } }, .9);
+  })();
+
+  /* ---------- 4) Aloha-Wörterbuch: Worte blättern von selbst (Karte behält ihre Höhe) ---------- */
+  (() => {
+    const wb = $('[data-wb]'); if (!wb) return; const card = $('.wb-card', wb), B = $$('[data-w]', wb), list = $('.wb-list', wb); if (!card || !B.length) return;
+    const h = hint('Tippe ein Wort an'); list.after(h);
+    const fit = () => { /* höchste Karte messen, damit nichts darunter springt */
+      const W = (window.VP && VP.words) || []; if (!W.length) return; const fx = ['[data-ww]', '[data-wp]', '[data-wm]', '[data-wn]', '[data-wsrc]'].map(s => $(s, card)); if (fx.some(e => !e)) return; const keep = fx.map(e => e.textContent);
+      card.style.minHeight = ''; let mx = 0; W.forEach(w => { fx[0].textContent = w.w; fx[1].textContent = w.p; fx[2].textContent = w.m; fx[3].textContent = w.n; fx[4].textContent = 'Quelle: ' + w.sn + ' ↗'; mx = Math.max(mx, card.offsetHeight); });
+      fx.forEach((e, i) => { e.textContent = keep[i]; }); card.style.minHeight = mx + 'px'; };
+    fit(); let rz = 0; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(fit, 250); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+    let t = 0, done = false;
+    const stop = () => { clearInterval(t); t = 0; };
+    const finish = () => { if (done) return; done = true; stop(); gone(h); card.setAttribute('aria-live', 'polite'); };
+    touched(wb, finish, ['pointerdown', 'keydown']);
+    watch(card, v => { if (done || RM) return; stop(); if (v) { card.setAttribute('aria-live', 'off'); t = setInterval(() => { const i = B.findIndex(b => b.classList.contains('on')); B[(i + 1) % B.length].click(); }, 4600); } }, .6);
+  })();
+
+  /* ---------- 5) Öle: der Duft-Nebel wandert von Öl zu Öl, bis jemand tippt ---------- */
+  (() => {
+    const box = $('[data-oils]'), mist = $('[data-mist]'), sel = $('[data-oilsel]'); if (!box || !mist) return;
+    const O = $$('.oil', box), D = (window.VP && VP.oils) || []; if (!O.length) return;
+    if (sel && !sel.querySelector('.v6-hand')) sel.insertAdjacentHTML('afterbegin', HAND);
+    let k = 0, t = 0, done = false;
+    const show = () => { const o = O[k % O.length], r = box.getBoundingClientRect(), b = o.getBoundingClientRect(); O.forEach(x => x.classList.toggle('demo', x === o));
+      mist.style.setProperty('--mx', ((b.left + b.width / 2 - r.left) / r.width * 60 + 20) + '%'); mist.style.setProperty('--my', ((b.top + b.height / 2 - r.top) / r.height * 60 + 20) + '%');
+      mist.style.setProperty('--mc', (D[k % O.length] || {}).c || '#ffc46b'); mist.classList.remove('on'); void mist.offsetWidth; mist.classList.add('on'); k++; };
+    const stop = () => { clearInterval(t); t = 0; };
+    const finish = () => { if (done) return; done = true; stop(); O.forEach(x => x.classList.remove('demo')); };
+    touched(box, finish, ['pointerdown', 'keydown']);
+    watch(box, v => { if (done || RM) return; stop(); if (v) { show(); t = setInterval(show, 2600); } }, .5);
+  })();
+
+  /* ---------- 6) A-L-O-H-A: Buchstaben leuchten nacheinander auf ---------- */
+  (() => {
+    const g = $('.al-g'); if (!g) return; const A = $$('.al', g); if (!A.length) return;
+    let k = 0, t = 0, done = false;
+    const stop = () => { clearInterval(t); t = 0; };
+    const finish = () => { if (done) return; done = true; stop(); A.forEach(a => a.classList.remove('demo')); };
+    touched(g, finish, ['pointerdown', 'keydown']);
+    watch(g, v => { if (done || RM) return; stop(); if (v) t = setInterval(() => { A.forEach((a, i) => a.classList.toggle('demo', i === k % A.length)); k++; }, 2400); }, .5);
+  })();
+
+  /* ---------- 7) Wusstest du?: eine Karte „lupft“ kurz an, Chip „Tippen“ zeigt, wie es geht ---------- */
+  (() => {
+    const g = $('[data-fcg]'); if (!g) return; const C = $$('.fc', g); if (!C.length) return;
+    let n = 0, t = 0, done = false, inV = false;
+    const chip = document.createElement('span'); chip.className = 'v6-tap'; chip.setAttribute('aria-hidden', 'true'); chip.innerHTML = HAND + '<b>Tippen</b>';
+    const pick = () => { const vw = innerWidth, vh = innerHeight; return C.find(c => { if (c.classList.contains('on') || c.classList.contains('hide') || c.classList.contains('seen')) return false; const r = c.getBoundingClientRect(); return r.left >= -2 && r.right <= vw + 2 && r.top >= 60 && r.bottom <= vh; }); };
+    const peek = () => { if (done || !inV) return; const c = pick(); if (!c) return; n++; const f = $('.fc-f', c); f && f.appendChild(chip); chip.classList.remove('gone');
+      if (!RM) { c.classList.remove('v6-peek'); void c.offsetWidth; c.classList.add('v6-peek'); } };
+    C.forEach(c => c.addEventListener('animationend', e => { if (e.animationName === 'v6lift') c.classList.remove('v6-peek'); }));
+    const finish = () => { if (done) return; done = true; clearInterval(t); C.forEach(c => c.classList.remove('v6-peek')); chip.classList.add('gone'); };
+    g.addEventListener('click', e => { if (e.isTrusted !== false && e.target.closest('.fc')) finish(); });
+    watch(g, v => { inV = v; clearInterval(t); t = 0; if (!v || done) return; setTimeout(peek, 600); t = setInterval(() => { if (n >= 5) return clearInterval(t); peek(); }, 6500); }, .3);
+  })();
+
+  /* ---------- 8) Story-Wall (Desktop): ab und zu huscht ein Lichtstreif über ein Bild ---------- */
+  (() => {
+    const tr = $('[data-swtrack]'); if (!tr || RM) return; let t = 0;
+    watch(tr, v => { clearInterval(t); t = 0; if (!v) return; t = setInterval(() => { if (innerWidth < 760 || document.hidden) return; const vh = innerHeight;
+      const vis = $$('.sw-t:not(.off) .sw-b', tr).filter(b => { const r = b.getBoundingClientRect(); return r.top > 70 && r.bottom < vh && !b.matches(':hover'); }); if (!vis.length) return;
+      const b = vis[Math.floor(Math.random() * vis.length)]; b.classList.remove('v6-shine'); void b.offsetWidth; b.classList.add('v6-shine'); setTimeout(() => b.classList.remove('v6-shine'), 1400); }, 2200); }, .15);
+  })();
+
+  /* ---------- 9) Atmen: der Kreis selbst startet die Übung ---------- */
+  (() => {
+    const c = $('[data-bc]'), b = $('[data-breath]'); if (!c || !b) return;
+    c.addEventListener('click', () => b.click());
+    c.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); b.click(); } });
+  })();
+
+  /* ---------- 10) Am Seitenende: schwebende Knöpfe weichen dem Formular und dem Footer ---------- */
+  (() => {
+    const zs = [$('#kontakt'), $('.ftr')].filter(Boolean); if (!zs.length || !IO) return; const on = new Set();
+    const io = new IntersectionObserver(es => { es.forEach(e => e.isIntersecting ? on.add(e.target) : on.delete(e.target)); document.documentElement.classList.toggle('v6-end', on.size > 0); }, { rootMargin: '0px 0px -12% 0px', threshold: 0 });
+    zs.forEach(z => io.observe(z));
+    /* Handy: auf dem ersten Bildschirm liegt nichts über dem Begrüßungstext */
+    const hero = $('.hero'); if (hero) new IntersectionObserver(([e]) => document.documentElement.classList.toggle('v6-top', e.intersectionRatio > .55), { threshold: [0, .55, 1] }).observe(hero);
+  })();
+
+  /* ---------- 10b) Zitat Wort für Wort: wer stehen bleibt, bekommt den Satz trotzdem ganz ---------- */
+  (() => {
+    const bq = $('[data-split]'); if (!bq) return; let t = 0;
+    watch(bq, v => { clearTimeout(t); if (!v || bq.classList.contains('v6-full')) return;
+      t = setTimeout(() => { const W = $$('.w', bq), i = W.findIndex(w => !w.classList.contains('on'));
+        if (i >= 0 && !RM) W.forEach((w, j) => { if (j >= i) w.style.transitionDelay = ((j - i) * 70) + 'ms'; });
+        bq.classList.add('v6-full'); }, 1400); }, .7);
+  })();
+
+  /* ---------- 11) Kapitel-Faden: wo bin ich in der Geschichte? ---------- */
+  (() => {
+    const th = $('[data-thread]'); if (!th) return; const L = $$('a[data-th]', th), S = L.map(a => document.getElementById(a.dataset.th)); if (S.some(s => !s)) return;
+    const fill = $('[data-thfill]', th), hdr = $('[data-hdr]'); let cur = -2, raf = 0, say = 0;
+    const upd = () => { raf = 0; const y = innerHeight * .45; let k = -1, fr = 0;
+      S.forEach((s, i) => { const r = s.getBoundingClientRect(); if (r.top <= y) { k = i; fr = Math.max(0, Math.min(1, (y - r.top) / Math.max(1, r.height))); } });
+      const p = k < 0 ? 0 : Math.min(1, (k + fr) / (S.length - 1));
+      if (fill) fill.style.transform = 'scaleY(' + p.toFixed(4) + ')';
+      if (hdr) hdr.style.setProperty('--thp', (k < 0 ? 0 : (k + fr) / S.length).toFixed(4));
+      th.classList.toggle('show', k >= 0);
+      if (k !== cur) { cur = k; L.forEach((a, i) => { a.classList.toggle('past', i < k); a.classList.toggle('cur', i === k); i === k ? a.setAttribute('aria-current', 'step') : a.removeAttribute('aria-current'); });
+        if (k >= 0) { th.classList.add('say'); clearTimeout(say); say = setTimeout(() => th.classList.remove('say'), 2400); } } };
+    addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(upd); }, { passive: true }); addEventListener('resize', upd); addEventListener('load', upd); upd();
+  })();
 })();
