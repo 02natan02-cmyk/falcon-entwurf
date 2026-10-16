@@ -11,10 +11,45 @@
   const toastEl = $('[data-toast]'); let tt;
   const toast = (m, ms = 3200) => { if (!toastEl) return; toastEl.textContent = m; toastEl.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => toastEl.classList.remove('on'), ms); };
   const DPR = Math.min(2, window.devicePixelRatio || 1);
+  const TOUCH = matchMedia('(hover: none), (pointer: coarse)').matches;
+
+  /* ---------------- Hinweis-Chips („← ziehen →“, „Antippen“) ----------------
+     Erscheinen beim ersten Sichtkontakt, bewegen sich von selbst und verschwinden nach der ersten echten Berührung. */
+  const HAND = '<svg class="nd-hand" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11.2V4.6a1.6 1.6 0 0 1 3.2 0V10h.4V8.6a1.6 1.6 0 0 1 3.2 0v1.6h.4v-.4a1.6 1.6 0 0 1 3.2 0v5.3c0 4-2.7 6.9-6.6 6.9h-.9c-2 0-3.5-.8-4.7-2.4l-3-4.3a1.6 1.6 0 0 1 2.5-2z"/></svg>';
+  function nudge(host, text, { kind = 'drag', on = [host], delay = 700, cls = '' } = {}) {
+    if (!host) return { kill() {} };
+    const n = document.createElement('span'); n.className = `nudge nd-${kind} ${cls}`; n.setAttribute('aria-hidden', 'true');
+    n.innerHTML = kind === 'drag' ? `<i class="nd-ar">←</i>${HAND}<b>${text}</b><i class="nd-ar">→</i>` : `<i class="nd-ring"></i>${HAND}<b>${text}</b>`;
+    host.appendChild(n);
+    let gone = false, shown = false;
+    const kill = () => { if (gone) return; gone = true; n.classList.remove('on'); n.classList.add('bye'); setTimeout(() => n.remove(), 600); };
+    on.forEach(t => t && ['pointerdown', 'keydown', 'input'].forEach(ev => t.addEventListener(ev, e => { if (e.isTrusted) kill(); }, { passive: true })));
+    if (RM) n.classList.add('rm');
+    inView(host, v => { if (v && !shown && !gone) { shown = true; setTimeout(() => { if (!gone) n.classList.add('on'); }, delay); } }, '-12% 0px');
+    return { kill, el: n };
+  }
+
+  /* ---------------- Schwebende Elemente weichen Inhalten aus ---------------- */
+  function avoid(el, sel, { cls = 'clash', pad = 0, skip = null } = {}) {
+    if (!el) return;
+    let raf = 0;
+    const chk = () => {
+      raf = 0; if (getComputedStyle(el).display === 'none') return;
+      if (skip && skip()) { el.classList.remove(cls); return; }
+      const r = el.getBoundingClientRect(); if (!r.width) return;
+      const R = { l: r.left + 2, r: r.right - 2, t: r.top + 2, b: r.bottom + pad };
+      let hit = false;
+      for (const t of document.querySelectorAll(sel)) { const q = t.getBoundingClientRect(); if (q.width && q.right > R.l && q.left < R.r && q.bottom > R.t && q.top < R.b) { hit = true; break; } }
+      el.classList.toggle(cls, hit);
+    };
+    const req = () => { if (!raf) raf = requestAnimationFrame(chk); };
+    addEventListener('scroll', req, { passive: true }); addEventListener('resize', req); setInterval(req, 600); req();
+  }
 
   /* ---------------- Intro ---------------- */
   const intro = $('[data-intro]');
   const ready = () => { document.body.classList.remove('is-loading'); document.dispatchEvent(new Event('kl-ready')); };
+  const onReady = fn => { if (document.body.classList.contains('is-loading')) document.addEventListener('kl-ready', fn, { once: true }); else fn(); };
   if (intro) {
     if (RM || sget('kl-intro')) { intro.remove(); ready(); }
     else {
@@ -65,7 +100,9 @@
     addEventListener('scroll', () => { if (dsw.classList.contains('on') && scrollY > 80 && !dsw.matches(':hover')) setOpen(false); }, { passive: true });
     addEventListener('resize', () => { if (dsw.classList.contains('on')) fit(); });
     // einmal pro Sitzung kurz auf- und zuklappen, damit man sieht, dass hier alle Zeiten stehen
-    const peek = () => { if (RM || sget('kl-dspeek')) return; sset('kl-dspeek', 1); setTimeout(() => { if (scrollY > 120) return; setOpen(true); peekT = setTimeout(() => setOpen(false), 2200); }, 1400); };
+    // auf dem Handy würde der aufgeklappte Zettel die Hauptüberschrift verdecken – dort schwingt das Schild nur und „Zeiten ▾“ leuchtet
+    const peek = () => { if (RM || sget('kl-dspeek')) return; sset('kl-dspeek', 1); setTimeout(() => { if (scrollY > 120 || dsw.classList.contains('on')) return; if (innerWidth < 700) { dsw.classList.add('wink'); peekT = setTimeout(() => dsw.classList.remove('wink'), 2600); return; } setOpen(true); peekT = setTimeout(() => setOpen(false), 2200); }, 1400); };
+    btn.addEventListener('click', () => dsw.classList.remove('wink'));
     if (document.body.classList.contains('is-loading')) document.addEventListener('kl-ready', peek, { once: true }); else peek();
   }
 
@@ -87,8 +124,15 @@
     addEventListener('scroll', upd, { passive: true }); upd();
   }
 
+  // Programmknopf und Entwurfs-Hinweis dürfen nie über Karten, Bügeln, Zetteln oder Texten liegen
+  const CONTENT = '.lm, .lm-end p, .story-ct, .story-go, .hg-tag, .cl-it, .pair, .line-rope, .tape, .h1, .h2, .lead, .kick, .b, .ba, .sc, .tk, .tk-steps, .mg-machine, .mg-ctrl, .mg-photos figure, .namebox, .bl-v, .bl-count, .sg-drum, .sg-stats, .shop-front, .shop-boards, .vo-score, .stats, .rack-ctl, .wm, .basket, .wm-hint, .ftr-in, .ftr-b';
+  avoid(dialEl, CONTENT, { pad: 30 });
   const concept = $('.concept'), ftr0 = $('.ftr');
-  if (concept && ftr0) { const cu = () => concept.classList.toggle('away', ftr0.getBoundingClientRect().top < innerHeight - 40); addEventListener('scroll', cu, { passive: true }); cu(); }
+  if (concept && ftr0) {
+    const cu = () => { concept.classList.toggle('away', ftr0.getBoundingClientRect().top < innerHeight - 40); concept.classList.toggle('mini', scrollY > innerHeight * .45); };
+    addEventListener('scroll', cu, { passive: true }); cu();
+    avoid(concept, CONTENT, { skip: () => !concept.classList.contains('mini') });
+  }
 
   /* ---------------- Zähler ---------------- */
   $$('[data-count]').forEach(el => inView(el, v => { if (!v || el._done) return; el._done = 1; const n = +el.dataset.count; let t0; const st = ts => { if (!t0) t0 = ts; const k = clamp((ts - t0) / 1400, 0, 1); el.textContent = Math.round(n * ease(k)); if (k < 1) requestAnimationFrame(st); }; requestAnimationFrame(st); }, '0px'));
@@ -295,12 +339,23 @@
     btnSp.addEventListener('click', spinNow);
     const ICON = { shirt: () => SP.shirt(30, 26, '#1d6fd8'), sock: () => sockSprite(SOCKS[1], 30).c, towel: () => SP.towel(30, 17, '#2a9d8f'), sheet: () => SP.sheet(30, 20), duck: () => SP.duck(28) };
     $$('[data-addw]').forEach(b => { b.setAttribute('aria-label', b.title + ' in die Trommel legen'); try { const im = new Image(); im.alt = ''; im.src = ICON[b.dataset.addw]().toDataURL(); im.width = 28; im.height = 28; b.textContent = ''; b.appendChild(im); } catch (er) { } });
-    $$('[data-addw]').forEach(b => b.addEventListener('click', () => {
+    $$('[data-addw]').forEach(b => b.addEventListener('click', () => drop(b)));
+    function drop(b) {
       if (D.items.length > 26) { const old = D.items[0]; D.removeItem(old); }
       D.addItem(b.dataset.addw, D.R + (Math.random() - .5) * D.R * .3, D.R * .35, { v: { x: (Math.random() - .5) * 3, y: 6 } });
       const r = b.getBoundingClientRect(), f = document.createElement('span'), ic = $('img', b); if (ic) f.appendChild(ic.cloneNode()); else f.textContent = b.textContent; f.style.cssText = `position:fixed;left:${r.left}px;top:${r.top}px;font-size:24px;z-index:500;pointer-events:none;transition:transform .55s cubic-bezier(.5,-.4,.3,1),opacity .55s`; document.body.appendChild(f);
       const cr = cv.getBoundingClientRect(); if (RM) { f.remove(); return; } requestAnimationFrame(() => { f.style.transform = `translate(${cr.left + cr.width / 2 - r.left}px,${cr.top + cr.height * .3 - r.top}px) scale(.6) rotate(-200deg)`; f.style.opacity = '0'; }); setTimeout(() => f.remove(), 600);
-    }));
+    }
+    // Impuls: Hinweis in der Trommel; Programmknopf wackelt und der Wäschekorb legt einmal von selbst eine Socke nach
+    const basket = $('[data-basket]');
+    nudge($('[data-door]', wm), TOUCH ? 'Wäsche antippen' : 'Wäsche greifen &amp; werfen', { kind: TOUCH ? 'tap' : 'drag', on: [wm, basket], delay: 1200, cls: 'nd-drum' });
+    let touched = false; [wm, basket].forEach(el => el && el.addEventListener('pointerdown', e => { if (e.isTrusted) touched = true; }));
+    const demo = () => {
+      if (RM || touched || !vis || document.hidden) return;
+      knob.classList.add('demo'); setTimeout(() => knob.classList.remove('demo'), 1300);
+      const sb = $('[data-addw="sock"]'); if (sb) setTimeout(() => { if (touched) return; sb.classList.add('demo'); drop(sb); setTimeout(() => sb.classList.remove('demo'), 700); }, 900);
+    };
+    onReady(() => setTimeout(demo, 3400));
     let acc = 0, rmUntil = 0;
     const wake = () => { if (!RM) return; const was = rmUntil > performance.now(); rmUntil = performance.now() + 2500; if (!was) { last = performance.now(); requestAnimationFrame(loop); } };
     [knob, btnS, btnSp, ...$$('[data-addw]')].forEach(el => el.addEventListener('click', wake)); cv.addEventListener('pointerdown', wake);
@@ -320,7 +375,7 @@
     }
     if (!RM) requestAnimationFrame(loop); else { for (let i = 0; i < 90; i++) D.step(16.67); D.drawBack(); D.drawWater(false); D.drawItems(); D.drawWater(true); }
     // erster Hinweis: kurz anschubsen, wenn das Intro weg ist
-    document.addEventListener('kl-ready', () => setTimeout(() => { D.items.forEach(b => D.M.Body.setVelocity(b, { x: (Math.random() - .5) * 6, y: -6 })); }, 600), { once: true });
+    onReady(() => setTimeout(() => { D.items.forEach(b => D.M.Body.setVelocity(b, { x: (Math.random() - .5) * 6, y: -6 })); }, 600));
   }
 
   /* ================= Sockenspiel ================= */
@@ -374,6 +429,7 @@
       res.textContent = `Ihre Zeit: ${fmt(ms)}${rec ? ' – neue Bestzeit!' : ''} Bei uns geht keine Socke verloren.`; done.hidden = false; startBtn.textContent = 'Spiel starten';
     }
     startBtn.addEventListener('click', start); $('[data-sgagain]').addEventListener('click', start);
+    nudge(wrap, TOUCH ? 'Zwei gleiche Socken antippen' : 'Zwei gleiche Socken anklicken', { kind: 'tap', on: [cv, startBtn, shakeBtn], delay: 900, cls: 'nd-socks' });
     shakeBtn.addEventListener('click', () => { shakeT = 1; shakeBtn.classList.remove('pulse'); });
     const init = () => { if (D.build() && !D.items.length) { const list = []; SOCKS.forEach((s, i) => list.push(i, i)); list.forEach(i => D.addItem('sock', D.R + (Math.random() - .5) * D.R * .9, D.R + (Math.random() - .2) * D.R * .7, { sock: SOCKS[i], L: L() })); } };
     init(); addEventListener('resize', () => D.build());
@@ -404,7 +460,7 @@
   /* ================= Waschstraße (Geschichte) ================= */
   const story = $('[data-story]');
   if (story && !RM) {
-    const pin = $('[data-storypin]'), track = $('[data-storytrack]'), bar = $('[data-storybar]'), lms = $$('.lm', track);
+    const pin = $('[data-storypin]'), track = $('[data-storytrack]'), bar = $('[data-storybar]'), lms = $$('.lm', track), nEl = $('[data-storyn]');
     const manual = new Map();
     function size() { const extra = track.scrollWidth - innerWidth, f = innerWidth < 640 ? .72 : 1; story.style.setProperty('--sh', (extra * f + innerHeight * 1.15) + 'px'); return extra; }
     let extra = size(); addEventListener('resize', () => { extra = size(); upd(); });
@@ -412,18 +468,27 @@
       const r = story.getBoundingClientRect(), total = story.offsetHeight - innerHeight, p = clamp(-r.top / total, 0, 1);
       track.style.transform = `translateX(${-p * extra}px)`; bar.style.setProperty('--sp', (p * 100) + '%');
       const cx = innerWidth / 2;
+      const pinned = r.top <= 2 && r.bottom >= innerHeight - 2; story.classList.toggle('go', pinned && p < .035);
+      let ci = 0, cd = 1e9;
       lms.forEach((m, i) => {
         const b = m.getBoundingClientRect(), mid = b.left + b.width / 2, onScreen = b.right > -50 && b.left < innerWidth + 50;
+        if (Math.abs(mid - cx) < cd) { cd = Math.abs(mid - cx); ci = i; }
         m.classList.toggle('vis', onScreen);
         const near = Math.abs(mid - cx) < Math.max(b.width * .55, innerWidth * .16);
         const want = manual.has(i) ? manual.get(i) : near;
         if (m.classList.contains('open') !== want) { m.classList.toggle('open', want); $('.lm-door', m).setAttribute('aria-expanded', want); }
         if (!near && manual.has(i) && Math.abs(mid - cx) > innerWidth * .6) manual.delete(i);
       });
+      if (nEl) { const t = String(ci + 1).padStart(2, '0'); if (nEl.textContent !== t) { nEl.textContent = t; nEl.classList.remove('tick'); void nEl.offsetWidth; nEl.classList.add('tick'); } }
     }
     addEventListener('scroll', upd, { passive: true }); upd();
     lms.forEach((m, i) => $('.lm-door', m).addEventListener('click', () => { manual.set(i, !m.classList.contains('open')); upd(); }));
-  } else if (story) { $$('.lm', story).forEach(m => m.classList.add('vis', 'open')); }
+  } else if (story) {
+    $$('.lm', story).forEach(m => m.classList.add('vis', 'open'));
+    // ohne Animationen ist die Waschstraße eine normale Querleiste – auch die braucht einen klaren Hinweis
+    const tr = $('[data-storytrack]', story), h = nudge($('[data-storypin]', story), TOUCH ? 'wischen' : 'seitlich scrollen', { kind: 'drag', on: [tr], delay: 300, cls: 'nd-story' });
+    if (tr) tr.addEventListener('scroll', () => h.kill(), { passive: true, once: true });
+  }
 
   /* ================= Heißmangel ================= */
   const mg = $('[data-mangle]');
@@ -475,7 +540,10 @@
       for (const q of steam) { q.x += q.vx; q.y += q.vy; q.r += .6; const g = x.createRadialGradient(q.x, q.y, 0, q.x, q.y, q.r); g.addColorStop(0, `rgba(255,255,255,${q.a})`); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.beginPath(); x.arc(q.x, q.y, q.r, 0, 6.28); x.fill(); }
     }
     let raf;
-    function loop() { draw(); heat = lerp(heat, p > 0 && p < 1 ? 1 : .2, .05); roll.style.setProperty('--heat', (heat * .7).toFixed(2)); temp.textContent = Math.round(lerp(20, 180, heat)); if (folding) { fold += .02; if (fold >= 2) { folding = false; showPkg(); } } if (steam.length || folding || heat > .22) raf = requestAnimationFrame(loop); else raf = 0; }
+    const stEl = $('[data-mgst]'), lamp = $('[data-mglamp]'); let stTxt = '';
+    const setSt = t => { if (stEl && t !== stTxt) { stTxt = t; stEl.textContent = t; } };
+    const status = () => { setSt(!pkg.hidden ? 'Fertig – in Papier eingeschlagen ✓' : folding ? 'Wird gefaltet …' : p <= .001 ? 'Bereit – Laken einziehen' : p >= 1 ? 'Glatt – wird gefaltet …' : 'Mangelt – weiterziehen →'); if (lamp) lamp.classList.toggle('on', heat > .45); };
+    function loop() { draw(); heat = lerp(heat, p > 0 && p < 1 ? 1 : .2, .05); roll.style.setProperty('--heat', (heat * .7).toFixed(2)); temp.textContent = Math.round(lerp(20, 180, heat)); if (folding) { fold += .02; if (fold >= 2) { folding = false; showPkg(); } } status(); if (steam.length || folding || heat > .22) raf = requestAnimationFrame(loop); else raf = 0; }
     const kick = () => { if (!raf) raf = requestAnimationFrame(loop); };
     let lastP = 0;
     function setP(v) {
@@ -485,21 +553,24 @@
       rng.value = p * 100; kick();
       if (p >= 1 && !folding && pkg.hidden) { folding = true; fold = 0; kick(); }
     }
-    rng.addEventListener('input', () => setP(rng.value / 100));
+    let user = false; // sobald der Besucher selbst zieht, hört der Vorführ-Impuls sofort auf
+    rng.addEventListener('input', () => { user = true; setP(rng.value / 100); });
     let dr = null;
-    cv.addEventListener('pointerdown', e => { dr = { x: e.clientX, p }; cv.setPointerCapture(e.pointerId); });
+    cv.addEventListener('pointerdown', e => { user = true; dr = { x: e.clientX, p }; cv.setPointerCapture(e.pointerId); });
     cv.addEventListener('pointermove', e => { if (!dr) return; const r = cv.getBoundingClientRect(); setP(dr.p + (e.clientX - dr.x) / (r.width * .44)); });
-    cv.addEventListener('pointerup', () => dr = null); cv.style.touchAction = 'pan-y'; cv.style.cursor = 'ew-resize';
-    function showPkg() { tag.textContent = (nameIn.value || '').trim() || 'Sie'; pkg.hidden = false; toast('Gemangelt, gefaltet, in Papier eingeschlagen – wie an der Theke.'); }
+    const drEnd = () => dr = null; cv.addEventListener('pointerup', drEnd); cv.addEventListener('pointercancel', drEnd); cv.addEventListener('lostpointercapture', drEnd);
+    cv.style.touchAction = 'pan-y'; cv.style.cursor = 'ew-resize';
+    const mgHint = nudge($('.mg-machine', mg), 'Laken ziehen', { kind: 'drag', on: [cv, rng], delay: 1000, cls: 'nd-mangel' });
+    function showPkg() { if (typeof mgHint !== 'undefined') mgHint.kill(); tag.textContent = (nameIn.value || '').trim() || 'Sie'; pkg.hidden = false; toast('Gemangelt, gefaltet, in Papier eingeschlagen – wie an der Theke.'); }
     // der Name auf dem Paket wandert – solange dort nichts Eigenes steht – auch auf den Wäschezettel
     const tkName = $('[data-tkname]');
     nameIn.addEventListener('input', () => { const v = nameIn.value.trim(); tag.textContent = v || 'Sie'; if (tkName && (!tkName.value || tkName._auto)) { tkName.value = v; tkName._auto = !!v; } });
     if (tkName) tkName.addEventListener('input', () => { tkName._auto = false; });
-    $('[data-mgagain]').addEventListener('click', () => { pkg.hidden = true; folding = false; fold = 0; p = 0; rng.value = 0; draw(); });
+    $('[data-mgagain]').addEventListener('click', () => { pkg.hidden = true; folding = false; fold = 0; p = 0; rng.value = 0; draw(); status(); rng.focus({ preventScroll: true }); });
     // Laken erst berechnen, wenn die Mangel in die Nähe kommt (spart Rechenzeit beim Laden)
     inView(mg, v => { if (v && !wr) draw(); }, '400px');
     // Anstoß beim ersten Sichtkontakt
-    let shown = false; inView(mg, v => { if (v && !shown && !RM) { shown = true; let k = 0; const auto = () => { k += .012; setP(k * .22); if (k < 1) requestAnimationFrame(auto); }; requestAnimationFrame(auto); } }, '-20% 0px');
+    let shown = false; inView(mg, v => { if (v && !shown && !RM) { shown = true; let k = 0; const auto = () => { if (user || folding || !pkg.hidden) return; k += .012; setP(k * .22); if (k < 1) requestAnimationFrame(auto); }; requestAnimationFrame(auto); } }, '-20% 0px');
   }
 
   /* ================= Lamellen ================= */
@@ -521,21 +592,29 @@
     let raf;
     const loop = () => { fc.clearRect(0, 0, fx.width, fx.height); sp = sp.filter(q => (q.a -= .02) > 0); for (const q of sp) { q.x += q.vx; q.y += q.vy; fc.fillStyle = `rgba(255,255,255,${q.a})`; fc.beginPath(); fc.moveTo(q.x, q.y - q.s * 2); fc.lineTo(q.x + q.s * .6, q.y); fc.lineTo(q.x, q.y + q.s * 2); fc.lineTo(q.x - q.s * .6, q.y); fc.fill(); } if (sp.length) raf = requestAnimationFrame(loop); else raf = 0; };
     const kick = () => { if (!raf) raf = requestAnimationFrame(loop); };
-    sled.addEventListener('pointerdown', e => { drag = { x: e.clientX, p: pos }; sled.setPointerCapture(e.pointerId); });
+    let user = false; // eigener Zug des Besuchers stoppt den Vorführ-Zug sofort
+    sled.addEventListener('pointerdown', e => { user = true; drag = { x: e.clientX, p: pos }; sled.setPointerCapture(e.pointerId); });
     sled.addEventListener('pointermove', e => { if (drag) setPos(drag.p + e.clientX - drag.x); });
-    sled.addEventListener('pointerup', () => drag = null); sled.addEventListener('pointercancel', () => drag = null);
-    sled.addEventListener('keydown', e => { if (e.key === 'ArrowRight') { setPos(pos + 30); e.preventDefault(); } if (e.key === 'ArrowLeft') { setPos(pos - 30); e.preventDefault(); } });
-    // kleiner Vorführ-Zug beim ersten Anblick
-    let once = false; inView(bl, v => { if (v && !once && !RM) { once = true; let t = 0; const a = () => { t += .02; setPos(ease(Math.min(t, 1)) * bl.clientWidth * .18); if (t < 1) requestAnimationFrame(a); }; setTimeout(() => requestAnimationFrame(a), 400); } }, '-25% 0px');
+    sled.addEventListener('pointerup', () => drag = null); sled.addEventListener('pointercancel', () => drag = null); sled.addEventListener('lostpointercapture', () => drag = null);
+    sled.addEventListener('keydown', e => { if (e.key === 'ArrowRight') { user = true; setPos(pos + 30); e.preventDefault(); } if (e.key === 'ArrowLeft') { user = true; setPos(pos - 30); e.preventDefault(); } });
+    nudge(sled, 'Schlitten ziehen', { kind: 'drag', on: [sled], delay: 1100, cls: 'nd-sled' });
+    // kleiner Vorführ-Zug beim ersten Anblick (läuft nur vorwärts und nie gegen den Besucher)
+    let once = false; inView(bl, v => { if (v && !once && !RM) { once = true; let t = 0; const a = () => { if (user || drag) return; t += .02; const want = ease(Math.min(t, 1)) * bl.clientWidth * .18; if (want > pos) setPos(want); if (t < 1) requestAnimationFrame(a); }; setTimeout(() => requestAnimationFrame(a), 400); } }, '-25% 0px');
   }
 
   /* ================= Kleiderstange ================= */
   const rail = $('[data-rail]');
   const picked = new Set();
+  let tkProg = () => {};
+  // Anhänger, Zähler und Zettel immer im selben Zustand halten (auch wenn auf dem Zettel ein Haken entfernt wird)
+  function syncTags() {
+    $$('.hg-tag').forEach(t => { const on = picked.has(t.dataset.pick); t.classList.toggle('picked', on); t.setAttribute('aria-pressed', on); const em = $('em', t); if (em) em.textContent = on ? '✓ auf dem Zettel' : '+ Zettel'; });
+    const pn = $('[data-picked]'); if (pn) pn.textContent = picked.size; tkProg();
+  }
+  function unpickSvc(v) { const cb = $(`.tk input[name="Leistung"][value="${v}"]`); if (cb) cb.checked = false; picked.delete(v); syncTags(); toast('„' + v + '“ wurde vom Wäschezettel genommen.'); }
   function pickSvc(v, fromEl) {
     const vals = v.split(','); vals.forEach(val => { const cb = $(`.tk input[name="Leistung"][value="${val}"]`); if (cb) cb.checked = true; picked.add(val); });
-    $$('.hg-tag').forEach(t => { t.classList.toggle('picked', picked.has(t.dataset.pick)); $('em', t).textContent = picked.has(t.dataset.pick) ? '✓ auf dem Zettel' : '+ Zettel'; });
-    const pn = $('[data-picked]'); if (pn) pn.textContent = picked.size;
+    syncTags();
     if (fromEl) { const r = fromEl.getBoundingClientRect(), f = document.createElement('span'); f.className = 'fly'; f.textContent = '+ ' + vals.join(', '); f.style.left = r.left + 'px'; f.style.top = r.top + 'px'; document.body.appendChild(f); const dock = $('[data-dock] a.on') && innerWidth < 640 ? $('[data-dock] a.on') : $('#zettel'); const tr2 = dock.getBoundingClientRect(); requestAnimationFrame(() => { f.style.transform = `translate(${(innerWidth < 640 ? tr2.left + tr2.width / 2 : innerWidth / 2) - r.left}px,${(innerWidth < 640 ? tr2.top : Math.min(innerHeight - 40, tr2.top)) - r.top}px) scale(.6)`; f.style.opacity = '0'; }); setTimeout(() => f.remove(), 850); }
   }
   if (rail) {
@@ -549,7 +628,8 @@
     addEventListener('pointermove', e => { if (!drag || e.pointerId !== drag.id) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (!drag.axis) { if (Math.abs(dx) > 6 || Math.abs(dy) > 6) { drag.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'; if (drag.axis === 'x') rail.classList.add('drag'); } return; } if (drag.axis !== 'x') return; const now = performance.now(), no = drag.o + dx; vel = (no - off) / Math.max(1, now - drag.t) * 16; drag.t = now; off = no; moved = Math.abs(dx); });
     const up = () => { if (drag) { rail.classList.remove('drag'); drag = null; } }; addEventListener('pointerup', up); addEventListener('pointercancel', up);
     const bb = $('[data-belt]'); bb.addEventListener('click', () => { belt = !belt; bb.setAttribute('aria-pressed', belt); bb.textContent = belt ? '❚❚ Förderband stoppen' : '▶︎ Förderband'; });
-    $$('.hg-tag', inner).forEach(t => t.addEventListener('click', e => { if (moved > 8) { e.preventDefault(); return; } pickSvc(t.dataset.pick, t); }));
+    $$('.hg-tag', inner).forEach(t => t.addEventListener('click', e => { if (moved > 8) { e.preventDefault(); return; } if (picked.has(t.dataset.pick)) unpickSvc(t.dataset.pick); else pickSvc(t.dataset.pick, t); }));
+    nudge(rail, 'Stange ziehen', { kind: 'drag', on: [rail, bb], delay: 900, cls: 'nd-rail' });
     let prev = 0;
     function loop() {
       if (vis) {
@@ -570,14 +650,23 @@
   if (tk) {
     const no = String(Math.floor(1000 + Math.random() * 8999)); $('[data-tkno]').textContent = no; $('[data-tkno2]').textContent = no; $('[data-tknoin]').value = no;
     $$('input[name="Kunde"]', tk).forEach(r => r.addEventListener('change', () => tk.classList.toggle('biz', $('input[name="Kunde"]:checked', tk).value !== 'Privat')));
-    $$('input[name="Leistung"]', tk).forEach(cb => cb.addEventListener('change', () => { if (cb.checked) picked.add(cb.value); else picked.delete(cb.value); $$('.hg-tag').forEach(t => t.classList.toggle('picked', picked.has(t.dataset.pick))); const pn = $('[data-picked]'); if (pn) pn.textContent = picked.size; }));
+    $$('input[name="Leistung"]', tk).forEach(cb => cb.addEventListener('change', () => { if (cb.checked) picked.add(cb.value); else picked.delete(cb.value); syncTags(); }));
+    // „So geht's“: Schritte haken sich mit dem Zettel ab
+    const steps = $$('[data-tksteps] li');
+    tkProg = () => {
+      if (!steps.length) return;
+      const sent = tk.classList.contains('sent'), any = !!$('input[name="Leistung"]:checked', tk);
+      const done = [any || sent, sent, false], cur = sent ? 2 : any ? 1 : 0;
+      steps.forEach((li, i) => { li.classList.toggle('done', done[i]); li.classList.toggle('cur', i === cur); });
+    };
+    tk.addEventListener('change', tkProg); tkProg();
     tk.addEventListener('submit', async e => {
       e.preventDefault(); const btn = $('[data-tksend]', tk); btn.disabled = true; btn.textContent = 'Wird abgegeben …';
       const fd = new FormData(tk); const data = {}; fd.forEach((v, k) => { data[k] = data[k] ? data[k] + ', ' + v : v; });
       try {
         const r = await fetch(tk.action, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(data) });
         if (!r.ok) throw 0;
-        $('[data-stampdate]').textContent = new Date().toLocaleDateString('de-DE'); tk.classList.add('sent'); $('[data-tkok]').hidden = false; $('[data-tkerr]').hidden = true; btn.textContent = 'Abgegeben ✓';
+        $('[data-stampdate]').textContent = new Date().toLocaleDateString('de-DE'); tk.classList.add('sent'); $('[data-tkok]').hidden = false; $('[data-tkerr]').hidden = true; btn.textContent = 'Abgegeben ✓'; tkProg();
       } catch (er) { $('[data-tkerr]').hidden = false; btn.disabled = false; btn.textContent = 'Zettel abgeben'; }
     });
   }
@@ -585,8 +674,11 @@
   /* ================= Früher / Heute ================= */
   const ba = $('[data-ba]');
   if (ba) {
-    const r = $('[data-bar]'); r.addEventListener('input', () => ba.style.setProperty('--p', r.value + '%'));
-    let once = false; inView(ba, v => { if (v && !once && !RM) { once = true; let t = 0; const a = () => { t += .012; const k = Math.sin(t * Math.PI) * 30; ba.style.setProperty('--p', (50 + k) + '%'); r.value = 50 + k; if (t < 1) requestAnimationFrame(a); else { ba.style.setProperty('--p', '50%'); r.value = 50; } }; requestAnimationFrame(a); } }, '-20% 0px');
+    const r = $('[data-bar]'); let user = false;
+    r.addEventListener('input', () => { user = true; ba.style.setProperty('--p', r.value + '%'); });
+    r.addEventListener('pointerdown', () => { user = true; });
+    nudge(ba, 'ziehen', { kind: 'drag', on: [r], delay: 1200, cls: 'nd-ba' });
+    let once = false; inView(ba, v => { if (v && !once && !RM) { once = true; let t = 0; const a = () => { if (user) return; t += .012; const k = Math.sin(t * Math.PI * 2) * 26; ba.style.setProperty('--p', (50 + k) + '%'); r.value = 50 + k; if (t < 1) requestAnimationFrame(a); else { ba.style.setProperty('--p', '50%'); r.value = 50; } }; requestAnimationFrame(a); } }, '-20% 0px');
   }
 
   /* ================= Dock ================= */
