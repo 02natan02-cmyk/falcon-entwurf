@@ -93,6 +93,14 @@
   const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px' });
   $$('.rv').forEach(el => io.observe(el));
   const inView = (el, cb, margin = '200px') => { if (!el) return; const o = new IntersectionObserver(([e]) => cb(e.isIntersecting), { rootMargin: margin }); o.observe(el); };
+  // einmalig, sobald ein Element wirklich im Bild ist
+  const firstView = (el, cb, margin = '0px 0px -22% 0px') => { if (!el) return; const o = new IntersectionObserver(([e]) => { if (e.isIntersecting) { o.disconnect(); cb(); } }, { rootMargin: margin }); o.observe(el); };
+
+  /* ---------------- Impuls-Hinweise („← ziehen →“): erscheinen beim ersten Sichtkontakt, verschwinden nach der ersten echten Bedienung ---------------- */
+  const NUDGE = {};
+  $$('[data-nudge]').forEach(n => { NUDGE[n.dataset.nudge] = n; firstView(n.parentElement, () => { if (!n.classList.contains('gone')) setTimeout(() => n.classList.add('on'), 450); }); });
+  const nudgeOff = k => { const n = NUDGE[k]; if (n) n.classList.add('gone'); };
+  window.GTnudgeOff = nudgeOff;
 
   /* ================= HERO ================= */
   const hero = $('[data-hero]');
@@ -220,29 +228,33 @@
       const sr = stage.getBoundingClientRect(), lr = log.getBoundingClientRect();
       const lx = lr.left - sr.left, ly = lr.top - sr.top + lr.height / 2;
       if (!base.length || !base[0].w) measure();
+      // v6: Während die Säge die nächste Scheibe schneidet, bleibt das vorige Kapitel stehen (kein leerer Bildschirm);
+      // erst wenn die neue Scheibe fällt, rollt die alte in den Stapel.
+      const CUT = .3;
+      if (p > .06) nudgeOff('saw');
       sl.forEach((s, i) => {
         const disc = $('.sl-disc', s), txt = $('.sl-t', s), b = base[i] || { x: 0, y: 0, w: 1 };
         let o = 0, prog2 = 0, fly = -1;
-        if (i === k) { prog2 = clamp((u - .3) / .4, 0, 1); o = u < .3 ? 0 : 1; }
-        else if (i === k - 1 && u < .3) { fly = clamp(u / .3, 0, 1); o = fly < .97 ? 1 : 0; } // vorige Scheibe rollt in den Stapel
+        if (i === k) { prog2 = clamp((u - CUT) / .4, 0, 1); o = u < CUT ? 0 : 1; }
+        else if (i === k - 1 && u < CUT + .12) { fly = clamp((u - (CUT - .05)) / .17, 0, 1); o = fly < .97 ? 1 : 0; } // vorige Scheibe: steht, dann rollt sie in den Stapel
         if (i === n - 1 && p >= .999) { prog2 = 1; o = 1; }
-        s.style.opacity = o; s.classList.toggle('on', o > .5 && fly < 0);
+        s.style.opacity = o; s.classList.toggle('on', o > .5 && fly < .05);
         if (o > 0 && fly >= 0) {
           const mr = $('i', prog[i]).getBoundingClientRect(), e2 = ease(fly);
           const tx = lerp(0, mr.left - sr.left + mr.width / 2 - b.x, e2), ty = lerp(0, mr.top - sr.top + mr.height / 2 - b.y, e2) - Math.sin(e2 * Math.PI) * 80;
           disc.style.transform = `translate(${tx}px,${ty}px) rotate(${lerp(0, -300, e2)}deg) scale(${lerp(1, mr.width / b.w, e2)})`;
-          txt.style.opacity = clamp(1 - fly * 3, 0, 1); txt.style.transform = 'none';
+          txt.style.opacity = clamp(1 - fly * 2, 0, 1); txt.style.transform = 'none';
         } else if (o > 0) {
           // Start: Stamm-Ende, Ziel: Endposition
           const ex = lx - b.x, ey = ly - b.y;
           const e2 = ease(prog2);
           const tx = lerp(ex, 0, e2), ty = lerp(ey, 0, e2) - Math.sin(e2 * Math.PI) * 60;
           disc.style.transform = `translate(${tx}px,${ty}px) perspective(800px) rotateY(${lerp(-78, 0, e2)}deg) rotate(${lerp(-14, 0, e2)}deg) scale(${lerp(lr.height / b.w, 1, e2)})`;
-          const to = clamp((prog2 - .42) / .3, 0, 1);
+          const to = clamp((prog2 - .3) / .3, 0, 1);
           txt.style.opacity = to; txt.style.transform = `translateY(${(1 - to) * 18}px)`;
         }
       });
-      prog.forEach((b, i) => { b.classList.toggle('on', i < k - 1 || (i === k - 1 && u >= .29)); b.classList.toggle('cur', i === k && u >= .3); });
+      prog.forEach((b, i) => { b.classList.toggle('on', i < k - 1 || (i === k - 1 && u >= CUT + .1)); b.classList.toggle('cur', (i === k && u >= CUT) || (i === k - 1 && u < CUT)); });
       if (k !== lastK) { lastK = k; }
       // Sägestaub
       if (sawing && vis) {
@@ -301,19 +313,19 @@
     addEventListener('pointermove', e => {
       if (!drag || e.pointerId !== drag.id) return;
       const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-      if (!drag.axis) { if (Math.abs(dx) > 6 || Math.abs(dy) > 6) { drag.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'; if (drag.axis === 'x') { board.classList.add('drag'); try { board.setPointerCapture(e.pointerId); } catch (er) {} } } return; }
+      if (!drag.axis) { if (Math.abs(dx) > 6 || Math.abs(dy) > 6) { drag.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'; if (drag.axis === 'x') { board.classList.add('drag'); nudgeOff('board'); try { board.setPointerCapture(e.pointerId); } catch (er) {} } } return; }
       if (drag.axis !== 'x') return;
       const now = performance.now(), no = drag.o + dx; vel = (no - off) / Math.max(1, now - drag.t) * 16; drag.t = now; off = no; moved = Math.abs(dx); render();
     });
     const up = e => { if (!drag) return; board.classList.remove('drag'); drag = null; };
     addEventListener('pointerup', up); addEventListener('pointercancel', up);
-    board.addEventListener('wheel', e => { if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) { e.preventDefault(); off -= e.deltaX; render(); } }, { passive: false });
+    board.addEventListener('wheel', e => { if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) { e.preventDefault(); nudgeOff('board'); off -= e.deltaX; render(); } }, { passive: false });
     board.addEventListener('pointerenter', () => hover = true); board.addEventListener('pointerleave', () => hover = false);
-    all.forEach(it => it.addEventListener('click', e => { if (moved > 8) { e.preventDefault(); return; } openLB(items.indexOf(it)); }));
+    all.forEach(it => it.addEventListener('click', e => { if (moved > 8) { e.preventDefault(); return; } nudgeOff('board'); openLB(items.indexOf(it)); }));
     // Filter: Board sortiert sich neu, Lightbox blättert nur durch die Auswahl
     const btot = $('[data-btot]'), mkLB = () => { LBlist = items.map(it => { const p = P[+it.dataset.pr]; return { src: 'img/f/' + p[0] + '.webp', de: p[1], pl: p[2] }; }); };
     $$('[data-pf]').forEach(b => b.addEventListener('click', () => {
-      const k = b.dataset.pf;
+      const k = b.dataset.pf; nudgeOff('board');
       $$('[data-pf]').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', x === b); });
       items = all.filter(it => k === 'all' || it.dataset.pc.split(' ').includes(k));
       all.forEach(it => { const on = items.includes(it); it.hidden = !on; it.classList.remove('pop'); });
@@ -321,11 +333,15 @@
       items.forEach((it, j) => { it.style.setProperty('--d', (j % 12) * 35 + 'ms'); void it.offsetWidth; it.classList.add('pop'); });
     }));
     // Bilder im Querscroller vorladen, sobald das Board in die Nähe kommt (nicht nur lazy)
-    inView(board, v => { if (v) all.forEach(it => { const im = $('img', it); if (im.loading === 'lazy') im.loading = 'eager'; }); }, '600px');
-    $$('[data-bstep]').forEach(b => b.addEventListener('click', () => { const tgt = off - (+b.dataset.bstep) * Math.min(420, board.clientWidth * .6); const s = off; let t0; const an = ts => { if (!t0) t0 = ts; const k = clamp((ts - t0) / 600, 0, 1); off = lerp(s, tgt, ease(k)); render(); if (k < 1) requestAnimationFrame(an); }; requestAnimationFrame(an); }));
+    inView(board, v => { if (v) all.forEach(it => { const im = $('img', it); if (im.loading === 'lazy') im.loading = 'eager'; }); }, '1600px');
+    // Polaroid „entwickelt“ sich, sobald das Foto geladen ist – nie ein grauer Kasten
+    all.forEach(it => { const im = $('img', it), ok = () => im.classList.add('ld'); if (im.complete && im.naturalWidth) ok(); else { im.addEventListener('load', ok, { once: true }); im.addEventListener('error', ok, { once: true }); } });
+    $$('[data-bstep]').forEach(b => b.addEventListener('click', () => { nudgeOff('board'); const tgt = off - (+b.dataset.bstep) * Math.min(420, board.clientWidth * .6); const s = off; let t0; const an = ts => { if (!t0) t0 = ts; const k = clamp((ts - t0) / 600, 0, 1); off = lerp(s, tgt, ease(k)); render(); if (k < 1) requestAnimationFrame(an); }; requestAnimationFrame(an); }));
     function loop() { if (vis && !drag && !fits) { if (Math.abs(vel) > .05) { off += vel; vel *= .95; render(); } else if (!hover && !RM) { off -= .35; render(); } } requestAnimationFrame(loop); }
     layout(); addEventListener('resize', layout); requestAnimationFrame(loop);
     mkLB();
+    // Impuls: beim ersten Sichtkontakt schwungvoll ein Stück weiterschieben
+    firstView(board, () => { if (!RM && !drag) setTimeout(() => { if (!drag) vel = innerWidth < 640 ? -11 : -15; }, 350); });
   }
   /* Lightbox */
   const lb = $('[data-lb]'); let lbi = 0, lbBack = null;
@@ -369,14 +385,17 @@
     turn.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; drag = { x: e.clientX, y: e.clientY, a: A, axis: null, id: e.pointerId, t: performance.now() }; vA = 0; idle = 0; });
     addEventListener('pointermove', e => {
       if (!drag || e.pointerId !== drag.id) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-      if (!drag.axis) { if (Math.abs(dx) > 6 || Math.abs(dy) > 6) { drag.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'; if (drag.axis === 'x') turn.classList.add('drag'); } return; }
+      if (!drag.axis) { if (Math.abs(dx) > 6 || Math.abs(dy) > 6) { drag.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'; if (drag.axis === 'x') { turn.classList.add('drag'); touched = true; nudgeOff('tt'); } } return; }
       if (drag.axis !== 'x') return;
       const na = drag.a - dx * .32, now = performance.now(); vA = (na - A) / Math.max(1, now - drag.t) * 16; drag.t = now; A = na; target = A; place();
     });
     const up = () => { if (!drag) return; turn.classList.remove('drag'); if (drag.axis === 'x') { target = Math.round((A + vA * 8) / step) * step; } drag = null; };
     addEventListener('pointerup', up); addEventListener('pointercancel', up);
-    $$('[data-ttn]').forEach(b => b.addEventListener('click', () => { target = Math.round(A / step) * step - (+b.dataset.ttn) * step; idle = 0; }));
-    its.forEach((it, i) => it.addEventListener('click', () => { if (i === ttFront) return; let d = ((-(i * step) - A) % 360 + 540) % 360 - 180; target = A + d; idle = 0; }));
+    $$('[data-ttn]').forEach(b => b.addEventListener('click', () => { touched = true; nudgeOff('tt'); target = Math.round(A / step) * step - (+b.dataset.ttn) * step; idle = 0; }));
+    its.forEach((it, i) => it.addEventListener('click', () => { if (i === ttFront) return; touched = true; nudgeOff('tt'); let d = ((-(i * step) - A) % 360 + 540) % 360 - 180; target = A + d; idle = 0; }));
+    // Impuls beim ersten Sichtkontakt: einmal eine Garnitur weiter und zurück – der Teller zeigt, dass er sich dreht
+    let touched = false;
+    firstView(turn, () => { if (RM) return; setTimeout(() => { if (!touched && !drag) { target = Math.round(A / step) * step - step; idle = 0; } }, 600); setTimeout(() => { if (!touched && !drag) { target += step; idle = 0; } }, 2300); });
     function loop() {
       if (vis && !drag) {
         idle++; if (idle > 300 && !RM) { target = Math.round(A / step) * step - step; idle = 0; }
@@ -407,18 +426,19 @@
     const path = $('path', lights), bulbs = [];
     for (let i = 0; i < 22; i++) { const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); c.setAttribute('r', 5); c.setAttribute('class', 'bulb'); lights.appendChild(c); bulbs.push(c); }
     function lightsAt(sw) {
-      const d = `M-10 20 Q ${300 + sw * 14} ${140 + Math.abs(sw) * 4} 600 40 T 1210 30`; path.setAttribute('d', d);
+      const d = `M-10 18 Q ${300 + sw * 14} ${112 + Math.abs(sw) * 3} 600 36 T 1210 26`; path.setAttribute('d', d);
       const L = path.getTotalLength(); bulbs.forEach((b, i) => { const p = path.getPointAtLength(L * (i + .5) / bulbs.length); b.setAttribute('cx', p.x); b.setAttribute('cy', p.y + 7); b.style.opacity = .7 + .3 * Math.sin(performance.now() / 400 + i); });
     }
     // Glühwürmchen
     const fc = $('[data-flies]'), fx = fc.getContext('2d'); let flies = [];
     function rsF() { fc.width = swSec.clientWidth; fc.height = swSec.clientHeight; flies = Array.from({ length: innerWidth < 700 ? 14 : 28 }, () => ({ x: Math.random() * fc.width, y: fc.height * (.35 + Math.random() * .6), a: Math.random() * 6.28, s: .3 + Math.random() * .6 })); }
     rsF(); addEventListener('resize', rsF);
-    obj.addEventListener('pointerdown', e => { drag = { x: e.clientX, th0: th, id: e.pointerId }; obj.classList.add('drag'); try { obj.setPointerCapture(e.pointerId); } catch (er) {} });
-    obj.addEventListener('pointermove', e => { if (!drag || e.pointerId !== drag.id) return; const nt = clamp(drag.th0 + (e.clientX - drag.x) * .035, -7, 7); om = nt - th; th = nt; });
+    let lastAct = performance.now();
+    obj.addEventListener('pointerdown', e => { drag = { x: e.clientX, th0: th, id: e.pointerId }; lastAct = performance.now(); obj.classList.add('drag'); try { obj.setPointerCapture(e.pointerId); } catch (er) {} });
+    obj.addEventListener('pointermove', e => { if (!drag || e.pointerId !== drag.id) return; const nt = clamp(drag.th0 + (e.clientX - drag.x) * .035, -7, 7); if (Math.abs(e.clientX - drag.x) > 6) nudgeOff('swing'); om = nt - th; th = nt; lastAct = performance.now(); });
     const up = () => { if (!drag) return; drag = null; obj.classList.remove('drag'); };
     obj.addEventListener('pointerup', up); obj.addEventListener('pointercancel', up);
-    $('[data-push]').addEventListener('click', () => { om += (th >= 0 ? 1 : -1) * 0.9 + .5; });
+    $('[data-push]').addEventListener('click', () => { nudgeOff('swing'); lastAct = performance.now(); om += (th >= 0 ? 1 : -1) * 0.9 + .5; });
     $$('[data-sw]').forEach(b => b.addEventListener('click', () => {
       $$('[data-sw]').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', x === b); });
       cur = b.dataset.sw; img.src = 'img/c/' + cur + '.webp'; obj.classList.remove('drop'); void obj.offsetWidth; obj.classList.add('drop'); th = 0; om = .6;
@@ -427,6 +447,8 @@
     function loop() {
       if (vis) {
         if (!drag) { const acc = -th * .018 - om * .012; om += acc; th = clamp(th + om, -7, 7); }
+        // läuft von selbst weiter: kommt die Schaukel zur Ruhe, gibt ihr der Abendwind einen sanften Schubs
+        if (!drag && !RM && Math.abs(th) < .4 && Math.abs(om) < .05 && performance.now() - lastAct > 5000) { om += (Math.random() < .5 ? -1 : 1) * .55; lastAct = performance.now(); }
         obj.style.transform = `translateX(${th * 2.2}px) rotate(${th}deg)`;
         sh.style.transform = `translateX(calc(-50% + ${th * 7}px)) scaleX(${1 - Math.abs(th) * .012})`;
         lightsAt(th);
@@ -441,13 +463,15 @@
     requestAnimationFrame(loop);
   }
 
-  /* ================= KAPITEL 5: Gießerei – Betonblock wird gegossen und ausgeschalt ================= */
+  /* ================= KAPITEL 5: Gießerei – Holzschalung, Beton wird gegossen, härtet aus, wird ausgeschalt ================= */
   const cast = $('[data-cast]');
   if (cast) {
     const block = $('[data-block]', cast), cimg = $('[data-castimg]', cast), cv = $('[data-shards]', cast), x = cv.getContext('2d'), pour = $('[data-pour]', cast), steps = $$('[data-cs]', cast);
-    const puff = $('[data-puff]', cast), pctx = puff.getContext('2d');
-    let hold = null, shards = [], BW = 0, BH = 0, OX = 0, OY = 0, vis = false, override = null, pp = [], tex = null, lastP = -1, dpr = Math.min(2, devicePixelRatio || 1);
-    inView(cast, v => vis = v);
+    const puff = $('[data-puff]', cast), pctx = puff.getContext('2d'), fun = $('.funnel', cast), castV = $('.cast-v', cast), sc = $('[data-castscroll]', cast);
+    let shards = [], BW = 0, BH = 0, OX = 0, OY = 0, FX = 0, FY = 0, FW = 0, FH = 0, vis = false, pp = [], tex = null, wood = null, sil = null, lastP = -1, dpr = Math.min(2, devicePixelRatio || 1);
+    // Selbstablauf: play = { t0, from } spielt den Guss bis zum Ende; stay = danach fertig stehen lassen, bis der Abschnitt verlassen wird
+    let play = null, stay = false, autoDone = false, still = performance.now(), lastY = scrollY;
+    inView(cast, v => { vis = v; if (!v) { stay = false; play = null; } });
     const R = (i, k) => { const v = Math.sin(i * 91.7 + k * 37.3) * 43758.5453; return v - Math.floor(v); };
     function concreteTex() {
       const c = document.createElement('canvas'); c.width = c.height = 256; const t = c.getContext('2d');
@@ -456,12 +480,19 @@
       for (let i = 0; i < 70; i++) { t.fillStyle = 'rgba(60,58,54,.35)'; t.beginPath(); t.arc(Math.random() * 256, Math.random() * 256, .6 + Math.random() * 1.6, 0, 6.28); t.fill(); }
       return c;
     }
+    function woodTex() {
+      const c = document.createElement('canvas'); c.width = 256; c.height = 64; const t = c.getContext('2d');
+      const g = t.createLinearGradient(0, 0, 0, 64); g.addColorStop(0, '#c8925a'); g.addColorStop(.5, '#b47c45'); g.addColorStop(1, '#9c6633'); t.fillStyle = g; t.fillRect(0, 0, 256, 64);
+      for (let i = 0; i < 30; i++) { t.strokeStyle = `rgba(80,45,18,${.1 + Math.random() * .22})`; t.lineWidth = .5 + Math.random() * 1.1; t.beginPath(); const y0 = Math.random() * 64; t.moveTo(0, y0); for (let xx = 0; xx <= 256; xx += 16) t.lineTo(xx, y0 + Math.sin(xx * .03 + i) * 2.5); t.stroke(); }
+      return c;
+    }
     function build() {
       const r = cv.getBoundingClientRect(); cv.width = r.width * dpr; cv.height = r.height * dpr; x.setTransform(dpr, 0, 0, dpr, 0, 0);
       puff.width = puff.clientWidth; puff.height = puff.clientHeight;
       // Bildrechteck der Figur im Block
-      const br = block.getBoundingClientRect(), iw = cimg.naturalWidth || 600, ih = cimg.naturalHeight || 700, sc = Math.min(br.width / iw, br.height / ih);
-      const fw = iw * sc, fh = ih * sc, fx = (br.width - fw) / 2, fy = br.height - fh;
+      const br = block.getBoundingClientRect(), iw = cimg.naturalWidth || 600, ih = cimg.naturalHeight || 700, s0 = Math.min(br.width / iw, br.height / ih);
+      const fw = iw * s0, fh = ih * s0, fx = (br.width - fw) / 2, fy = br.height - fh;
+      FX = fx + (br.left - r.left); FY = fy + (br.top - r.top); FW = fw; FH = fh;
       OX = (fx - br.width * .02) + (br.left - r.left); OY = (fy - br.height * .04) + (br.top - r.top); BW = fw + br.width * .04; BH = fh + br.height * .04;
       const cols = innerWidth < 640 ? 6 : 8, rows = innerWidth < 640 ? 8 : 10, P = [];
       for (let j = 0; j <= rows; j++) for (let i = 0; i <= cols; i++) { const jx = (i > 0 && i < cols) ? (R(i, j) - .5) * .7 : 0, jy = (j > 0 && j < rows) ? (R(j, i + 9) - .5) * .7 : 0; P.push([OX + (i + jx) / cols * BW, OY + (j + jy) / rows * BH + (j === 0 ? (R(i, 3) - .5) * BH * .04 : 0)]); }
@@ -469,48 +500,103 @@
       for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
         const a = P[j * (cols + 1) + i], b = P[j * (cols + 1) + i + 1], c = P[(j + 1) * (cols + 1) + i + 1], d = P[(j + 1) * (cols + 1) + i];
         const tris = R(i, j + 5) > .5 ? [[a, b, c], [a, c, d]] : [[a, b, d], [b, c, d]];
-        tris.forEach((tr, q) => { const cx = (tr[0][0] + tr[1][0] + tr[2][0]) / 3, cy = (tr[0][1] + tr[1][1] + tr[2][1]) / 3, n = shards.length; shards.push({ p: tr, cx, cy, yn: (cy - OY) / BH, t: .46 + ((cy - OY) / BH) * .26 + R(n, 1) * .08, vx: (cx - (OX + BW / 2)) / BW * 2 + (R(n, 2) - .5) * 1.2, vr: (R(n, 3) - .5) * 4, sh: .88 + R(n, 4) * .2, puffed: false }); });
+        tris.forEach(tr => { const cx = (tr[0][0] + tr[1][0] + tr[2][0]) / 3, cy = (tr[0][1] + tr[1][1] + tr[2][1]) / 3, n = shards.length; shards.push({ p: tr, cx, cy, t: .46 + ((cy - OY) / BH) * .26 + R(n, 1) * .08, vx: (cx - (OX + BW / 2)) / BW * 2 + (R(n, 2) - .5) * 1.2, vr: (R(n, 3) - .5) * 4, sh: .88 + R(n, 4) * .2, puffed: false }); });
       }
       if (!tex) tex = concreteTex();
+      if (!wood) wood = woodTex();
+      // Schattenriss der Figur – zeigt in der leeren Form, was entsteht
+      if (cimg.naturalWidth) { sil = document.createElement('canvas'); sil.width = cimg.naturalWidth; sil.height = cimg.naturalHeight; const sx = sil.getContext('2d'); sx.drawImage(cimg, 0, 0); sx.globalCompositeOperation = 'source-in'; sx.fillStyle = '#4c4a45'; sx.fillRect(0, 0, sil.width, sil.height); }
     }
-    function draw(p) {
-      const W = cv.width / dpr, H = cv.height / dpr; x.clearRect(0, 0, W, H);
-      const fill = clamp(p / .28, 0, 1), cure = clamp((p - .28) / .16, 0, 1);
-      cimg.style.opacity = p < .27 ? 0 : 1;
-      const fun = $('.funnel', cast); if (fun) { fun.style.opacity = p > .36 ? 0 : 1; fun.style.transform = `translateX(-50%) translateY(${p > .36 ? -30 : 0}px)`; }
-      const level = OY + BH * (1 - fill), pat = x.createPattern(tex, 'repeat');
-      for (const s of shards) {
-        let q = 0; if (p > s.t) q = clamp((p - s.t) / .14, 0, 1);
-        if (q >= 1) continue;
-        const top = Math.min(s.p[0][1], s.p[1][1], s.p[2][1]); if (s.cy < level - 2 && fill < 1) continue;
-        x.save();
-        const dy = q * q * 520, dx = s.vx * q * 90, rot = s.vr * q;
-        x.translate(s.cx + dx, s.cy + dy); x.rotate(rot); x.translate(-s.cx, -s.cy);
-        x.globalAlpha = 1 - q * .9;
-        x.beginPath(); x.moveTo(...s.p[0]); x.lineTo(...s.p[1]); x.lineTo(...s.p[2]); x.closePath();
-        x.save(); x.clip();
-        if (fill < 1 && level > OY) { x.fillStyle = `rgb(${120 + 20 * s.sh},${118 + 20 * s.sh},${112 + 20 * s.sh})`; } else x.fillStyle = pat;
-        x.fillRect(s.cx - 200, s.cy - 200, 400, 400);
-        const wet = 1 - cure; if (wet > 0) { x.fillStyle = `rgba(70,68,64,${.45 * wet})`; x.fillRect(s.cx - 200, s.cy - 200, 400, 400); }
-        x.fillStyle = `rgba(0,0,0,${(1 - s.sh) * .6 + .02})`; x.fillRect(s.cx - 200, s.cy - 200, 400, 400);
-        x.restore();
-        // Kanten: Risse zeigen sich beim Aushärten, beim Brechen deutlicher
-        const edge = Math.max(cure * .35, q > 0 ? .7 : 0); if (edge > 0) { x.strokeStyle = `rgba(40,38,34,${edge})`; x.lineWidth = q > 0 ? 1.4 : .8; x.stroke(); x.strokeStyle = `rgba(255,255,255,${edge * .35})`; x.lineWidth = .6; x.stroke(); }
-        x.restore();
-        if (q > 0 && !s.puffed) { s.puffed = true; if (pp.length < 160) for (let k = 0; k < 2; k++) pp.push({ x: s.cx + (puff.getBoundingClientRect().left ? 0 : 0), y: s.cy, vx: (Math.random() - .5) * 2, vy: -Math.random(), r: 4 + Math.random() * 10, a: .35 }); }
-        if (q === 0) s.puffed = false;
+    // Holzschalung: Seitenwände aus Brettern + Boden; beim Ausschalen klappen die Wände weg
+    function plank(px, py, pw, ph, n, horiz) {
+      x.save(); x.beginPath(); x.rect(px, py, pw, ph); x.clip();
+      const pat = x.createPattern(wood, 'repeat'); x.fillStyle = pat; x.fillRect(px, py, pw, ph);
+      x.strokeStyle = 'rgba(50,28,10,.55)'; x.lineWidth = 1.2;
+      for (let i = 1; i < n; i++) { x.beginPath(); if (horiz) { const xx = px + pw * i / n; x.moveTo(xx, py); x.lineTo(xx, py + ph); } else { const yy = py + ph * i / n; x.moveTo(px, yy); x.lineTo(px + pw, yy); } x.stroke(); }
+      x.fillStyle = 'rgba(40,40,40,.75)';
+      for (let i = 0; i < n; i++) { const c = horiz ? [px + pw * (i + .5) / n, py + ph * .5] : [px + pw * .5, py + ph * (i + .5) / n]; x.beginPath(); x.arc(c[0], c[1], 1.6, 0, 6.28); x.fill(); }
+      x.restore();
+      x.strokeStyle = 'rgba(50,28,10,.6)'; x.lineWidth = 1.5; x.strokeRect(px, py, pw, ph);
+    }
+    function form(open, behind) {
+      const t = Math.max(11, BW * .05), top = OY - BH * .05, h = OY + BH - top, bot = OY + BH, a = 1 - open;
+      if (a <= 0) return;
+      if (behind) {
+        // Rückwand der Form (man schaut von vorne in die offene Form)
+        x.save(); x.globalAlpha = .55 * a; x.fillStyle = x.createPattern(wood, 'repeat'); x.fillRect(OX, top, BW, h); x.fillStyle = 'rgba(30,18,8,.35)'; x.fillRect(OX, top, BW, h);
+        x.strokeStyle = 'rgba(40,22,8,.35)'; x.lineWidth = 1; for (let i = 1; i < 6; i++) { const yy = top + h * i / 6; x.beginPath(); x.moveTo(OX, yy); x.lineTo(OX + BW, yy); x.stroke(); }
+        x.restore(); return;
       }
-      // flüssige Oberfläche beim Gießen
-      if (fill > 0 && fill < 1) { x.fillStyle = 'rgba(230,228,220,.55)'; x.fillRect(OX, level - 2, BW, 3); }
-      if (fill > 0 && fill < 1) { const vr = cast.querySelector('.cast-v').getBoundingClientRect(), cr = cv.getBoundingClientRect(); pour.style.height = Math.max(8, cr.top - vr.top + level - 86) + 'px'; } else pour.style.height = '0px';
+      x.save(); x.globalAlpha = a;
+      // Boden
+      plank(OX - t, bot, BW + t * 2, t * .85, 4, true);
+      // linke Wand – klappt nach außen
+      x.save(); x.translate(OX - t, bot); x.rotate(-open * 1.25); x.translate(-open * 30, open * 40); plank(0, -h, t, h, 5, false); x.restore();
+      // rechte Wand
+      x.save(); x.translate(OX + BW + t, bot); x.rotate(open * 1.25); x.translate(open * 30, open * 40); plank(-t, -h, t, h, 5, false); x.restore();
+      // Spannbänder oben
+      if (open < .05) { x.fillStyle = 'rgba(55,55,58,.85)'; x.fillRect(OX - t - 3, top + h * .18, t + 6, 5); x.fillRect(OX + BW - 3, top + h * .18, t + 6, 5); x.fillRect(OX - t - 3, top + h * .72, t + 6, 5); x.fillRect(OX + BW - 3, top + h * .72, t + 6, 5); }
+      x.restore();
+    }
+    function draw(p, now) {
+      const W = cv.width / dpr, H = cv.height / dpr; x.clearRect(0, 0, W, H);
+      const fill = clamp(p / .28, 0, 1), cure = clamp((p - .28) / .16, 0, 1), open = clamp((p - .42) / .12, 0, 1);
+      cimg.style.opacity = p < .27 ? 0 : 1;
+      if (fun) { fun.style.opacity = p > .36 ? 0 : 1; fun.style.transform = `translateX(-50%) translateY(${p > .36 ? -30 : 0}px)`; }
+      const level = OY + BH * (1 - fill), pat = x.createPattern(tex, 'repeat');
+      form(open, true);
+      // leere Form: Schattenriss der Figur, die gleich entsteht
+      if (fill < 1 && sil) { x.save(); x.globalAlpha = .16 * (1 - fill); x.drawImage(sil, FX, FY, FW, FH); x.restore(); }
+      if (fill < 1) {
+        if (fill > 0) {
+          // flüssiger Beton: glatte, leicht wellige Oberfläche statt einzelner Dreiecke
+          const amp = 2.4 * (1 - fill * .6), ph = now / 170;
+          x.save(); x.beginPath(); x.moveTo(OX, OY + BH);
+          for (let i = 0; i <= 24; i++) { const xx = OX + BW * i / 24; x.lineTo(xx, level + Math.sin(i * 1.15 + ph) * amp * (i % 23 ? 1 : 0)); }
+          x.lineTo(OX + BW, OY + BH); x.closePath(); x.clip();
+          x.fillStyle = pat; x.fillRect(OX, level - 6, BW, BH + 6);
+          x.fillStyle = 'rgba(78,76,71,.5)'; x.fillRect(OX, level - 6, BW, BH + 6);
+          const gl = x.createLinearGradient(0, level - 4, 0, level + 26); gl.addColorStop(0, 'rgba(235,233,226,.55)'); gl.addColorStop(1, 'rgba(235,233,226,0)'); x.fillStyle = gl; x.fillRect(OX, level - 6, BW, 32);
+          x.restore();
+        }
+      } else {
+        for (const s of shards) {
+          let q = 0; if (p > s.t) q = clamp((p - s.t) / .14, 0, 1);
+          if (q >= 1) continue;
+          x.save();
+          const dy = q * q * 520, dx = s.vx * q * 90, rot = s.vr * q;
+          x.translate(s.cx + dx, s.cy + dy); x.rotate(rot); x.translate(-s.cx, -s.cy);
+          x.globalAlpha = 1 - q * .9;
+          x.beginPath(); x.moveTo(...s.p[0]); x.lineTo(...s.p[1]); x.lineTo(...s.p[2]); x.closePath();
+          x.save(); x.clip();
+          x.fillStyle = pat; x.fillRect(s.cx - 200, s.cy - 200, 400, 400);
+          const wet = 1 - cure; if (wet > 0) { x.fillStyle = `rgba(70,68,64,${.45 * wet})`; x.fillRect(s.cx - 200, s.cy - 200, 400, 400); }
+          x.fillStyle = `rgba(0,0,0,${(1 - s.sh) * .6 + .02})`; x.fillRect(s.cx - 200, s.cy - 200, 400, 400);
+          x.restore();
+          // Risse zeigen sich beim Aushärten, beim Brechen deutlicher
+          const edge = Math.max(cure * .35, q > 0 ? .7 : 0); if (edge > 0) { x.strokeStyle = `rgba(40,38,34,${edge})`; x.lineWidth = q > 0 ? 1.4 : .8; x.stroke(); x.strokeStyle = `rgba(255,255,255,${edge * .35})`; x.lineWidth = .6; x.stroke(); }
+          x.restore();
+          if (q > 0 && !s.puffed) { s.puffed = true; if (pp.length < 160) for (let k = 0; k < 2; k++) pp.push({ x: s.cx, y: s.cy, vx: (Math.random() - .5) * 2, vy: -Math.random(), r: 4 + Math.random() * 10, a: .35 }); }
+          if (q === 0) s.puffed = false;
+        }
+      }
+      form(open, false);
+      if (fill > 0 && fill < 1) { const vr = castV.getBoundingClientRect(), cr = cv.getBoundingClientRect(); pour.style.height = Math.max(8, cr.top - vr.top + level - 86) + 'px'; } else pour.style.height = '0px';
       const st = p > .86 ? 3 : p > .46 ? 2 : p > .28 ? 1 : 0; steps.forEach((s, i) => s.classList.toggle('on', i <= st));
     }
-    function loop() {
+    const pScroll = () => { const r = sc.getBoundingClientRect(), total = sc.offsetHeight - innerHeight; return clamp(-r.top / (total * .8), 0, 1); };
+    function loop(now) {
       if (vis && shards.length) {
+        const ps = pScroll(), r = sc.getBoundingClientRect(), pinned = r.top <= 2 && r.bottom >= innerHeight - 2;
+        if (Math.abs(scrollY - lastY) > 1 || !pinned) { still = now; lastY = scrollY; }
+        // Bleibt der Besucher hier stehen, gießt die Werkstatt von selbst weiter
+        if (!play && !stay && !autoDone && pinned && ps < .85 && now - still > 1500) { play = { t0: now, from: ps }; autoDone = true; nudgeOff('cast'); }
         let p;
-        if (override) { p = clamp((performance.now() - override) / 3200, 0, 1); if (p >= 1) { override = null; hold = scrollY; } }
-        else if (hold !== null && Math.abs(scrollY - hold) < 80) p = 1; else { hold = null; const sc = $('[data-castscroll]'), r = sc.getBoundingClientRect(), total = sc.offsetHeight - innerHeight; p = clamp(-r.top / (total * .8), 0, 1); }
-        if (Math.abs(p - lastP) > .0005 || pp.length) { draw(p); lastP = p; }
+        if (play) { const d = 3400 * (1 - play.from) + 300; p = play.from + (1 - play.from) * clamp((now - play.t0) / d, 0, 1); if (p >= 1) { play = null; stay = true; } }
+        else if (stay) p = 1;
+        else p = ps;
+        if (ps > .3) nudgeOff('cast');
+        if (Math.abs(p - lastP) > .0005 || pp.length || (p > 0 && p < .28)) { draw(p, now); lastP = p; }
         pctx.clearRect(0, 0, puff.width, puff.height);
         pp = pp.filter(q => (q.a -= .005) > 0);
         const cr = cv.getBoundingClientRect(), pr = puff.getBoundingClientRect();
@@ -519,14 +605,18 @@
       requestAnimationFrame(loop);
     }
     const init = () => { build(); lastP = -1; };
-    if (cimg.complete) init(); else cimg.addEventListener('load', init, { once: true });
+    if (cimg.complete && cimg.naturalWidth) init(); else cimg.addEventListener('load', init, { once: true });
     addEventListener('resize', () => { init(); });
-    if (RM) { shards = []; steps.forEach(x => x.classList.add('on')); } else requestAnimationFrame(loop);
+    if (RM) { shards = []; steps.forEach(s => s.classList.add('on')); } else requestAnimationFrame(loop);
     $$('[data-fg]').forEach(b => b.addEventListener('click', () => {
+      nudgeOff('cast');
       $$('[data-fg]').forEach(y => { y.classList.toggle('on', y === b); y.setAttribute('aria-pressed', y === b); });
-      cimg.addEventListener('load', () => { init(); override = performance.now(); }, { once: true });
+      cimg.addEventListener('load', () => { init(); if (!RM) { play = { t0: performance.now(), from: 0 }; stay = false; } }, { once: true });
       cimg.src = 'img/c/' + b.dataset.fg + '.webp';
     }));
+    // Fotos vom Figurenhof: Großansicht mit allen Beton-Fotos
+    const BETON = ['g_figurenhof2', 'loewe', 'brunnen3', 'brunnenfrau', 'g_figurenhof', 'ausstellung_figuren', 'adler', 'adler3', 'beton_adler2', 'hund', 'milchmann', 'pagode', 'pagode_gruen', 'beton_pagode3', 'brunnen'];
+    $$('[data-fs]').forEach(b => b.addEventListener('click', () => openSet(BETON, Math.max(0, BETON.indexOf(b.dataset.fs)))));
   }
 
   /* ================= Saisonfinale: Keimling ================= */
@@ -585,10 +675,13 @@
       an = requestAnimationFrame(go); calc();
     }
     map.addEventListener('click', e => { const pt = map.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const p = pt.matrixTransform(map.getScreenCTM().inverse()); const lon = p.x / (CL * S) + LON0, lat = LAT0 - p.y / (111.32 * S); pick([lat, lon], tr('yours'), null); });
-    wert.addEventListener('input', calc);
+    let wertTouched = false;
+    wert.addEventListener('input', () => { wertTouched = true; nudgeOff('wert'); calc(); });
     document.addEventListener('gt-lang', calc);
     const hb = towns.find(t => t.getAttribute('aria-label') === 'Homburg');
     inView(map, v => { if (v && !sel && hb) { const o = (G.orte || []).find(x => x[0] === 'Homburg'); pick([o[1], o[2]], 'Homburg', hb); } }, '-10% 0px');
+    // Impuls: der Regler zählt beim ersten Sichtkontakt sichtbar hoch – unter 1.000 € „auf Anfrage“, darüber „kostenlos“
+    firstView(wert, () => { if (RM || wertTouched) return; const from = 400, to = +wert.value || 1200; let t0 = null; wert.value = from; calc(); const an2 = ts => { if (wertTouched) return; if (t0 === null) t0 = ts; const k = clamp((ts - t0 - 500) / 1900, 0, 1); wert.value = Math.round(lerp(from, to, ease(k)) / 50) * 50; calc(); if (k < 1) requestAnimationFrame(an2); }; requestAnimationFrame(an2); }, '0px 0px -15% 0px');
     calc();
   }
 

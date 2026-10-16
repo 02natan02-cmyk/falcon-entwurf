@@ -11,7 +11,11 @@
   const tx = k => (TXT[L()] || TXT.de)[k];
   const toast = m => window.GTtoast && window.GTtoast(m);
 
-  const stage = $('[data-stage]'), cv = $('[data-cv]'), ctx = cv.getContext('2d'), tool = $('[data-tool]'), hint = $('[data-plhint]'), hzEl = $('[data-hz]');
+  const stage = $('[data-stage]'), cv = $('[data-cv]'), ctx = cv.getContext('2d'), tool = $('[data-tool]'), hint = $('[data-plhint]'), hzEl = $('[data-hz]'), hand = $('[data-plhand]');
+  const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Der Hinweis bleibt sichtbar, bis der Besucher selbst etwas tut (erste echte Bedienung)
+  let touched = false;
+  const touch = () => { if (touched) return; touched = true; hint.classList.add('off'); if (hand) hand.classList.remove('on'); };
   const supportsFilter = typeof ctx.filter === 'string';
   const IMG = {}, SIL = {};
   function load(k) {
@@ -33,8 +37,15 @@
 
   /* ---------- Größe ---------- */
   function aspect() { if (S.scene === 'photo' && photo) return clamp(photo.width / photo.height, .75, 1.9); return innerWidth < 640 ? .82 : 1.8; }
+  let vhMax = 0;
+  const avail = () => { const cs = getComputedStyle(root); return Math.floor(root.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)); };
   function resize() {
-    const w = stage.clientWidth; W = w; H = Math.round(w / aspect());
+    // Bild + Möbel-Leiste sollen zusammen auf den Bildschirm passen; Hochkant-Fotos werden schmaler statt riesig hoch
+    const aw = avail(), mob = innerWidth < 640; vhMax = Math.max(vhMax, innerHeight);
+    const maxH = Math.max(300, mob ? vhMax * .64 : innerHeight - 350);
+    let w = aw, h = Math.round(aw / aspect());
+    if (h > maxH) { h = Math.round(maxH); if (S.scene === 'photo' && photo) w = Math.min(aw, Math.round(h * aspect())); }
+    W = w; H = h; stage.style.width = w < aw ? w + 'px' : '';
     cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); cv.style.height = H + 'px';
     bgCache = null; draw();
   }
@@ -123,6 +134,8 @@
   }
 
   /* ---------- Geometrie ---------- */
+  const HR = () => innerWidth < 640 ? 14 : 12; // Griff-Radius
+  const handle = g => [clamp(g.x + g.w, HR() + 2, W - HR() - 2), clamp(g.y + g.h, HR() + 2, H - HR() - 2)];
   function geo(it, w = W, h = H) {
     const p = PROD[it.k]; if (!p) return null;
     const ar = p.sz[0] / p.sz[1];
@@ -180,8 +193,13 @@
     if (ev > 0) { x.save(); x.globalCompositeOperation = 'soft-light'; x.fillStyle = `rgba(255,140,60,${ev * .45})`; x.fillRect(0, 0, w, h); x.restore(); }
     if (!forExport && sel >= 0 && S.items[sel]) {
       const g = geo(S.items[sel], w, h); x.save(); x.strokeStyle = '#fff'; x.setLineDash([6, 5]); x.lineWidth = 1.6; x.shadowColor = 'rgba(0,0,0,.6)'; x.shadowBlur = 4; x.strokeRect(g.x, g.y, g.w, g.h); x.setLineDash([]);
-      x.fillStyle = '#ff6a1a'; x.beginPath(); x.arc(g.x + g.w, g.y + g.h, 11, 0, 6.28); x.fill(); x.strokeStyle = '#fff'; x.lineWidth = 2.5; x.stroke();
-      x.strokeStyle = '#fff'; x.lineWidth = 2; x.beginPath(); x.moveTo(g.x + g.w - 4, g.y + g.h + 4); x.lineTo(g.x + g.w + 4, g.y + g.h - 4); x.stroke(); x.restore();
+      const [hx, hy] = handle(g), hr = HR(), a = hr * .42;
+      x.fillStyle = '#ff6a1a'; x.beginPath(); x.arc(hx, hy, hr, 0, 6.28); x.fill(); x.strokeStyle = '#fff'; x.lineWidth = 2.5; x.stroke();
+      // Doppelpfeil ↖↘ = Größe ändern
+      x.shadowBlur = 0; x.lineWidth = 2; x.lineCap = 'round'; x.lineJoin = 'round'; x.beginPath();
+      x.moveTo(hx - a, hy - a); x.lineTo(hx + a, hy + a);
+      x.moveTo(hx + a, hy + a * .1); x.lineTo(hx + a, hy + a); x.lineTo(hx + a * .1, hy + a);
+      x.moveTo(hx - a, hy - a * .1); x.lineTo(hx - a, hy - a); x.lineTo(hx - a * .1, hy - a); x.stroke(); x.restore();
     }
   }
   let raf = 0;
@@ -200,15 +218,29 @@
     if (!S.items.length) { el.textContent = tx('empty'); return; }
     const c = {}; S.items.forEach(it => c[it.k] = (c[it.k] || 0) + 1);
     el.textContent = tx('inGarden') + ' ' + Object.entries(c).map(([k, n]) => `${n}× ${L() === 'pl' ? PROD[k].pl : PROD[k].n}`).join(' · ');
-    hint.classList.toggle('off', S.items.length > 0);
   }
 
   /* ---------- Bearbeiten ---------- */
+  // freien Platz für ein neues Möbel suchen: möglichst wenig Überdeckung, ganz im Bild, eher vorne und mittig
+  function freeSpot(k) {
+    if (!W || !H || !PROD[k]) return null;
+    const beton = PROD[k].cat === 'beton'; let best = null, bs = Infinity;
+    for (let row = 0; row < 3; row++) for (let col = 0; col < 9; col++) {
+      const cx = .1 + col * .1, cy = clamp((beton ? .82 : .9) - row * .085, S.hz + .14, .97);
+      const g = geo({ k, x: cx, y: cy, s: 1 }); if (!g) continue;
+      let ov = 0; S.items.forEach(o => { const h = geo(o); if (!h) return; const ix = Math.max(0, Math.min(g.x + g.w, h.x + h.w) - Math.max(g.x, h.x)), iy = Math.max(0, Math.min(g.y + g.h, h.y + h.h) - Math.max(g.y, h.y)); ov += ix * iy; });
+      const out = Math.max(0, -g.x) + Math.max(0, g.x + g.w - W) + Math.max(0, -g.y);
+      const sc = ov * 1.6 + out * g.h * 3 + Math.abs(cx - .5) * g.w * g.h * .35 + row * g.w * g.h * .05;
+      if (sc < bs) { bs = sc; best = [cx, cy]; }
+    }
+    return best;
+  }
   let zc = S.items.reduce((m, it) => Math.max(m, it.z || 0), 0);
   function add(k, x, y) {
     if (!PROD[k]) return; if (demo) { demo = false; S.items = []; hist.length = 0; } snap(); load(k);
     const n = S.items.length; const beton = PROD[k].cat === 'beton';
-    const it = { k, x: x ?? clamp(.5 + ((n % 5) - 2) * .12, .15, .85), y: y ?? clamp((beton ? .8 : .86) - (n % 3) * .05, S.hz + .1, .97), s: 1, flip: false, bri: 0, z: ++zc };
+    let fx = x, fy = y; if (fx == null || fy == null) { const f = freeSpot(k); if (f) { fx = fx ?? f[0]; fy = fy ?? f[1]; } }
+    const it = { k, x: fx ?? clamp(.5 + ((n % 5) - 2) * .12, .15, .85), y: fy ?? clamp((beton ? .8 : .86) - (n % 3) * .05, S.hz + .1, .97), s: 1, flip: false, bri: 0, z: ++zc };
     S.items.push(it); sel = S.items.length - 1; persist(); draw();
     return it;
   }
@@ -217,22 +249,22 @@
   cv.addEventListener('touchstart', e => {
     const t = e.touches[0], [px, py] = pt(t);
     let grab = hit(px, py) >= 0 || (e.touches.length > 1 && sel >= 0);
-    if (!grab && sel >= 0) { const g = geo(S.items[sel]); grab = Math.hypot(px - (g.x + g.w), py - (g.y + g.h)) < 26; }
-    if (grab) e.preventDefault();
+    if (!grab && sel >= 0) { const [hx, hy] = handle(geo(S.items[sel])); grab = Math.hypot(px - hx, py - hy) < 28; }
+    if (grab && e.cancelable) e.preventDefault();
   }, { passive: false });
   const ptrs = new Map(); let act = null;
   cv.addEventListener('pointerdown', e => {
-    cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, pt(e));
+    touch(); cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, pt(e));
     if (ptrs.size === 2 && sel >= 0) { const [a, b] = [...ptrs.values()]; act = { t: 'pinch', d0: Math.hypot(a[0] - b[0], a[1] - b[1]), s0: S.items[sel].s }; return; }
     const [px, py] = pt(e);
-    if (sel >= 0) { const g = geo(S.items[sel]); if (Math.hypot(px - (g.x + g.w), py - (g.y + g.h)) < 22) { snap(); act = { t: 'scale', s0: S.items[sel].s, d0: Math.hypot(px - g.cx, py - g.by) || 1, cx: g.cx, by: g.by }; return; } }
+    if (sel >= 0) { const g = geo(S.items[sel]), [hx, hy] = handle(g); if (Math.hypot(px - hx, py - hy) < (e.pointerType === 'touch' ? 28 : 22)) { snap(); act = { t: 'scale', s0: S.items[sel].s, d0: Math.hypot(px - g.cx, py - g.by) || 1, cx: g.cx, by: g.by }; return; } }
     const i = hit(px, py);
     if (i >= 0) { sel = i; snap(); demo = false; const it = S.items[i]; act = { t: 'move', dx: px - it.x * W, dy: py - it.y * H }; it.z = ++zc; }
     else { sel = -1; act = null; }
     draw();
   });
   cv.addEventListener('pointermove', e => {
-    if (!ptrs.has(e.pointerId)) { const [px, py] = pt(e); cv.style.cursor = hit(px, py) >= 0 ? 'grab' : 'default'; return; }
+    if (!ptrs.has(e.pointerId)) { const [px, py] = pt(e); let c = hit(px, py) >= 0 ? 'grab' : 'default'; if (sel >= 0) { const [hx, hy] = handle(geo(S.items[sel])); if (Math.hypot(px - hx, py - hy) < 22) c = 'nwse-resize'; } cv.style.cursor = c; return; }
     ptrs.set(e.pointerId, pt(e)); if (!act || sel < 0) return;
     const it = S.items[sel];
     if (act.t === 'pinch' && ptrs.size === 2) { const [a, b] = [...ptrs.values()]; it.s = clamp(act.s0 * Math.hypot(a[0] - b[0], a[1] - b[1]) / act.d0, .2, 4); }
@@ -261,17 +293,17 @@
     if (a === 'del') { S.items.splice(sel, 1); sel = -1; }
     persist(); draw();
   }
-  $$('[data-act]', tool).forEach(b => b.addEventListener('click', () => act0(b.dataset.act)));
+  $$('[data-act]', tool).forEach(b => b.addEventListener('click', () => { touch(); act0(b.dataset.act); }));
   const bri = $('[data-bri]'); bri.addEventListener('pointerdown', () => snap()); bri.addEventListener('input', () => { if (sel >= 0) { S.items[sel].bri = +bri.value; draw(); } }); bri.addEventListener('change', persist);
   $('label', tool).addEventListener('click', e => { if (e.target.tagName !== 'INPUT') e.currentTarget.classList.toggle('open'); });
   function undo() { if (!hist.length) return; S.items = JSON.parse(hist.pop()); sel = -1; persist(); draw(); }
-  $('[data-undo]').addEventListener('click', undo);
-  $('[data-clear]').addEventListener('click', () => { if (!S.items.length) return; snap(); S.items = []; sel = -1; persist(); draw(); });
+  $('[data-undo]').addEventListener('click', () => { touch(); undo(); });
+  $('[data-clear]').addEventListener('click', () => { touch(); if (!S.items.length) return; snap(); S.items = []; sel = -1; demo = false; persist(); draw(); });
 
   /* ---------- Szenen, Foto, Sonne, Optionen ---------- */
-  $$('[data-scene]').forEach(b => b.addEventListener('click', () => { S.scene = b.dataset.scene; photo = null; $$('[data-scene]').forEach(x => x.classList.toggle('on', x === b)); persist(); resize(); }));
+  $$('[data-scene]').forEach(b => b.addEventListener('click', () => { touch(); S.scene = b.dataset.scene; photo = null; $$('[data-scene]').forEach(x => x.classList.toggle('on', x === b)); persist(); resize(); }));
   $('[data-upload]').addEventListener('change', async e => {
-    const f = e.target.files && e.target.files[0]; if (!f) return;
+    const f = e.target.files && e.target.files[0]; if (!f) return; touch();
     try {
       let bmp; try { bmp = await createImageBitmap(f, { imageOrientation: 'from-image' }); } catch (er) { bmp = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = URL.createObjectURL(f); }); }
       const mx = 2200, r = Math.min(1, mx / Math.max(bmp.width, bmp.height)), c = document.createElement('canvas'); c.width = Math.round(bmp.width * r); c.height = Math.round(bmp.height * r); c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
@@ -283,18 +315,26 @@
   const sunIn = $('[data-sun]'), sunOut = $('[data-sunout]');
   const sunTxt = () => { const h = Math.floor(S.sun), m = Math.round((S.sun - h) * 60); sunOut.textContent = `${h}:${String(m).padStart(2, '0')}`; };
   sunIn.value = S.sun; sunTxt();
-  sunIn.addEventListener('input', () => { S.sun = +sunIn.value; sunTxt(); bgCache = null; draw(); }); sunIn.addEventListener('change', persist);
+  let sunUser = false;
+  sunIn.addEventListener('input', () => { touch(); sunUser = true; S.sun = +sunIn.value; sunTxt(); bgCache = null; draw(); }); sunIn.addEventListener('change', persist);
   const dep = $('[data-depth]'), shd = $('[data-shadows]'); dep.checked = S.depth; shd.checked = S.shadows;
-  dep.addEventListener('change', () => { S.depth = dep.checked; persist(); draw(); }); shd.addEventListener('change', () => { S.shadows = shd.checked; persist(); draw(); });
+  dep.addEventListener('change', () => { touch(); S.depth = dep.checked; persist(); draw(); }); shd.addEventListener('change', () => { touch(); S.shadows = shd.checked; persist(); draw(); });
   // Horizont ziehen
   const setHz = () => stage.style.setProperty('--hz', (S.hz * 100) + '%'); setHz();
   let hzDrag = null;
-  hzEl.addEventListener('pointerdown', e => { hzDrag = e.pointerId; hzEl.setPointerCapture(e.pointerId); hzEl.classList.add('on'); e.stopPropagation(); });
+  hzEl.addEventListener('pointerdown', e => { touch(); hzDrag = e.pointerId; hzEl.setPointerCapture(e.pointerId); hzEl.classList.add('on'); e.stopPropagation(); });
   hzEl.addEventListener('pointermove', e => { if (hzDrag !== e.pointerId) return; const r = stage.getBoundingClientRect(); S.hz = clamp((e.clientY - r.top) / r.height, .12, .75); setHz(); bgCache = null; draw(); });
   hzEl.addEventListener('pointerup', () => { hzDrag = null; hzEl.classList.remove('on'); persist(); });
 
   /* ---------- Ablage: antippen oder ins Bild ziehen ---------- */
-  $$('.pl-cats [data-cat]').forEach(b => b.addEventListener('click', () => { $$('.pl-cats [data-cat]').forEach(x => x.classList.toggle('on', x === b)); const c = b.dataset.cat; $$('[data-add]').forEach(t => t.hidden = !(c === 'all' || t.dataset.cat === c)); }));
+  $$('.pl-cats [data-cat]').forEach(b => b.addEventListener('click', () => { trayTouched = true; $$('.pl-cats [data-cat]').forEach(x => x.classList.toggle('on', x === b)); const c = b.dataset.cat; $$('[data-add]').forEach(t => t.hidden = !(c === 'all' || t.dataset.cat === c)); trayEl.scrollLeft = 0; trayEdge(); }));
+  // Möbel-Leiste: Pfeile + Auslaufkanten, einmal kurz anschieben – damit klar ist, dass es noch mehr gibt
+  const trayEl = $('[data-tray]'), trayBox = $('.pl-tray'); let trayTouched = false;
+  function trayEdge() { const m = trayEl.scrollWidth - trayEl.clientWidth; trayBox.classList.toggle('tr-s', trayEl.scrollLeft > 4); trayBox.classList.toggle('tr-e', trayEl.scrollLeft < m - 4); }
+  trayEl.addEventListener('scroll', trayEdge, { passive: true }); addEventListener('resize', trayEdge); trayEdge();
+  $$('[data-trs]').forEach(b => b.addEventListener('click', () => { trayTouched = true; trayEl.scrollBy({ left: +b.dataset.trs * Math.max(160, trayEl.clientWidth * .75), behavior: 'smooth' }); }));
+  trayEl.addEventListener('pointerdown', () => { trayTouched = true; }); trayEl.addEventListener('wheel', () => { trayTouched = true; }, { passive: true });
+  function trayNudge() { if (RM || trayTouched || trayEl.scrollWidth <= trayEl.clientWidth + 8) return; trayEl.scrollTo({ left: Math.min(220, trayEl.scrollWidth - trayEl.clientWidth), behavior: 'smooth' }); setTimeout(() => { if (!trayTouched) trayEl.scrollTo({ left: 0, behavior: 'smooth' }); }, 1200); }
   $$('[data-add]').forEach(t => {
     let st = null, ghost = null;
     t.addEventListener('pointerdown', e => { st = { x: e.clientX, y: e.clientY, id: e.pointerId, drag: false }; });
@@ -308,16 +348,16 @@
     });
     const fin = e => {
       if (!st) return;
-      if (st.drag) { const r = cv.getBoundingClientRect(); if (e.clientX > r.left && e.clientX < r.right && e.clientY > r.top && e.clientY < r.bottom) { const [px, py] = pt(e); add(t.dataset.add, px / W, clamp(py / H + .06, S.hz + .05, 1.05)); } }
+      if (st.drag) { const r = cv.getBoundingClientRect(); if (e.clientX > r.left && e.clientX < r.right && e.clientY > r.top && e.clientY < r.bottom) { touch(); const [px, py] = pt(e); add(t.dataset.add, px / W, clamp(py / H + .06, S.hz + .05, 1.05)); } }
       if (ghost) ghost.remove(); ghost = null; t._dragged = st.drag; st = null;
     };
     t.addEventListener('pointerup', fin); t.addEventListener('pointercancel', e => { if (ghost) ghost.remove(); ghost = null; st = null; });
-    t.addEventListener('click', () => { if (t._dragged) { t._dragged = false; return; } add(t.dataset.add); stage.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
+    t.addEventListener('click', () => { if (t._dragged) { t._dragged = false; return; } touch(); add(t.dataset.add); t.classList.remove('added'); void t.offsetWidth; t.classList.add('added'); stage.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
   });
 
   /* ---------- Export ---------- */
   async function compose() {
-    const ew = Math.min(1800, Math.max(1200, W * 2)), eh = Math.round(ew / aspect()), bar = Math.round(ew * .05);
+    const ew = Math.min(1800, Math.max(1200, W * 2)), eh = Math.round(ew * H / W), bar = Math.round(ew * .05);
     const c = document.createElement('canvas'); c.width = ew; c.height = eh + bar; const x = c.getContext('2d');
     render(x, ew, eh, true);
     x.fillStyle = '#1a120c'; x.fillRect(0, eh, ew, bar); x.fillStyle = '#f4ebdc'; x.font = `400 ${Math.round(bar * .42)}px Gloock, Georgia, serif`; x.textBaseline = 'middle'; x.fillText('Der Garten-Traum', bar * .45, eh + bar / 2);
@@ -333,7 +373,7 @@
     else { const a = document.createElement('a'); a.download = 'mein-garten-traum.jpg'; a.href = URL.createObjectURL(b); a.click(); window.open((G.wa || 'https://wa.me/4917647161931') + '?text=' + encodeURIComponent(tx('share') + ':\n' + summary()), '_blank', 'noopener'); }
   });
   function summary() { const c = {}; S.items.forEach(it => c[it.k] = (c[it.k] || 0) + 1); return Object.entries(c).map(([k, n]) => `${n}× ${PROD[k].n}`).join(', '); }
-  const API = { add: k => { add(k); }, hasItems: () => S.items.length > 0, summary, getBlob: blob, attach: false };
+  const API = { add: k => { touch(); add(k); }, hasItems: () => S.items.length > 0, summary, getBlob: blob, attach: false };
   window.GTP = API;
   $('[data-plsend]').addEventListener('click', async e => {
     e.preventDefault(); if (!S.items.length) { toast(tx('need')); return; }
@@ -345,8 +385,39 @@
   const kd = document.querySelector('[data-kodrop]'); if (kd) kd.addEventListener('click', () => { API.attach = false; document.querySelector('[data-koprev]').hidden = true; });
   document.addEventListener('gt-lang', () => { list(); });
 
-  let rw = 0; addEventListener('resize', () => { if (stage.clientWidth !== rw) { rw = stage.clientWidth; resize(); } });
-  const io = new IntersectionObserver(([en]) => { if (en.isIntersecting) { io.disconnect(); rw = stage.clientWidth; resize(); if (!S.items.length) { add('set4', .4, .86); add('adler', .78, .74); sel = -1; hist.length = 0; demo = true; persist(); draw(); } } }, { rootMargin: '400px' });
+  const rkey = () => avail() + '|' + (innerWidth < 640 ? 0 : innerHeight);
+  let rw = ''; addEventListener('resize', () => { const k = rkey(); if (k !== rw) { rw = k; resize(); } });
+  const io = new IntersectionObserver(([en]) => { if (en.isIntersecting) { io.disconnect(); rw = rkey(); resize(); if (!S.items.length) { add('set4', .4, .86); add('adler', .78, .74); sel = -1; hist.length = 0; demo = true; persist(); draw(); } } }, { rootMargin: '400px' });
   io.observe(stage);
+  /* ---------- Impuls beim ersten Sichtkontakt: Sonne wandert einmal, eine Hand schiebt den Tisch, die Leiste rollt an ---------- */
+  function demoRun() {
+    if (RM || touched) return;
+    const t0 = performance.now(), s0 = S.sun, it = S.items[0], x0 = it ? it.x : 0; let done = false, demoSel = false;
+    const stop = () => {
+      if (done) return; done = true; hand.classList.remove('on');
+      if (!sunUser && S.sun !== s0) { S.sun = s0; sunIn.value = s0; sunTxt(); bgCache = null; }
+      if (it && S.items.includes(it) && !act) it.x = x0;
+      if (demoSel && !act) sel = -1; draw();
+      const up = $('.pl-up'); if (up && !touched) up.classList.add('pulse');
+    };
+    const step = now => {
+      if (done) return; if (touched) { stop(); return; }
+      const t = (now - t0) / 1000;
+      if (t < 2.1) { S.sun = s0 + Math.sin(t / 2.1 * Math.PI) * 3.6; sunIn.value = S.sun; sunTxt(); bgCache = null; }
+      else if (S.sun !== s0) { S.sun = s0; sunIn.value = s0; sunTxt(); bgCache = null; }
+      if (it && S.items.includes(it) && t >= 2.3 && t < 5.6) {
+        const k = (t - 2.3) / 3.3, push = clamp((k - .16) / .68, 0, 1);
+        it.x = x0 + Math.sin(push * Math.PI) * .15;
+        if (k > .12 && k < .9) { sel = S.items.indexOf(it); demoSel = true; } else if (demoSel) { sel = -1; demoSel = false; }
+        const g = geo(it); if (g) hand.style.transform = `translate(${g.cx}px,${g.y + g.h * .5}px)`;
+        hand.classList.toggle('on', k > .03 && k < .94);
+      }
+      if (t >= 5.8) { stop(); return; }
+      draw(); requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+  const io2 = new IntersectionObserver(([en]) => { if (en.isIntersecting) { io2.disconnect(); setTimeout(demoRun, 700); setTimeout(trayNudge, 6600); } }, { threshold: .55 });
+  io2.observe(stage);
   if (S.scene !== 'photo') $$('[data-scene]').forEach(x => x.classList.toggle('on', x.dataset.scene === S.scene)); else S.scene = 'rasen';
 })();
