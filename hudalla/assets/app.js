@@ -191,12 +191,13 @@
       const play = async () => {
         run = true; const w = ms => new Promise(r => setTimeout(r, ms));
         for (const m of msgs) {
-          if (m.classList.contains('in')) { ty.classList.add('show'); st.textContent = 'schreibt …'; await w(1100); ty.classList.remove('show'); st.textContent = 'online'; }
-          else await w(700);
-          m.classList.add('show'); await w(900);
+          // v6: erste Nachricht kommt sofort, damit das Handy nie leer wirkt
+          if (m.classList.contains('in')) { ty.classList.add('show'); st.textContent = 'schreibt …'; await w(m === msgs[0] ? 380 : 950); ty.classList.remove('show'); st.textContent = 'online'; }
+          else await w(650);
+          m.classList.add('show'); await w(800);
         }
       };
-      new IntersectionObserver((es, o) => es.forEach(e => { if (e.isIntersecting && !run) { play(); o.disconnect(); } }), { threshold: .45 }).observe(eb);
+      new IntersectionObserver((es, o) => es.forEach(e => { if (e.isIntersecting && !run) { play(); o.disconnect(); } }), { threshold: .18 }).observe(eb);
     }
   }
 
@@ -293,12 +294,15 @@
   var ck = document.querySelector('[data-ck]'); if (!ck) return;
   var seen = false; try { seen = sessionStorage.getItem('ck-cookie') === '1'; } catch (e) {}
   if (seen) return;
-  var shown = false;
-  function show() { if (shown) return; shown = true; ck.hidden = false; requestAnimationFrame(function () { requestAnimationFrame(function () { ck.classList.add('show'); }); }); }
+  // v6: Cookie erscheint nur dort, wo er vorgestellt wird (Abschnitt „Das Team“), und geht wieder, wenn man weiterscrollt –
+  // so verdeckt der Hinweis nie Formulare oder Inhalte im Rest der Seite. Nach einer Antwort kommt er in dieser Sitzung nicht wieder.
+  var shown = false, done = false;
+  function show() { if (shown || done) return; shown = true; ck.hidden = false; requestAnimationFrame(function () { requestAnimationFrame(function () { if (shown) ck.classList.add('show'); }); }); }
+  function hide() { if (!shown || done) return; shown = false; ck.classList.remove('show'); setTimeout(function () { if (!shown && !done) ck.hidden = true; }, 600); }
   var team = document.getElementById('team');
-  if (team && 'IntersectionObserver' in window) new IntersectionObserver(function (es, o) { if (es[0].isIntersecting) { o.disconnect(); show(); } }, { threshold: .25 }).observe(team);
-  setTimeout(function () { if (scrollY > innerHeight * 1.5) show(); }, 25000);
+  if (team && 'IntersectionObserver' in window) new IntersectionObserver(function (es) { var e = es[es.length - 1]; if (e.isIntersecting && e.intersectionRect.height >= innerHeight * .3) show(); else if (!e.isIntersecting) hide(); }, { threshold: [0, .05, .1, .15, .2, .3, .45] }).observe(team);
   function close(msg) {
+    done = true;
     var m = ck.querySelector('[data-ck-msg]'); m.textContent = msg; m.hidden = false; ck.classList.add('wag');
     try { sessionStorage.setItem('ck-cookie', '1'); } catch (e) {}
     setTimeout(function () { ck.classList.remove('show'); setTimeout(function () { ck.hidden = true; }, 600); }, 1600);
@@ -443,4 +447,152 @@
     var hl = function (n) { $$('.rt', mw).forEach(function (r) { r.classList.toggle('hi', r.dataset.rt === n); }); $$('[data-town]', mw).forEach(function (t) { t.classList.toggle('hi', t.dataset.town === n); }); };
     $$('[data-town]', mw).forEach(function (t) { t.addEventListener('mouseenter', function () { hl(t.dataset.town); }); t.addEventListener('mouseleave', function () { hl(null); }); t.addEventListener('click', function () { hl(t.classList.contains('hi') ? null : t.dataset.town); }); });
   }
+})();
+
+/* ===================== v6 (16.10.): Jedes Mitmach-Element bekommt einen Impuls + klaren Hinweis =====================
+   Regel: Beim ersten Sichtbarwerden bewegt sich das Element kurz von selbst (z. B. 0 → 1 → 2 → zurück) und zeigt einen
+   Hinweis-Chip. Sobald jemand selbst bedient (nur echte Eingaben, keine Skript-Ereignisse), stoppt der Impuls und der Chip geht. */
+(function () {
+  'use strict';
+  var $ = function (s, r) { return (r || document).querySelector(s); }, $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var H = window.HUD || {}, RM = matchMedia('(prefers-reduced-motion: reduce)').matches, FINE = matchMedia('(hover:hover) and (pointer:fine)').matches, IO = 'IntersectionObserver' in window;
+  var TAP = FINE ? 'anklicken' : 'antippen', WIDE = function () { return innerWidth >= 900; };
+  var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+  var HAND = '<svg class="v6-hand" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11.5V5.2a1.6 1.6 0 0 1 3.2 0v5.3m0-1.2a1.6 1.6 0 0 1 3.2 0v1.4m0-.6a1.6 1.6 0 0 1 3.2 0V15a6.2 6.2 0 0 1-6.2 6.2h-.9a6.2 6.2 0 0 1-4.8-2.3l-3.1-3.9a1.6 1.6 0 0 1 2.4-2.1L9 15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  function onView(el, fn, th) { if (!el) return; if (!IO) return fn(); var io = new IntersectionObserver(function (es) { if (es.some(function (e) { return e.isIntersecting; })) { io.disconnect(); fn(); } }, { threshold: th || .4 }); io.observe(el); }
+  function seen(el, th) { var s = { on: !IO }; if (IO && el) new IntersectionObserver(function (es) { s.on = es[es.length - 1].isIntersecting; }, { threshold: th || .3 }).observe(el); return s; }
+  function chip(host, text, cls, swipe) {
+    var c = document.createElement('span'), gone = false;
+    if (!host) return { el: c, show: function () {}, hide: function () {} };
+    if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
+    c.className = 'v6-hint ' + (cls || '') + (swipe ? ' sw' : ''); c.setAttribute('aria-hidden', 'true');
+    c.innerHTML = (swipe ? '<b class="v6-ar">←</b>' : HAND) + '<span>' + text + '</span>' + (swipe ? '<b class="v6-ar">→</b>' : '');
+    host.appendChild(c);
+    return { el: c, show: function () { if (!gone) c.classList.add('on'); }, hide: function () { if (gone) return; gone = true; c.classList.remove('on'); c.classList.add('gone'); setTimeout(function () { c.remove(); }, 700); } };
+  }
+
+  /* Jahre im Einsatz: immer mit dem aktuellen Jahr rechnen (seit 2000) */
+  var Y = new Date().getFullYear() - (+H.since || 2000);
+  if (Y > 0 && Y < 100) $$('[data-years]').forEach(function (el) { el.setAttribute('data-count', Y); el.textContent = Y; });
+
+  /* Leistungen: Tabs blättern einmal 1 → 2 → zurück, Chip „Leistung antippen“ */
+  (function () {
+    var tabs = $$('.sv-t'), panels = $('.sv-panels'), g = $('.sv-g'); if (!tabs.length || !panels || !g) return;
+    var used = false, c = chip(panels, (WIDE() ? '← ' : '↑ ') + 'Leistung ' + TAP, 'v6-tl');
+    tabs.forEach(function (b) { b.addEventListener('click', function (e) { if (e.isTrusted && !used) { used = true; c.hide(); } }); });
+    var pick = function (i) { tabs.forEach(function (x, j) { x.classList.toggle('on', j === i); x.setAttribute('aria-selected', j === i ? 'true' : 'false'); }); $$('.sv-p').forEach(function (p) { p.classList.toggle('on', +p.dataset.svp === i); }); tabs[i].classList.remove('v6-ping'); void tabs[i].offsetWidth; tabs[i].classList.add('v6-ping'); };
+    onView(g, function () { c.show(); if (RM) return; (async function () { await wait(1100); var seq = [1, 2, 0]; for (var k = 0; k < seq.length; k++) { if (used) return; pick(seq[k]); if (k < seq.length - 1) await wait(1700); } })(); }, .45);
+  })();
+
+  /* Jahresplan: Regler wandert zwei Monate weiter und zurück, Chip „Monat wählen“ */
+  (function () {
+    var mr = $('[data-mrange]'), stg = $('.ja-stage'), g = $('.ja-g'); if (!mr || !stg || !g) return;
+    var used = false, c = chip(stg, 'Monat wählen ' + (WIDE() ? '→' : '↓'), 'v6-tr');
+    var use = function (e) { if (e.isTrusted === false || used) return; used = true; c.hide(); mr.classList.remove('v6-glow'); };
+    mr.addEventListener('pointerdown', use); mr.addEventListener('input', use); $$('.ja-months button, [data-mplay]').forEach(function (b) { b.addEventListener('click', use); });
+    var go = function (m) { mr.value = m; mr.dispatchEvent(new Event('input')); };
+    onView(g, function () { c.show(); if (RM) return; (async function () { var m0 = +mr.value, d = m0 <= 8 ? 1 : -1; await wait(1000); if (used) return; mr.classList.add('v6-glow'); var seq = [d, 2 * d, 0]; for (var k = 0; k < seq.length; k++) { if (used) return; go(m0 + seq[k]); await wait(1250); } mr.classList.remove('v6-glow'); })(); }, .45);
+  })();
+
+  /* Kontrollgang: läuft schon allein durch – dazu der Chip „Punkte antippen“ */
+  (function () {
+    var kh = $('[data-kghouse]'); if (!kh) return;
+    var used = false, c = chip(kh, 'Punkte ' + TAP, 'v6-tl');
+    $$('.hot, .kg-list li').forEach(function (h) {
+      h.addEventListener('click', function (e) { if (e.isTrusted && !used) { used = true; c.hide(); } });
+      h.addEventListener('keydown', function (e) { if ((e.key === 'Enter' || e.key === ' ') && !used) { used = true; c.hide(); } });
+    });
+    onView(kh, function () { c.show(); }, .4);
+  })();
+
+  /* Winter-Bereitschaft: Monate sind antippbar und laufen einmal von selbst durch */
+  (function () {
+    var sea = $('[data-wxsea]'), t = $('[data-wxseat]'), h = $('.wd-sea-h'); if (!sea || !t) return;
+    var lis = $$('li', sea), def = t.textContent, used = false, cue = null;
+    var TXT = { 10: 'November: Der Winterdienst startet – ab jetzt in Bereitschaft.', 11: 'Dezember: Räumen und Streuen ab dem ersten Frost.', 0: 'Januar: Winterdienst bei Schnee und Glätte – geräumt, bevor der erste Mieter rausgeht.', 1: 'Februar: Weiter in Bereitschaft, bei jedem Wetter.', 2: 'März: Saisonende – das Streugut wird von Wegen und Zufahrten wieder entfernt.' };
+    var sel = function (li) { lis.forEach(function (l) { l.classList.toggle('sel', l === li); l.setAttribute('aria-pressed', l === li ? 'true' : 'false'); }); t.textContent = li ? TXT[+li.dataset.m] : def; t.classList.remove('v6-sw'); void t.offsetWidth; t.classList.add('v6-sw'); };
+    if (h) { cue = document.createElement('span'); cue.className = 'v6-cue-in'; cue.textContent = ' · Monat ' + TAP; h.appendChild(cue); }
+    lis.forEach(function (l) {
+      l.setAttribute('role', 'button'); l.tabIndex = 0; l.setAttribute('aria-pressed', 'false');
+      var act = function () { used = true; cue && cue.classList.add('gone'); sel(l.classList.contains('sel') ? null : l); };
+      l.addEventListener('click', function (e) { if (e.isTrusted) act(); });
+      l.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act(); } });
+    });
+    onView(sea, function () { if (RM) return; (async function () { await wait(900); for (var k = 0; k < lis.length; k++) { if (used) return; sel(lis[k]); await wait(1600); } if (!used) sel(null); })(); }, .6);
+  })();
+
+  /* Einsatzgebiet: Wege leuchten einmal der Reihe nach, Chip „Ort antippen“; Orte per Tastatur erreichbar */
+  (function () {
+    var mw = $('.map-w'); if (!mw) return;
+    var towns = $$('[data-town]', mw), used = false, c = chip(mw, 'Ort ' + TAP, 'v6-br');
+    var hl = function (n) { $$('.rt', mw).forEach(function (r) { r.classList.toggle('hi', r.dataset.rt === n); }); towns.forEach(function (t) { t.classList.toggle('hi', t.dataset.town === n); }); };
+    var use = function (e) { if (e.isTrusted === false || used) return; used = true; c.hide(); };
+    towns.forEach(function (t) {
+      t.addEventListener('click', use); t.addEventListener('mouseenter', use);
+      t.setAttribute('tabindex', '0'); t.setAttribute('role', 'button'); t.setAttribute('aria-label', 'Weg nach ' + t.dataset.town + ' zeigen');
+      t.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); used = true; c.hide(); hl(t.classList.contains('hi') ? null : t.dataset.town); } });
+    });
+    onView(mw, function () { c.show(); if (RM) return; (async function () { await wait(1900); for (var k = 0; k < towns.length; k++) { if (used) return; hl(towns[k].dataset.town); await wait(1250); } if (!used) hl(null); })(); }, .4);
+  })();
+
+  /* Objekt-Check, Schritt 2: Regler zeigen einmal, dass sie sich schieben lassen – das Verzeichnis rechnet sichtbar mit */
+  (function () {
+    var s1 = $('[data-ocs="1"]'); if (!s1) return;
+    var we = $('[data-ocf="we"]', s1), h3 = $('h3', s1); if (!we || !h3) return;
+    var cue = document.createElement('p'); cue.className = 'v6-cue'; cue.innerHTML = HAND + '<span>Regler schieben – das Leistungsverzeichnis rechnet live mit.</span>'; h3.after(cue);
+    var used = false;
+    $$('input[type=range]', s1).forEach(function (r) { r.addEventListener('input', function (e) { if (!e.isTrusted || used) return; used = true; we.classList.remove('v6-glow'); cue.classList.add('ok'); cue.querySelector('span').textContent = 'Genau so – jede Änderung steht sofort im Verzeichnis.'; setTimeout(function () { cue.classList.add('gone'); }, 2800); }); });
+    var ran = false;
+    var tween = function (a, b, D) { return new Promise(function (res) { var t0 = performance.now(); (function f(t) { if (used) return res(); var e = Math.min(1, (t - t0) / D), q = e < .5 ? 2 * e * e : 1 - Math.pow(-2 * e + 2, 2) / 2, v = Math.round(a + (b - a) * q); if (+we.value !== v) { we.value = v; we.dispatchEvent(new Event('input', { bubbles: true })); } if (e < 1) requestAnimationFrame(f); else res(); })(t0); }); };
+    var run = async function () { if (ran || RM) return; ran = true; await wait(600); if (used) return; var v0 = +we.value, to = Math.min(+we.max, v0 + 12); we.classList.add('v6-glow'); await tween(v0, to, 900); await wait(400); await tween(to, v0, 900); we.classList.remove('v6-glow'); };
+    new MutationObserver(function () { if (s1.classList.contains('on')) run(); }).observe(s1, { attributes: true, attributeFilter: ['class'] });
+  })();
+
+  /* Horizontale Streifen (Echte Einsätze, Bewertungen am Handy): Schubs + Hinweis, danach blättern sie langsam allein weiter */
+  function strip(row, o) {
+    if (!row) return;
+    var host = row.parentElement, items = $$(o.item, row), used = false, timer = 0, vis = seen(row, .5);
+    var max = function () { return row.scrollWidth - row.clientWidth; };
+    var c = chip(host, o.text, 'v6-strip ' + (o.cls || ''), true);
+    var place = function () { c.el.style.top = (o.anchor === 'dots' && dl ? dl.offsetTop + (dl.offsetHeight - c.el.offsetHeight) / 2 : row.offsetTop + (o.dy || 16)) + 'px'; };
+    var dl = null, dots = [];
+    var stop = function () { if (used) return; used = true; clearInterval(timer); c.hide(); };
+    ['pointerdown', 'touchstart', 'wheel', 'keydown'].forEach(function (t) { row.addEventListener(t, function (e) { if (e.isTrusted !== false) stop(); }, { passive: true }); });
+    (o.ctrl || []).forEach(function (b) { b.addEventListener('click', function (e) { if (e.isTrusted) stop(); }); });
+    var pad = function () { return o.center ? 0 : (parseFloat(getComputedStyle(row).paddingLeft) || 0); };
+    var pos = function (it) { var rr = row.getBoundingClientRect(), ir = it.getBoundingClientRect(); var x = row.scrollLeft + ir.left - rr.left - (o.center ? (row.clientWidth - ir.width) / 2 : pad()); return Math.max(0, Math.min(max(), x)); };
+    var idx = function () { var best = 0, bd = 1e9; items.forEach(function (it, i) { var d = Math.abs(pos(it) - row.scrollLeft); if (d < bd) { bd = d; best = i; } }); return best; };
+    if (o.dots) {
+      dl = document.createElement('div'); dl.className = 'v6-dots'; dl.setAttribute('aria-label', o.dots);
+      items.forEach(function (it, i) { var b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', (i + 1) + ' von ' + items.length); b.addEventListener('click', function () { stop(); row.scrollTo({ left: pos(it), behavior: RM ? 'auto' : 'smooth' }); }); dl.appendChild(b); dots.push(b); });
+      row.after(dl);
+      var upd = function () { var k = idx(); dots.forEach(function (b, i) { b.classList.toggle('on', i === k); }); };
+      row.addEventListener('scroll', function () { requestAnimationFrame(upd); }, { passive: true }); upd();
+    }
+    var nudge = function () { return new Promise(function (res) {
+      if (used || RM || max() < 8) return res();
+      var from = row.scrollLeft, dist = Math.min(row.clientWidth * .3, 150, max() - from); if (dist < 8) return res();
+      var sb = row.style.scrollSnapType, bh = row.style.scrollBehavior; row.style.scrollSnapType = 'none'; row.style.scrollBehavior = 'auto';
+      var t0 = performance.now(), D = 1600;
+      (function f(t) { var k = Math.min(1, (t - t0) / D), s = Math.sin(k * Math.PI); if (!used) row.scrollLeft = from + dist * s * s; if (k < 1 && !used) requestAnimationFrame(f); else { if (!used) row.scrollLeft = from; row.style.scrollSnapType = sb; row.style.scrollBehavior = bh; res(); } })(t0);
+    }); };
+    onView(row, function () {
+      if (max() < 8) return;
+      place(); c.show();
+      (async function () {
+        await wait(650); await nudge();
+        if (!o.auto || RM) return;
+        timer = setInterval(function () {
+          if (used || !vis.on || document.hidden || max() < 8) return;
+          var lb = $('[data-lb]'); if (lb && !lb.hidden) return;
+          var i = idx() + 1; if (i >= items.length || row.scrollLeft >= max() - 4) i = 0;
+          row.scrollTo({ left: pos(items[i]), behavior: 'smooth' });
+        }, o.auto);
+      })();
+    }, .5);
+    addEventListener('resize', place);
+  }
+  strip($('[data-eirow]'), { item: '.ei-c', center: true, auto: 3800, text: FINE ? 'ziehen' : 'wischen', ctrl: $$('[data-eistep]'), dy: 18 });
+  strip($('[data-rv]'), { item: '.rv-c', auto: 4200, text: 'wischen', dots: 'Bewertungen', cls: 'v6-rv', anchor: 'dots' });
 })();

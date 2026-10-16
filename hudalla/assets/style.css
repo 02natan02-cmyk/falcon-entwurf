@@ -814,3 +814,75 @@ a.rv-sum{color:#fff}
 .ja-months button.now.on::after{background:var(--ink);box-shadow:none}
 .ja-badge small{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:999px;background:#e3f3e8;color:#1d5a3c;font:800 11px var(--body);letter-spacing:.06em;vertical-align:5px}
 .map .home text{paint-order:stroke;stroke:#163029;stroke-width:6px;stroke-linejoin:round}
+
+/* ===================== v6 (16.10.): Hinweise, Impulse, Tipp-Feedback, Feinschliff ===================== */
+/* Hinweis-Chip: erscheint beim ersten Sichtbarwerden, verschwindet nach der ersten echten Bedienung */
+.v6-hint{position:absolute;z-index:6;display:inline-flex;align-items:center;gap:7px;padding:8px 13px 8px 10px;border-radius:999px;background:rgba(12,26,22,.88);color:#fff;font:800 13px/1 var(--body);letter-spacing:.01em;white-space:nowrap;box-shadow:0 12px 26px -12px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.14);pointer-events:none;opacity:0;transform:translateY(6px) scale(.96);transition:opacity .45s,transform .45s var(--ease);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.v6-hint.on{opacity:1;transform:none}
+.v6-hint.gone{opacity:0!important;transform:scale(.9)!important}
+.v6-hint .v6-hand{width:18px;height:18px;flex:none;color:var(--sun);animation:v6tap 1.5s ease-in-out infinite}
+.v6-hint .v6-ar{color:var(--sun);font-size:15px;line-height:1}
+.v6-hint.sw .v6-ar:first-child{animation:v6l 1.4s ease-in-out infinite}.v6-hint.sw .v6-ar:last-child{animation:v6r 1.4s ease-in-out infinite}
+@keyframes v6tap{0%,100%{transform:translateY(0)}40%{transform:translateY(-3px)}55%{transform:translateY(1px) scale(.9)}70%{transform:translateY(0)}}
+@keyframes v6l{0%,100%{transform:translateX(0)}50%{transform:translateX(-4px)}}
+@keyframes v6r{0%,100%{transform:translateX(0)}50%{transform:translateX(4px)}}
+.v6-tl{left:14px;top:14px}.v6-tr{right:14px;top:14px}.v6-br{right:14px;bottom:14px}
+.v6-strip{right:calc(var(--gut) + 10px);top:18px}
+.v6-strip.v6-rv{right:0}
+.rv .v6-dots{justify-content:flex-start;margin-left:-8px}
+.sv-panels .v6-hint{z-index:8}
+/* Tabs, die der Impuls gerade wählt, leuchten kurz auf */
+.sv-t.v6-ping{animation:v6ping .9s var(--ease)}
+@keyframes v6ping{0%{box-shadow:0 0 0 0 rgba(255,184,28,.75)}100%{box-shadow:0 0 0 14px rgba(255,184,28,0)}}
+/* Regler, der sich gerade selbst bewegt */
+input[type=range].v6-glow{animation:v6glow 1.1s ease-in-out infinite}
+@keyframes v6glow{0%,100%{filter:drop-shadow(0 0 0 rgba(255,184,28,0))}50%{filter:drop-shadow(0 0 7px rgba(255,184,28,.95))}}
+/* Objekt-Check: Hinweiszeile unter der Frage (bleibt als Platz stehen, damit nichts springt) */
+.v6-cue{display:flex;align-items:center;gap:8px;margin:-6px 0 16px;font-size:14px;font-weight:700;color:var(--green2);transition:opacity .5s}
+.v6-cue .v6-hand{width:18px;height:18px;flex:none;animation:v6tap 1.5s ease-in-out infinite}
+.v6-cue.ok{color:var(--green)}.v6-cue.ok .v6-hand{animation:none}
+.v6-cue.gone{opacity:0}
+/* Winter-Bereitschaft: Monate sind antippbar */
+.v6-cue-in{color:var(--sun2);letter-spacing:.1em;transition:opacity .5s}.v6-cue-in.gone{opacity:0}
+.wd-sea-m li{cursor:pointer;transition:background .3s,color .3s,box-shadow .3s,transform .2s}
+.wd-sea-m li:hover{background:rgba(255,255,255,.16);color:#fff}
+.wd-sea-m li:active{transform:scale(.94)}
+.wd-sea-m li.sel{background:#fff;color:var(--frost);box-shadow:0 0 0 3px rgba(255,255,255,.28)}
+.wd-sea-m li.now.sel{background:var(--sun);color:var(--ink);box-shadow:0 0 0 3px #fff}
+.wd-sea-t{min-height:3em}
+.wd-sea-t.v6-sw{animation:v6sw .45s var(--ease)}
+@keyframes v6sw{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+/* Einsatzgebiet: Orte sind fokussierbar */
+.map [data-town]{cursor:pointer;outline:none}
+.map [data-town]:focus-visible .tl{text-decoration:underline;text-decoration-color:var(--sun);text-decoration-thickness:2px}
+/* Punkte unter dem Bewertungs-Streifen (nur wenn er scrollt) */
+.v6-dots{display:flex;justify-content:center;gap:4px;margin:-8px 0 16px}
+.v6-dots button{width:26px;height:26px;padding:0;border:0;background:none;cursor:pointer;display:grid;place-items:center}
+.v6-dots button::before{content:"";width:8px;height:8px;border-radius:99px;background:rgba(16,33,28,.22);transition:width .3s var(--ease),background .3s}
+.v6-dots button.on::before{width:22px;background:var(--green2)}
+@media (min-width:900px){.v6-dots{display:none}}
+/* Touch: alles, was klickbar aussieht, gibt beim Antippen sichtbar nach */
+@media (hover:none){
+  .fw,.kc,.rv-c,.wy-g>a,.trust a,.sv-t,.oc-opts button,.oc-seg button,.oc-tags button,.dc span,.cp-card,.ei-c figure,.kg-list li,.pf3-l li,.ja-months button,.season-ui button,.svr,.ftr-l a,.ei-nav button{transition:transform .18s var(--ease),box-shadow .25s,background .25s,color .25s}
+  .fw:active,.kc:active,.rv-c:active,.wy-g>a:active,.trust a:active,.cp-card:active,.ei-c figure:active{transform:scale(.975)}
+  .sv-t:active,.oc-opts button:active,.oc-seg button:active,.oc-tags button:active,.dc input:active+span,.dc:active span,.kg-list li:active,.pf3-l li:active,.ja-months button:active,.season-ui button:active,.svr:active,.ei-nav button:active{transform:scale(.95)}
+  a,button,[role=button],label{-webkit-tap-highlight-color:rgba(255,184,28,.18)}
+}
+/* Telefon-/Faxnummern und Adressteile nie mitten drin umbrechen */
+.nw,.wy-go,.dm-hint a{white-space:nowrap}
+/* Footer „Rechtliches“: sauber umbrechen statt „Datenschutzerklär-ung“ */
+@media (max-width:520px){#datenschutz .ftr-l{display:flex;flex-wrap:wrap;gap:0 20px}#datenschutz .ftr-l a,#datenschutz .ftr-l span{overflow-wrap:normal;hyphens:manual;-webkit-hyphens:manual}}
+/* Rechtsseiten: Kopfzeile passt aufs Handy, Zurück-Link im Inhalt */
+.legal-back{display:inline-flex;align-items:center;gap:6px;margin:0 0 18px;font-weight:800;font-size:15px;color:var(--green2);text-decoration:none}
+.legal-back:hover{text-decoration:underline}
+@media (min-width:761px){.legal-back{display:none}}
+@media (max-width:760px){.hdr-legal .lg-back{width:44px;min-height:44px;padding:0;font-size:18px}.hdr-legal .lg-back .lg-back-t{display:none}.legal{padding-top:104px}}
+@media (max-width:420px){.hdr-legal .hdr-in{gap:10px}.hdr-legal .lg-i.hm{width:42px}.hdr-legal .logo b.hm-word{font-size:15px}.hdr-legal .logo small{font-size:9px;letter-spacing:.06em;white-space:nowrap}}
+/* Cookie-Hinweis auf schmalen Handys: Knöpfe nebeneinander, Beschriftung darf zweizeilig werden */
+@media (max-width:420px){.ck-b{display:grid;grid-template-columns:1fr 1fr;gap:6px}.ck-b .btn{white-space:normal;line-height:1.15;padding:8px 10px;min-height:42px;font-size:12.5px;text-align:center}.ck img{width:46px;height:46px}}
+@media (prefers-reduced-motion:reduce){.v6-hint .v6-hand,.v6-hint .v6-ar,.v6-cue .v6-hand{animation:none!important}input[type=range].v6-glow{animation:none}}
+@media print{.v6-hint,.v6-dots{display:none!important}}
+/* Tablet (761–899 px): Cookie-Hinweis über der Kontakt-Leiste statt darauf */
+@media (min-width:761px) and (max-width:899px){.ck{bottom:calc(88px + env(safe-area-inset-bottom,0px))}}
+/* Einsatzgebiet am Handy: Ortsnamen lesbar (vorher 6–8 px) */
+@media (max-width:600px){.map .town text{font-size:17px}.map .town.big text{font-size:24px}.map .home text{font-size:28px}.map .rhein-t{font-size:21px}.map .road-t{font-size:17px}.map .tl{stroke-width:5px}}
