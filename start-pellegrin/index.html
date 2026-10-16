@@ -29,10 +29,10 @@
 .go .val{transform:translateY(-110%);transition:transform 1.8s cubic-bezier(.7,0,.2,1) 1.1s}
 .start{position:fixed;inset:0;z-index:30;display:grid;place-content:center;justify-items:center;gap:22px;text-align:center;transition:opacity .6s}
 .go .start{opacity:0;pointer-events:none}
-.start small{font:600 12px/1 inherit;letter-spacing:.32em;text-transform:uppercase;color:#cfc8a8}
+.start small{font:600 12px/1 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:.32em;text-transform:uppercase;color:#cfc8a8}
 .start h1{margin:0;font:500 clamp(34px,5.4vw,78px)/1.05 "Fraunces",Georgia,serif;color:#fff;text-shadow:0 4px 30px rgba(0,0,0,.5)}
 .start h1 em{font-style:italic;font-weight:400;color:var(--sage)}
-.btn{margin-top:10px;display:inline-flex;align-items:center;gap:14px;padding:18px 30px;border-radius:999px;border:0;cursor:pointer;font:600 18px inherit;color:#1a1814;background:linear-gradient(180deg,#f3e8c6,#cdb980);box-shadow:0 0 0 6px rgba(205,185,128,.18),0 18px 50px -10px rgba(205,185,128,.6);animation:pulse 2.2s ease-in-out infinite}
+.btn{margin-top:10px;display:inline-flex;align-items:center;gap:14px;padding:18px 30px;border-radius:999px;border:0;cursor:pointer;font:600 18px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#1a1814;background:linear-gradient(180deg,#f3e8c6,#cdb980);box-shadow:0 0 0 6px rgba(205,185,128,.18),0 18px 50px -10px rgba(205,185,128,.6);animation:pulse 2.2s ease-in-out infinite}
 .btn i{width:0;height:0;border-left:14px solid #1a1814;border-top:9px solid transparent;border-bottom:9px solid transparent}
 @keyframes pulse{50%{box-shadow:0 0 0 14px rgba(205,185,128,.06),0 18px 50px -10px rgba(205,185,128,.8)}}
 .hint{font-size:13px;color:#9a937c}
@@ -41,7 +41,7 @@
 .go .orb{opacity:1;transform:none}
 .orb b{position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(213,216,191,.55);transform:scale(var(--s,1));transition:transform .08s linear}
 .orb b:nth-child(2){inset:14px;border-color:rgba(213,216,191,.35)}.orb b:nth-child(3){inset:30px;background:radial-gradient(circle,#f3ead0 0,#cdb980 45%,rgba(205,185,128,0) 72%);border:0}
-.who{position:absolute;top:calc(22vh + 136px);left:0;right:0;text-align:center;font:600 11px inherit;letter-spacing:.3em;text-transform:uppercase;color:#a69f84;opacity:0;transition:opacity 1s 1.6s}
+.who{position:absolute;top:calc(22vh + 136px);left:0;right:0;text-align:center;font:600 11px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:.3em;text-transform:uppercase;color:#a69f84;opacity:0;transition:opacity 1s 1.6s}
 .go .who{opacity:1}
 .cap{position:absolute;left:6vw;right:6vw;top:48vh;text-align:center;font:500 clamp(26px,3.6vw,54px)/1.2 "Fraunces",Georgia,serif;color:#fff;text-shadow:0 4px 30px rgba(0,0,0,.6)}
 .cap span{display:inline-block;opacity:0;transform:translateY(14px);filter:blur(6px);transition:opacity .5s,transform .6s cubic-bezier(.2,.7,.1,1),filter .6s}
@@ -54,10 +54,10 @@
 .win.on{opacity:1;transform:none}
 .win .bar{height:34px;border-radius:14px 14px 0 0;background:#e9e4da;display:flex;align-items:center;gap:7px;padding:0 14px}
 .win .bar i{width:11px;height:11px;border-radius:50%;background:#d6cfc2}.win .bar i:nth-child(1){background:#ed6a5e}.win .bar i:nth-child(2){background:#f4bf4f}.win .bar i:nth-child(3){background:#61c554}
-.win .bar u{margin-left:14px;flex:1;max-width:420px;height:22px;border-radius:11px;background:#fff;color:#555;font:500 12px/22px inherit;text-decoration:none;padding:0 12px;white-space:nowrap;overflow:hidden}
+.win .bar u{margin-left:14px;flex:1;max-width:420px;height:22px;border-radius:11px;background:#fff;color:#555;font:500 12px/22px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;text-decoration:none;padding:0 12px;white-space:nowrap;overflow:hidden}
 .win .scr{position:relative;aspect-ratio:1568/726;border-radius:0 0 14px 14px;overflow:hidden;background:#111 center/cover no-repeat;box-shadow:0 40px 120px -30px rgba(0,0,0,.9)}
-.win .lab{position:absolute;left:0;top:-58px;font:500 clamp(18px,2vw,26px) "Fraunces",Georgia,serif;color:#fff}
-.win .lab small{display:block;font:600 11px inherit;letter-spacing:.28em;text-transform:uppercase;color:#bdb596;margin-bottom:4px}
+.win .lab{position:absolute;left:0;top:auto;bottom:100%;margin:0 0 12px;line-height:1.15;font:500 clamp(18px,2vw,26px) "Fraunces",Georgia,serif;color:#fff}
+.win .lab small{display:block;font:600 11px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:.28em;text-transform:uppercase;color:#bdb596;margin-bottom:4px}
 .tiles{position:absolute;inset:34px 0 0 0;pointer-events:none}
 .tiles s{position:absolute;background-repeat:no-repeat;transition:transform 1.4s cubic-bezier(.2,.6,.2,1),opacity 1.4s;will-change:transform,opacity}
 .boom .bar,.boom .scr{opacity:0;transition:opacity .05s}
@@ -73,13 +73,13 @@
 .fin.on{opacity:1}
 .fin img{width:min(70vw,720px);filter:drop-shadow(0 10px 40px rgba(0,0,0,.6));opacity:0;transform:scale(.92);transition:opacity 1s .2s,transform 1.6s cubic-bezier(.2,.7,.1,1) .2s}
 .fin.on img{opacity:1;transform:none}
-.fin p{margin:0;font:600 12px inherit;letter-spacing:.32em;text-transform:uppercase;color:#cfc8a8;opacity:0;transition:opacity 1s .9s}.fin.on p{opacity:1}
+.fin p{margin:0;font:600 12px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:.32em;text-transform:uppercase;color:#cfc8a8;opacity:0;transition:opacity 1s .9s}.fin.on p{opacity:1}
 .glow{position:fixed;inset:-10%;z-index:14;pointer-events:none;display:none;background:radial-gradient(42% 38% at 50% 50%,rgba(243,232,198,.42),rgba(148,146,98,.16) 48%,transparent 72%);opacity:calc(var(--lv,0)*1.6);transform:scale(calc(.85 + var(--lv,0)*.5))}
 .comp .glow{display:block}
 .fin .rays{position:absolute;inset:-40%;background:repeating-conic-gradient(from 0deg at 50% 50%,rgba(243,232,198,.09) 0 5deg,transparent 5deg 15deg);-webkit-mask:radial-gradient(circle at 50% 50%,#000 0,transparent 55%);mask:radial-gradient(circle at 50% 50%,#000 0,transparent 55%);opacity:0;transition:opacity 1.4s .2s;animation:spin 24s linear infinite}
 .fin.on .rays{opacity:1}.fin img,.fin p{position:relative}
 @keyframes spin{to{transform:rotate(360deg)}}
-.skip{position:fixed;right:18px;bottom:16px;z-index:50;padding:9px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.35);color:#d9d2bd;font:500 13px inherit;cursor:pointer;opacity:.55}
+.skip{position:fixed;right:18px;bottom:16px;z-index:50;padding:9px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.35);color:#d9d2bd;font:500 13px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;cursor:pointer;opacity:.55}
 .skip:hover{opacity:1}
 </style>
 </head>
