@@ -422,3 +422,40 @@ html.kpf-on,html.kpf-on body{overflow:hidden}
 /* weicher Stilwechsel im 3D */
 .kp-xf{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none;z-index:2;opacity:1;transition:opacity .6s ease}.kp-xf.out{opacity:0}
 @media (prefers-reduced-motion:reduce){.kp-xf{display:none}.kp-look,.kp-look:hover{transform:none}}
+/* ---- v4: Ausstattung antippen (Spüle, Armatur, Kochfeld, Haube, Rückwand) ---- */
+.kp-pop{max-height:calc(100vh - 76px);overflow:auto;overscroll-behavior:contain}
+.kp-pop.kp-pop-eq{max-width:min(470px,calc(100vw - 16px));animation:kpeqin .22s cubic-bezier(.2,.8,.2,1)}
+@keyframes kpeqin{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
+.kp-eqrow{align-items:start}.kp-eqrow>.kp-pl{padding-top:9px}
+.kp-eqs{display:flex;flex-wrap:wrap;gap:6px}
+.kp-eq{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:4px 10px 4px 5px;border-radius:12px;border:1.5px solid var(--line);background:#fff;font:600 12.5px/1.15 var(--sans);color:var(--ink);cursor:pointer;text-align:left;transition:border-color .15s,background .15s,transform .12s,box-shadow .15s}
+.kp-eq svg{width:34px;height:25px;flex:none;border-radius:7px;background:#f4f0ea;padding:1.5px;box-sizing:border-box}
+.kp-eq span{display:grid;gap:1px}.kp-eq small{font:500 11px var(--sans);color:var(--mute)}
+.kp-eq:hover{border-color:#cdbfae;transform:translateY(-1px)}.kp-eq:active{transform:scale(.97)}
+.kp-eq.on{border-color:var(--copper);background:#fff6ef;box-shadow:0 0 0 3px rgba(192,103,63,.12);color:var(--copper-d,#a2532f)}
+.kp-eq.on svg{background:#fff}
+.kp-eq:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+.kp-equp{border-style:dashed}
+.kp-eqhint{margin:0;padding:8px 10px;border-radius:10px;background:#f5f1ea;font:500 12.5px/1.4 var(--sans);color:#5d5348}
+.kp-eq3{display:grid;gap:12px;margin-bottom:6px}
+.kp-eqblk{display:grid;gap:6px}.kp-eqblk>.kp-pl{font:600 12px var(--sans);color:var(--mute)}
+.kp-eq3 .kp-eq{min-height:44px}
+.kp-isl .kp-eqs-isl{margin-top:8px}.kp-isl .kp-eqs-isl .kp-eq{min-height:36px;font-size:12px}
+.kp-bs{cursor:pointer}.kp-wall:hover .kp-bs rect{fill:rgba(192,103,63,.06)}
+.kp-toast.kp-ask{flex-wrap:wrap;row-gap:8px}.kp-askb{display:flex;gap:6px;margin-left:auto}
+.kp-toast .kp-askb button{padding:7px 12px;border-radius:10px;background:#ffc79f;color:#1c1a17;font:700 13px var(--sans)}.kp-toast .kp-askb button[data-a="0"]{background:rgba(255,255,255,.14);color:#fff}
+@media (max-width:999px){
+  .kp[data-step] .kp-toast{top:auto;transform:translate(-50%,14px)}.kp[data-step] .kp-toast.on{transform:translate(-50%,0)}
+  .kp-toast{width:max-content;max-width:calc(100vw - 24px);font-size:13px;padding:10px 14px}
+  /* Bühne oben: links „live in 3D“, rechts beide Knöpfe nebeneinander – nichts überlappt */
+  .kp-acts{top:8px;right:8px;left:auto;bottom:auto;flex-direction:row;align-items:center;gap:5px}
+  .kp-live{max-width:none}
+  .kp-eq{min-height:38px;padding-right:9px}.kp-eq svg{width:30px;height:22px}
+}
+@media (max-width:600px){
+  .kp-live{font-size:0;gap:6px;padding:6px 10px}.kp-live b{display:none}.kp-live::after{content:'live in 3D';font:600 11.5px var(--sans)}
+  .kp-fotob span{font-size:0}.kp-fotob span::after{content:'In Ihren Raum';font-size:11.5px}
+  .kp-pop.kp-pop-eq{padding:10px}
+  .kp-eqrow{grid-template-columns:1fr}.kp-eqrow>.kp-pl{padding-top:0}
+}
+.kp-toast:not(.on){pointer-events:none}

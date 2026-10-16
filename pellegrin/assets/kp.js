@@ -157,6 +157,15 @@
     const X = new Map(); let x = a, gx = null; list.forEach((m, i) => { if (i === gi && fr > .5) { gx = x; x += fr; } X.set(m, x); x += m.w; }); if (gx == null && fr > .5) gx = x;
     return { X, gi, n, fr, gx, inner: fr > .5 && ((gi > 0 && gi < n) || (gi === n && cornerAt(w, 1)) || (gi === 0 && cornerAt(w, 0))) };
   }
+  // Passstücke & Wangen (automatisch): Restmaß unter 30 cm am Wandende / zwischen den Ecken → Passstück (Höhe wie der Nachbar);
+  // freistehendes Zeilenende (≥ 30 cm frei) → Seitenwange, 2 cm vor der Front
+  function trims(w) {
+    const LY = layout(w), rows = P.rows[w] || [], out = { pf: [], wg: [] }; if (!rows.length || LY.fr <= .5) return out;
+    const n = rows.length, at0 = LY.gi === 0, nb = LY.inner ? rows[Math.min(n - 1, LY.gi)] : at0 ? rows[0] : rows[n - 1], tall = M[nb.t].h === 't' && !LY.inner;
+    if (LY.fr < 30 || LY.inner) out.pf.push({ x: LY.gx, w: LY.fr, tall, h: tall ? hOf(nb) : 0, where: LY.inner ? 'zwischen den Ecken' : 'am Wandende' });
+    else if (M[nb.t].h !== 't') out.wg.push({ x: at0 ? LY.X.get(nb) - 2.5 : LY.X.get(nb) + nb.w, side: at0 ? 'links' : 'rechts' });
+    return out;
+  }
   const xs = w => { const L = layout(w); return (P.rows[w] || []).map(m => L.X.get(m)); };
   function locate(w, i) { if (!P.rows[w] || i < 0 || i >= P.rows[w].length) return null; return { x0: xs(w)[i], w: P.rows[w][i].w }; }
   const clampOp = (o, s) => { const m = o.t === 'fenster' ? 10 : 5; return Math.round(Math.max(m, Math.min(wallLen(o.wall) - o.w - m, s)) / 5) * 5; };
@@ -405,7 +414,10 @@
       x += m.w;
     });
     const fr = LY.fr, gx = LY.gx;
-    if (fr >= 1) s += `<g class="kp-free">${LY.inner ? `<g transform="translate(0 ${-((P.ah || 90) - 90)})"><rect x="${gx}" y="${FL - 10}" width="${fr}" height="${10 + (P.ah || 90) - 90}" fill="#2b2b2b"/>${front(gx, FL - 86, fr, 76, { noH: 1 })}<rect x="${gx - .3}" y="${FL - 90}" width="${fr + .6}" height="4" fill="${topCol()}"/></g>` : ''}<rect x="${gx + 1}" y="${FL - 89}" width="${fr - 2}" height="88" rx="2" fill="rgba(255,255,255,${LY.inner ? .25 : .4})" stroke="${ACC}" stroke-dasharray="3 2.4" stroke-width=".8"/>${fr >= 28 ? `<text x="${gx + fr / 2}" y="${FL - 42}" font-size="${Math.min(8, fr / 5)}" text-anchor="middle" fill="${ACC}" font-family="system-ui" font-weight="700">${LY.inner ? 'Blende' : 'frei'} ${Math.round(fr)}</text>` : ''}</g>`;
+    const TR = trims(w), dk = k => (P.style[k] === 'top' ? topCol() : P.style[k] === 'front' ? fcol() : k === 'wgDek' ? topCol() : fcol()), dhh = (P.ah || 90) - 90;
+    TR.pf.forEach(q => { s += `<g data-pf="${w}" class="kp-trim">${q.tall ? `<rect x="${q.x}" y="${FL - 10}" width="${q.w}" height="10" fill="#2b2b2b"/>${front(q.x, FL - q.h, q.w, q.h - 10, { noH: 1, fill: dk('pfDek') })}` : `<g transform="translate(0 ${-dhh})"><rect x="${q.x}" y="${FL - 10}" width="${q.w}" height="${10 + dhh}" fill="#2b2b2b"/>${front(q.x, FL - 86, q.w, 76, { noH: 1, fill: dk('pfDek') })}<rect x="${q.x - .3}" y="${FL - 90}" width="${q.w + .6}" height="4" fill="${topCol()}"/></g>`}${q.w >= 9 ? `<text x="${q.x + q.w / 2}" y="${FL - 46 - dhh}" font-size="${Math.min(5.5, q.w / 3)}" text-anchor="middle" fill="${xr(dk('pfDek'))}" font-family="system-ui" transform="rotate(-90 ${q.x + q.w / 2} ${FL - 46 - dhh})">Passstück ${Math.round(q.w)}</text>` : ''}<rect class="kp-hit" x="${q.x}" y="${FL - (q.tall ? q.h : 92 + dhh)}" width="${Math.max(q.w, 6)}" height="${q.tall ? q.h : 92 + dhh}" fill="transparent"/></g>`; });
+    TR.wg.forEach(q => { s += `<g data-wg="${w}" class="kp-trim"><rect x="${q.x}" y="${FL - 90 - dhh}" width="2.5" height="${90 + dhh}" fill="${dk('wgDek')}" stroke="rgba(0,0,0,.3)" stroke-width=".4"/><rect class="kp-hit" x="${q.x - 3}" y="${FL - 92 - dhh}" width="8.5" height="${92 + dhh}" fill="transparent"/></g>`; });
+    if (fr >= 30 && !LY.inner) s += `<g class="kp-free">${LY.inner ? `<g transform="translate(0 ${-((P.ah || 90) - 90)})"><rect x="${gx}" y="${FL - 10}" width="${fr}" height="${10 + (P.ah || 90) - 90}" fill="#2b2b2b"/>${front(gx, FL - 86, fr, 76, { noH: 1 })}<rect x="${gx - .3}" y="${FL - 90}" width="${fr + .6}" height="4" fill="${topCol()}"/></g>` : ''}<rect x="${gx + 1}" y="${FL - 89}" width="${fr - 2}" height="88" rx="2" fill="rgba(255,255,255,${LY.inner ? .25 : .4})" stroke="${ACC}" stroke-dasharray="3 2.4" stroke-width=".8"/>${fr >= 28 ? `<text x="${gx + fr / 2}" y="${FL - 42}" font-size="${Math.min(8, fr / 5)}" text-anchor="middle" fill="${ACC}" font-family="system-ui" font-weight="700">${LY.inner ? 'Blende' : 'frei'} ${Math.round(fr)}</text>` : ''}</g>`;
     if (fr < -0.5) s += `<rect x="${b}" y="${FL - 92}" width="${Math.min(-fr, 400)}" height="92" fill="rgba(208,40,40,.25)" stroke="#d02828" stroke-width=".8"/>`;
     { const cf = upCornerFill(w); if (cf) s += `<g pointer-events="none">${front(cf.s, cf.y, cf.w, cf.h, { noH: 1 })}<rect x="${cf.sx}" y="${cf.y}" width="35" height="${cf.h}" fill="${shade(fcol(), -.1)}" stroke="rgba(0,0,0,.18)" stroke-width=".4"/></g>`; }
     // Hängeschränke und Hauben
@@ -641,6 +653,8 @@
   wallsEl.addEventListener('pointerdown', e => {
     const gu = e.target.closest('[data-u]'), g = e.target.closest('[data-m]'), wn = e.target.closest('[data-op]'), bs = e.target.closest('[data-bs]');
     const wallEl = e.target.closest('.kp-wall'), hadEq = !!eqSel; eqSel = null;
+    const tr = e.target.closest('[data-pf],[data-wg]');
+    if (tr && wallEl && !gu && !g) { disarm(); const k = tr.dataset.pf ? 'pf' : 'wg', wv = tr.dataset.pf || tr.dataset.wg; openEq({ k, wall: wv, q: `[data-${k}="${wv}"]` }); e.preventDefault(); return; }
     if (bs && wallEl && !gu && !g) { disarm(); openEq({ k: 'bs', wall: bs.dataset.bs, q: `[data-bs="${bs.dataset.bs}"]` }); e.preventDefault(); return; }
     if (hadEq && !gu && !g && !wn) { renderWalls(); }
     if (gu && wallEl) { const w = wallEl.dataset.wall, id = gu.dataset.u, auto = id[0] === 'a', u = upList(w).find(x => String(x.id) === id); if (!u) return; startDrag(e, 'up', { wall: w, uid: auto ? id : +id, auto, s0: sAt(wallEl, e.clientX), us: u.s }); e.preventDefault(); return; }
@@ -726,6 +740,7 @@
       if (k === 'isl') h += eqRow('Abzug', IHOODS.map(([v, n, d]) => chip('ihood', v, eqv('ihood', 'mulde') === v, IC.hood(v), n, d)).join(''), blk);
     }
     if (k === 'dh') { h += eqRow('Haube', HOODS.map(([v, n, d]) => chip('hood', v, eqv('hood', 'schraeg') === v, IC.hood(v), n, d)).join(''), blk); if (!blk) h += `<p class="kp-eqhint">Lieber ohne Haube? Beim Kochfeld „Mit Muldenlüfter“ wählen.</p>`; }
+    if (k === 'pf' || k === 'wg') { const f = k === 'pf' ? 'pfDek' : 'wgDek', cur = P.style[f] || (k === 'pf' ? 'front' : 'top'); h += eqRow('Dekor', chip(f, 'front', cur === 'front', IC.dot(fcol()), 'Frontfarbe') + chip(f, 'top', cur === 'top', IC.dot(topCol()), 'Arbeitsplatte'), blk); if (!blk) h += `<p class="kp-eqhint">${k === 'pf' ? 'Das Passstück schließt das Restmaß automatisch – ohne Lücke zur Wand oder zum Hochschrank.' : 'Die Seitenwange schließt das offene Zeilenende sauber ab und steht 2 cm über die Front.'}</p>`; }
     if (k === 'bs') {
       const b = P.style.back || 'wand';
       h += eqRow(blk ? 'Material' : 'Rückwand', BACKS2.map(([v, n, d]) => chip('back', v, b === v, IC.back(v), n, blk ? d : '')).join(''), blk);
@@ -737,7 +752,7 @@
     return h;
   }
   function renderEqPop() {
-    const q = eqSel, T = { sp: ['Spüle', 'Becken und Armatur wählen'], kf: ['Kochfeld', 'Breite und Abzug'], dh: ['Dunstabzug', 'Bauform wählen'], bs: ['Küchenrückwand', 'zwischen Arbeitsplatte und Hängeschrank'], isl: ['Kochinsel', 'Kochfeld und Abzug'] }[q.k];
+    const q = eqSel, T = { sp: ['Spüle', 'Becken und Armatur wählen'], kf: ['Kochfeld', 'Breite und Abzug'], dh: ['Dunstabzug', 'Bauform wählen'], bs: ['Küchenrückwand', 'zwischen Arbeitsplatte und Hängeschrank'], isl: ['Kochinsel', 'Kochfeld und Abzug'], pf: ['Passstück', (() => { const t = q.wall && trims(q.wall).pf[0]; return t ? `${Math.round(t.w)} cm ${t.where}` : 'schließt das Restmaß'; })()], wg: ['Seitenwange', 'Abschluss am Zeilenende'] }[q.k];
     let m = null; if (q.id != null) for (const w in P.rows) { const x = P.rows[w].find(y => String(y.id) === String(q.id)); if (x) m = x; }
     pop.innerHTML = `<div class="kp-pt"><b>${T[0]} <small>${T[1]}</small></b><button type="button" class="kp-px" data-e="close" data-v="1" aria-label="Auswahl schließen">×</button></div>` + eqRows(q.k, m);
     pop.hidden = false; pop.classList.add('kp-pop-eq');
@@ -757,7 +772,7 @@
   function setEq(k, v) {
     if (k === 'close') { eqSel = null; pop.hidden = true; renderWalls(); return; }
     if (k === 'motif') { motifIn.click(); return; }
-    if (k === 'sink' || k === 'tap' || k === 'hood' || k === 'ihood' || k === 'backWood') P.style[k] = v;
+    if (k === 'sink' || k === 'tap' || k === 'hood' || k === 'ihood' || k === 'backWood' || k === 'pfDek' || k === 'wgDek') P.style[k] = v;
     if (k === 'backC') { if (v) P.style.backC = v; else delete P.style.backC; }
     if (k === 'backLed') P.style.backLed = +v ? 1 : 0;
     if (k === 'back') { P.style.back = v; if (v === 'motiv' && !motif) { motifIn.click(); } }
@@ -770,7 +785,7 @@
       toast(v === 'dd' ? 'Muldenlüfter gewählt – er saugt direkt am Kochfeld ab, die Haube entfällt.' : 'Normales Kochfeld – die Haube hängt wieder darüber.');
     }
     if (eqSel && eqSel.k === 'dh' && k === 'hobV' && v === 'dd') eqSel = null;
-    if (['back', 'backC', 'backWood', 'backLed', 'sink', 'tap', 'hood'].includes(k)) xfade();
+    if (['back', 'backC', 'backWood', 'backLed', 'sink', 'tap', 'hood', 'pfDek', 'wgDek'].includes(k)) xfade();
     change();
   }
   root.addEventListener('click', e => { const b = e.target.closest('[data-e]'); if (!b) return; e.preventDefault(); setEq(b.dataset.e, b.dataset.v); });
@@ -923,7 +938,8 @@
         items.push({ t: 'cab', id: m.id, label: label(m, cs), kind: c.h, w: m.w, h: c.h === 't' ? hOf(m) : undefined, ah, ...sp, ...(m.t === 'kf' ? { hob: Math.min(eqv('hobW', 80), m.w) - 2 } : {}), ...(cutL || cutR ? { topCut: [cutL * 2, cutR * 2], plExt: [cutL * 6, cutR * 6] } : {}), ...pos(w, x + m.w / 2, 60) });
       });
       // freier Platz zwischen zwei Ecken: Passblende mit durchlaufender Arbeitsplatte – keine offene Lücke
-      if (LY.inner && LY.fr >= 1) items.push({ t: 'cab', kind: 'b', w: LY.fr, ah, fr: [{ k: 'blind', p: 1 }], noGrip: 1, ...pos(w, LY.gx + LY.fr / 2, 60) });
+      { const TR = trims(w), pd = P.style.pfDek || 'front'; TR.pf.forEach(q => { if (q.w >= .8) items.push({ t: 'cab', kind: q.tall ? 't' : 'b', w: q.w, h: q.tall ? q.h : undefined, ah, fr: [{ k: 'blind', p: 1 }], noGrip: 1, eqk: 'pf', eqw: w, dekor: pd, ...pos(w, q.x + q.w / 2, 60) }); });
+        TR.wg.forEach(q => items.push({ t: 'wg', wall: w, h: 90 + ah - 90, dekor: P.style.wgDek || 'top', ...pos(w, q.x + 1.25, 62) })); }
       if (withNs) segs.forEach(([x, sw, h]) => items.push({ t: 'ns', wall: w, w: sw, h, ah, nx: x - nx0, nW: nx1 - nx0, ...pos(w, x + sw / 2, 2) }));
       { const cf = upCornerFill(w); if (cf) items.push({ t: 'cab', kind: 'u', w: cf.w, h: cf.h, y0: cf.bottom, fr: [{ k: 'blind', p: 1 }], led: false, ...pos(w, cf.s + cf.w / 2, 35) }); }
       upList(w).forEach(u => {
@@ -931,7 +947,7 @@
         else { const { bottom, h } = upY(u); items.push({ t: 'cab', id: u.id, label: label(u), kind: 'u', w: u.w, h, y0: bottom, led: u.t !== 'ho', ...spec(u), ...pos(w, u.s + u.w / 2, 35) }); }
       });
     }
-    if (P.form === 'insel') { const z = Math.max(60 + 100 + 50, Math.min(D - 120, 60 + 115 + 50)); items.push({ t: 'in', w: P.island.w, d: 100, v: P.island.v, ih: eqv('ihood', 'mulde'), hob: eqv('hobW', 80) - 2, x: W / 2, z, r: 0 }); }
+    if (P.form === 'insel') { const z = Math.max(60 + 100 + 50, Math.min(D - 120, 60 + 115 + 50)); items.push({ t: 'in', w: P.island.w, d: 100, v: P.island.v, dekor: P.style.wgDek || 'top', ih: eqv('ihood', 'mulde'), hob: eqv('hobW', 80) - 2, x: W / 2, z, r: 0 }); }
     P.op.forEach(o => open.push(o.t === 'fenster' ? { t: 'fenster', wall: o.wall, s: o.s, w: o.w, y: 105, h: 115 } : o.t === 'balkon' ? { t: 'fenster', wall: o.wall, s: o.s, w: o.w, y: 2, h: 216 } : { t: 'tuer', wall: o.wall, s: o.s, w: o.w }));
     return { room: { w: W, d: D, walls: { N: 1, E: 1, S: 1, W: 1 } }, open, items, motif: bk === 'motiv' ? motif : null, style: { ...P.style, front: P.style.wood ? '#ffffff' : P.style.front, backC: bk === 'glas' || bk === 'dibond' ? backCol() : null, sink: sinkCol(), tap: eqv('tap', 'chrom'), hobDD: isDD() } };
   }
@@ -1092,6 +1108,7 @@
       if (!rowsW) return o;
       const [a, b] = range(w), X = xs(w), LY = layout(w);
       o.nutzbarVon = a; o.nutzbarBis = b; o.frei = Math.round(free(w)); if (LY.fr > .5) o.freiAb = Math.round(LY.gx);
+      { const TR = trims(w); o.passstuecke = TR.pf.map(q => ({ name: 'Passstück', abWand: Math.round(q.x), breite: Math.round(q.w), hoehe: q.tall ? q.h : ah, dekor: (P.style.pfDek || 'front') === 'top' ? 'Arbeitsplatte' : 'Frontfarbe' })); o.wangen = TR.wg.map(q => ({ name: 'Seitenwange', seite: q.side, abWand: Math.round(q.x), breite: 2.5, hoehe: ah, tiefe: 62, dekor: (P.style.wgDek || 'top') === 'top' ? 'Arbeitsplatte' : 'Frontfarbe' })); }
       o.unten = rowsW.map((m, i) => { const cs = cornerSide(w, i), c = M[m.t], tall = c.h === 't', r = { id: m.id, typ: m.t, name: c.n, variante: variant(m, cs), art: tall ? 'hoch' : 'unter', breite: m.w, hoehe: tall ? hOf(m) : ah, tiefe: 60, abWand: X[i], ecke: cs || null, tuerAnschlag: hasHinge(m, cs) ? (aOf(m, cs) === 'l' ? 'links' : 'rechts') : null }; return r; });
       o.oben = [...upList(w)].sort((p, q) => p.s - q.s).map(u => u.t === 'dh' ? { id: u.id, typ: 'dh', name: 'Dunstabzug', variante: nm(HOODS, eqv('hood', 'schraeg')), art: 'haube', breite: u.w, hoehe: 108, tiefe: 50, abWand: Math.round(u.s), unterkante: 152 } : { id: u.id, typ: u.t, name: M[u.t].n, variante: variant(u), art: 'haenge', breite: u.w, hoehe: hOf(u), tiefe: 35, abWand: Math.round(u.s), unterkante: upY(u).bottom, oberkante: upY(u).bottom + hOf(u), tuerAnschlag: hasHinge(u) ? (aOf(u) === 'l' ? 'links' : 'rechts') : null, automatisch: !!u.auto });
       return o;
@@ -1120,7 +1137,7 @@
     const s = P.style, fr = FRONTS.find(f => s.wood ? f[1] === 'wood:' + s.wood : f[1] === s.front);
     const L = [`Form: ${FORMS[P.form].n} · Raum ${P.room.w} × ${P.room.d} cm`];
     for (const w in P.rows) {
-      L.push(`${WN[w]} unten: ` + (P.rows[w].map((m, i) => descr(m, cornerSide(w, i))).join(' · ') || '–'));
+      { const TR = trims(w); L.push(`${WN[w]} unten: ` + ([...P.rows[w].map((m, i) => descr(m, cornerSide(w, i))), ...TR.pf.map(q => `Passstück ${Math.round(q.w)} cm ${q.where}${q.tall ? ' (hoch)' : ''}`), ...TR.wg.map(q => `Seitenwange ${q.side} (${(P.style.wgDek || 'top') === 'top' ? 'Arbeitsplattendekor' : 'Frontfarbe'})`)].join(' · ') || '–')); }
       const ups = upList(w); L.push(`${WN[w]} oben${P.up[w] ? '' : ' (automatisch)'}: ` + (ups.length ? [...ups].sort((a, b) => a.s - b.s).map(u => descr(u, null, true)).join(' · ') : 'keine Hängeschränke'));
     }
     if (P.form === 'insel') L.push(`Insel: ${P.island.w} cm, ${({ kochfeld: 'mit Kochfeld', spuele: 'mit Spüle', frei: 'freie Arbeitsfläche' })[P.island.v]}`);

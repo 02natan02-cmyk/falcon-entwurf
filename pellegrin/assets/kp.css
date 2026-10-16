@@ -458,3 +458,4 @@ html.kpf-on,html.kpf-on body{overflow:hidden}
   .kp-pop.kp-pop-eq{padding:10px}
   .kp-eqrow{grid-template-columns:1fr}.kp-eqrow>.kp-pl{padding-top:0}
 }
+.kp-toast:not(.on){pointer-events:none}
