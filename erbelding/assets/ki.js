@@ -1,12 +1,39 @@
-/* KI-Vorschau: Vorher/Nachher + Stil-Chips + Anfrage */
+/* Ihre Küche in Ihrem Raum: Vorher/Nachher-Beispiele aus der Foto-Projektion + Stil-Chips */
 (function () {
   'use strict';
   document.querySelectorAll('.ki').forEach(sec => {
     const ba = sec.querySelector('[data-ba]'), r = sec.querySelector('[data-ba-r]'), img = sec.querySelector('[data-ki-img]');
-    if (ba && r) { const set = v => ba.style.setProperty('--p', v + '%'); r.addEventListener('input', () => set(r.value));
-      // sanftes Einladen: einmal hin und her wischen, wenn sichtbar
-      const io = new IntersectionObserver(([e]) => { if (!e.isIntersecting) return; io.disconnect(); if (matchMedia('(prefers-reduced-motion: reduce)').matches) return; let t0 = null; const step = t => { t0 = t0 || t; const k = (t - t0) / 2200; if (k >= 1) { set(52); r.value = 52; return; } const v = 52 + Math.sin(k * Math.PI * 2) * 34; set(v); r.value = v; requestAnimationFrame(step); }; setTimeout(() => requestAnimationFrame(step), 400); }, { threshold: .5 }); io.observe(ba); }
-    const pre = {}; sec.querySelectorAll('[data-ki]').forEach(b => { const src = img.src.replace(/[^/]+\.webp$/, b.dataset.ki + '.webp'); pre[b.dataset.ki] = src; (new Image()).src = src;
+    if (ba && r) {
+      const after = ba.querySelector('.ki-after'), knob = ba.querySelector('.ki-knob'), labL = ba.querySelector('.ki-lab.l'), labR = ba.querySelector('.ki-lab.r');
+      [labL, labR].forEach(l => l && (l.style.transition = 'opacity .25s'));
+      // Regler-Wert 0…100 → Schnittkante. Ränder hart einrasten (keine Rest-Streifen), Küche bei 100 % wirklich ausblenden
+      const set = raw => {
+        let v = Math.max(0, Math.min(100, +raw || 0)); if (v < 0.5) v = 0; if (v > 99.5) v = 100;
+        ba.style.setProperty('--p', v + '%');
+        if (after) after.style.visibility = v >= 100 ? 'hidden' : '';
+        if (knob) knob.style.left = `clamp(24px, ${v}%, calc(100% - 24px))`; // Knopf bleibt immer ganz im Bild
+        if (labL) labL.style.opacity = v < 14 ? 0 : 1;   // „Vorher“ nur, wenn auch Vorher zu sehen ist
+        if (labR) labR.style.opacity = v > 86 ? 0 : 1;   // „Raum-Vorschau“ nur, wenn die Küche zu sehen ist
+      };
+      let auto = false, user = false;
+      r.addEventListener('input', () => { if (!auto) user = true; set(r.value); });
+      ['pointerdown', 'touchstart', 'keydown', 'wheel'].forEach(t => r.addEventListener(t, () => { user = true; }, { passive: true }));
+      set(r.value);
+      // sanftes Einladen: einmal hin und her wischen, wenn sichtbar – bricht sofort ab, sobald jemand selbst zieht
+      const io = new IntersectionObserver(([e]) => {
+        if (!e.isIntersecting) return; io.disconnect();
+        if (user || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        const start = +r.value || 52; let t0 = null;
+        const step = t => {
+          if (user) return; t0 = t0 || t; const k = (t - t0) / 2200;
+          const v = k >= 1 ? start : start + Math.sin(k * Math.PI * 2) * 34;
+          auto = true; r.value = v; set(v); auto = false;
+          if (k < 1) requestAnimationFrame(step);
+        };
+        setTimeout(() => { if (!user) requestAnimationFrame(step); }, 400);
+      }, { threshold: .5 }); io.observe(ba);
+    }
+    const pre = {}; sec.querySelectorAll('[data-ki]').forEach(b => { const src = img.src.replace(/[^/?]+\.webp(\?[^#]*)?$/, b.dataset.ki + '.webp$1'); pre[b.dataset.ki] = src; (new Image()).src = src;
       b.addEventListener('click', () => { sec.querySelectorAll('[data-ki]').forEach(x => x.classList.toggle('on', x === b)); img.animate ? img.animate([{ opacity: .2, filter: 'blur(6px)' }, { opacity: 1, filter: 'blur(0)' }], { duration: 500, easing: 'ease-out' }) : 0; img.src = src;
         const rad = sec.querySelector(`input[name="Stil"][value="${b.textContent}"]`); if (rad) rad.checked = true; const sm = sec.querySelector('[data-kidet] summary span'); if (sm) sm.textContent = '📷 Meinen Raum in „' + b.textContent + '“ zeigen'; }); });
     const f = sec.querySelector('[data-kiform]'); if (!f) return;
