@@ -445,8 +445,12 @@
     const mob = innerWidth < 700 || matchMedia('(pointer:coarse)').matches;
     const qs = new URLSearchParams(location.search), qw = +(qs.get('rtw') || 0);   // rtw: Testgröße
     const Wd = qw >= 240 ? qw : mob ? 1280 : 1920, Hd = Math.round(Wd * .625);
-    const r = await PRT.render(RTK, { w: Wd, h: Hd, view, mood, plan: getPlan(), samples: mob ? 220 : 640, minSamples: mob ? 32 : 48, maxMs: mob ? 30000 : 26000, tiles: mob ? 3 : 2, envLight: 'apartment', onProgress: onProg, signal: { get aborted() { return !isLive(); } } });
+    const r = await PRT.render(RTK, { w: Wd, h: Hd, view, mood, plan: getPlan(), samples: mob ? 220 : 640, minSamples: mob ? 32 : 48, maxMs: mob ? 30000 : 26000, tiles: mob ? 3 : 2, texSize: mob ? 512 : 1024, envLight: 'apartment', onProgress: onProg, signal: { get aborted() { return !isLive(); } } });
     if (!isLive()) return null;
+    // Plausibilität: schwarzes, leeres oder einfarbiges Bild (z. B. Treiberfehler) → klassische Darstellung
+    { const t = document.createElement('canvas'); t.width = 48; t.height = 30; const g = t.getContext('2d'); g.drawImage(r.canvas, 0, 0, 48, 30); const d = g.getImageData(0, 0, 48, 30).data; let s = 0, s2 = 0, n = 0;
+      for (let i = 0; i < d.length; i += 4) { const L = (d[i] * .3 + d[i + 1] * .59 + d[i + 2] * .11) / 255; s += L; s2 += L * L; n++; }
+      const m = s / n, sd = Math.sqrt(Math.max(0, s2 / n - m * m)); if (!(m > .06 && m < .97 && sd > .03)) throw new Error('rt-implausible ' + m.toFixed(2) + '/' + sd.toFixed(2)); }
     return { canvas: gradeRT(r.canvas), how: 'rt', samples: r.samples };
   }
   async function renderView(view, mood, onStep) {
