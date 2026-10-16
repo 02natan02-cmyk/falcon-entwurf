@@ -727,3 +727,18 @@ input,textarea{font:inherit}
 .sl-fresh{filter:saturate(1.15) brightness(1.06)}
 .sl-fresh .sl-grain{opacity:.25}
 .saw-prog i.fresh svg{position:absolute;inset:14%;width:72%;height:72%;border-radius:50%;background:radial-gradient(circle,#fbf3df,#ecd6a8 75%);padding:10%;box-sizing:border-box}
+
+/* v6c · 16.10. Handy-Hero: alles auf den ersten Bildschirm, nichts unter der Leiste */
+@media (max-width:640px){
+  .hero{padding-bottom:calc(70px + env(safe-area-inset-bottom))}
+  .hero .kick{display:block;font-size:10.5px;letter-spacing:.1em;line-height:1.5;text-wrap:balance}
+  .hero-leaves{z-index:1}
+  .hero .ctas{align-items:stretch}.hero .ctas .b{min-height:50px}
+  .hero .lead{font-size:15.5px;line-height:1.5;margin-bottom:14px}
+}
+@media (max-width:640px) and (min-height:620px){
+  .hero{height:100svh;min-height:0}
+  .hero-in{display:flex;flex-direction:column;min-height:0;padding-bottom:4px}
+  .hero-v{flex:1 1 0;min-height:110px;margin-top:4px;align-self:stretch;width:100%}
+  .hero-set{height:100%;width:auto;max-width:90%;object-fit:contain}
+}
