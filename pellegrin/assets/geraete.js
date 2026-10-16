@@ -58,12 +58,14 @@
         var at = AT[KEYS.indexOf(k)], vis = (staticMode ? p > .06 : p >= at + .015) && p < .76 && (!mob || k === ck);
         var o = OFF[k] || [60, -40], s = mob ? .5 : 1, L = labels[k];
         var top0 = mob ? 84 : 120;
-        var lx = clamp(a.x + o[0] * s - (o[0] < 0 ? L.offsetWidth : 0), 6, w - L.offsetWidth - 6), ly = clamp(a.y + o[1] * s, top0, h - (mob ? 64 : 120));
+        var lw = Math.max(L.offsetWidth, L.scrollWidth || 0);
+        // Handy: Etikett immer oben im freien Raum (nie über Display/Garraum), Linie führt zum Bauteil
+        var lx = mob ? clamp(a.x - lw / 2, 8, w - lw - 96) : clamp(a.x + o[0] * s - (o[0] < 0 ? lw : 0), 6, w - lw - 6), ly = mob ? top0 + 8 : clamp(a.y + o[1] * s, top0, h - 120);
         L.style.transform = 'translate(' + lx.toFixed(1) + 'px,' + ly.toFixed(1) + 'px)';
         L.classList.toggle('on', vis); L.classList.toggle('cur', k === ck);
         L.tabIndex = vis ? 0 : -1;
         var le = lineEls[k]; le.g.style.opacity = vis ? 1 : 0;
-        var tx = lx + (o[0] < 0 ? L.offsetWidth : 0), ty = ly + L.offsetHeight / 2;
+        var tx = mob ? lx + lw / 2 : lx + (o[0] < 0 ? lw : 0), ty = mob ? ly + L.offsetHeight : ly + L.offsetHeight / 2;
         le.l.setAttribute('x1', a.x); le.l.setAttribute('y1', a.y); le.l.setAttribute('x2', tx); le.l.setAttribute('y2', ty);
         le.c.setAttribute('cx', a.x); le.c.setAttribute('cy', a.y);
       });

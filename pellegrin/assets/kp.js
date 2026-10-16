@@ -149,7 +149,16 @@
   const used = w => P.rows[w].reduce((a, m) => a + m.w, 0);
   const free = w => { const [a, b] = range(w); return b - a - used(w); };
   function fillRest(w) { let f = free(w); const R = [120, 100, 90, 80, 60, 50, 45, 40, 30]; while (f >= 30) { const x = R.find(v => v <= f); P.rows[w].push(mk('us', x)); f -= x; } }
-  function locate(w, i) { if (!P.rows[w] || i < 0) return null; let x = range(w)[0]; for (let j = 0; j < i; j++) x += P.rows[w][j].w; return { x0: x, w: P.rows[w][i].w }; }
+  // Ecken: Die Zeile liegt immer an der Ecke an – freier Platz wandert ans offene Ende (bzw. vor den Eckschrank, wenn beide Enden Ecken sind)
+  const cornerAt = (w, end) => end ? (w === 'N' && !!P.rows.E && hasCornerSlot('r')) || (w === 'W' && !!P.rows.N) : (w === 'N' && !!P.rows.W && hasCornerSlot('l')) || (w === 'E' && !!P.rows.N);
+  function layout(w, skipId) {
+    const rows = P.rows[w] || [], [a, b] = range(w), list = rows.filter(m => m.id !== skipId), n = list.length, fr = b - a - list.reduce((t, m) => t + m.w, 0);
+    let gi = n; if (fr > .5) { const cs = cornerAt(w, 0), ce = cornerAt(w, 1); if (ce && !cs) gi = 0; else if (ce && cs && n) gi = n - 1; }
+    const X = new Map(); let x = a, gx = null; list.forEach((m, i) => { if (i === gi && fr > .5) { gx = x; x += fr; } X.set(m, x); x += m.w; }); if (gx == null && fr > .5) gx = x;
+    return { X, gi, n, fr, gx, inner: fr > .5 && ((gi > 0 && gi < n) || (gi === n && cornerAt(w, 1)) || (gi === 0 && cornerAt(w, 0))) };
+  }
+  const xs = w => { const L = layout(w); return (P.rows[w] || []).map(m => L.X.get(m)); };
+  function locate(w, i) { if (!P.rows[w] || i < 0 || i >= P.rows[w].length) return null; return { x0: xs(w)[i], w: P.rows[w][i].w }; }
   const clampOp = (o, s) => { const m = o.t === 'fenster' ? 10 : 5; return Math.round(Math.max(m, Math.min(wallLen(o.wall) - o.w - m, s)) / 5) * 5; };
   const opById = id => P.op.find(o => o.id === id);
   function defaultDoor() { const dw = ['E', 'S', 'W'].find(w => !P.rows[w]) || 'S'; return { id: uid++, t: 'tuer', wall: dw, w: 90, s: Math.max(20, Math.round(wallLen(dw) / 2 - 45)) }; }
@@ -169,6 +178,20 @@
     P.rows.N = [...(slot.l ? [slot.l] : []), ...rest, ...(slot.r ? [slot.r] : [])];
     return drop;
   }
+  // Hängeschränke über Eck: Lücke zwischen Seitenwand-Hängeschrank und dem Hängeschrank der Rückwand mit Passblende schließen
+  function upCornerFill(w) {
+    if ((w !== 'W' && w !== 'E') || !P.rows.N || !P.rows[w]) return null;
+    const L = wallLen(w), [a, b] = range(w), side = upList(w).filter(u => u.t !== 'dh'), back = upList('N').filter(u => u.t !== 'dh'), WN0 = P.room.w;
+    if (w === 'W') { const u = side.find(q => q.s + q.w >= b - 1 && q.s + q.w < L - 35 - 1), n = back.find(q => q.s <= 1); if (!u || !n) return null; const { y, h, bottom } = upY(u), s0 = u.s + u.w; return { s: s0, w: L - 35 - s0, y, h, bottom, sx: L - 35 }; }
+    const u = side.find(q => q.s <= a + 1 && q.s > 36), n = back.find(q => q.s + q.w >= WN0 - 1); if (!u || !n) return null; const { y, h, bottom } = upY(u); return { s: 35, w: u.s - 35, y, h, bottom, sx: 0 };
+  }
+  // Jede Ecke einer L-/U-Küche bekommt einen Eckschrank – auch nach dem Löschen (dann Blindecke)
+  function fillCorners() {
+    const N = P.rows.N, add = []; if (!N) return add;
+    ['l', 'r'].forEach(sd => { if (!hasCornerSlot(sd)) return; const m0 = sd === 'l' ? N[0] : N[N.length - 1]; if (m0 && M[m0.t].corner && cornerSide('N', sd === 'l' ? 0 : N.length - 1) === sd) return; const m = mk('eb', 90); if (sd === 'l') N.unshift(m); else N.push(m); add.push(m); });
+    if (add.length) { makeRoom('N', add[0]); ['W', 'E'].forEach(w => P.rows[w] && makeRoom(w)); }
+    return add;
+  }
   function clampIdx(w, idx) { if (w !== 'N') return idx; const N = P.rows.N, n = N.length; if (n && M[N[0].t].corner && cornerSide('N', 0) === 'l') idx = Math.max(1, idx); if (n && M[N[n - 1].t].corner && cornerSide('N', n - 1) === 'r') idx = Math.min(n - 1, idx); return idx; }
 
   /* ---------------- Hängeschränke ---------------- */
@@ -181,20 +204,20 @@
     return 'cab';
   }
   function autoUp(w) {
-    const out = []; let x = range(w)[0];
-    const L = wallLen(w); P.rows[w].forEach(m => { const k = x + m.w > L + .5 ? null : overKind(w, m, x); if (k === 'hood' && isDD()) { /* Muldenlüfter: keine Haube */ } else if (k === 'hood') { const hw = eqv('hood') === 'flach' ? m.w : Math.min(90, Math.max(60, m.w)); out.push({ id: 'a' + m.id, t: 'dh', s: x + m.w / 2 - hw / 2, w: hw, auto: 1 }); } else if (k === 'cab') out.push({ id: 'a' + m.id, t: m.w > 60 ? 'h2' : 'h1', s: x, w: m.w, auto: 1 }); x += m.w; });
+    const out = [], X = xs(w);
+    const L = wallLen(w); P.rows[w].forEach((m, i) => { const x = X[i]; const k = x + m.w > L + .5 ? null : overKind(w, m, x); if (k === 'hood' && isDD()) { /* Muldenlüfter: keine Haube */ } else if (k === 'hood') { const hw = eqv('hood') === 'flach' ? m.w : Math.min(90, Math.max(60, m.w)); out.push({ id: 'a' + m.id, t: 'dh', s: x + m.w / 2 - hw / 2, w: hw, auto: 1 }); } else if (k === 'cab') out.push({ id: 'a' + m.id, t: m.w > 60 ? 'h2' : 'h1', s: x, w: m.w, auto: 1 }); });
     return out;
   }
   const upList = w => P.up[w] || (P.rows[w] ? autoUp(w) : []);
   function materialize(w) { if (P.up[w]) return {}; const map = {}; P.up[w] = autoUp(w).map(u => { const n = { id: uid++, t: u.t, s: u.s, w: u.w }; map[u.id] = n.id; return n; }); return map; }
   function upY(u) { const h = hOf(u), top = Math.max(217, 145 + h); return { y: FL - top, h, bottom: top - h }; }
   function upConflict(w, u) {
-    if (u.t === 'dh') return null; const { bottom } = upY(u); let x = range(w)[0], r = null;
-    P.rows[w].forEach(m => { if (M[m.t].h === 't' && ov(x, m.w, u.s, u.w) && hOf(m) > bottom + 1) r = 'tall'; x += m.w; });
+    if (u.t === 'dh') return null; const { bottom } = upY(u), X = xs(w); let r = null;
+    P.rows[w].forEach((m, i) => { if (M[m.t].h === 't' && ov(X[i], m.w, u.s, u.w) && hOf(m) > bottom + 1) r = 'tall'; });
     if (!r && P.op.some(o => o.wall === w && ov(o.s, o.w, u.s, u.w))) r = 'win';
     return r;
   }
-  function upEdges(w, u) { const L = wallLen(w), e = [0, L]; let x = range(w)[0]; e.push(x); P.rows[w].forEach(m => { x += m.w; e.push(x); }); (P.up[w] || []).forEach(o => { if (o !== u) e.push(o.s, o.s + o.w); }); P.op.filter(o => o.wall === w).forEach(o => e.push(o.s, o.s + o.w)); return e; }
+  function upEdges(w, u) { const L = wallLen(w), e = [0, L]; const X = xs(w); P.rows[w].forEach((m, i) => { e.push(X[i], X[i] + m.w); }); (P.up[w] || []).forEach(o => { if (o !== u) e.push(o.s, o.s + o.w); }); P.op.filter(o => o.wall === w).forEach(o => e.push(o.s, o.s + o.w)); return e; }
   function resolveUp(w, u, ds, noSnap) {
     const L = wallLen(w), others = (P.up[w] || []).filter(o => o !== u);
     let s = Math.max(0, Math.min(L - u.w, ds));
@@ -207,11 +230,11 @@
     return s;
   }
   function freeUpSpot(w, t, width) {
-    const L = wallLen(w), ups = P.up[w] || [], tmp = { t, w: width, h: HDEF(t) }, cand = new Set(); let x = range(w)[0];
-    P.rows[w].forEach(m => { if (M[m.t].h !== 't') { cand.add(x); cand.add(x + m.w - width); } x += m.w; }); ups.forEach(u => { cand.add(u.s + u.w); cand.add(u.s - width); }); cand.add(range(w)[0]); cand.add(range(w)[1] - width);
+    const L = wallLen(w), ups = P.up[w] || [], tmp = { t, w: width, h: HDEF(t) }, cand = new Set(), X = xs(w);
+    P.rows[w].forEach((m, i) => { const x = X[i]; if (M[m.t].h !== 't') { cand.add(x); cand.add(x + m.w - width); } }); ups.forEach(u => { cand.add(u.s + u.w); cand.add(u.s - width); }); cand.add(range(w)[0]); cand.add(range(w)[1] - width);
     const ok = [...cand].filter(s => s >= 0 && s + width <= L && !ups.some(u => ov(u.s, u.w, s, width)) && !upConflict(w, { ...tmp, s })).sort((p, q) => p - q);
     // Bevorzugt über normalen Unterschränken, nicht über dem Kochfeld
-    const good = ok.filter(s => { let x0 = range(w)[0], bad = false; P.rows[w].forEach(m => { if (ov(x0, m.w, s, width) && (m.t === 'kf' || m.t === 'ko')) bad = true; x0 += m.w; }); return !bad; });
+    const good = ok.filter(s => { let bad = false; P.rows[w].forEach((m, i) => { if (ov(X[i], m.w, s, width) && (m.t === 'kf' || m.t === 'ko')) bad = true; }); return !bad; });
     return (good.length ? good : ok)[0];
   }
 
@@ -374,16 +397,17 @@
     const N = P.rows.N || [];
     if (a > 0) s += (w === 'E' && N.length && N[N.length - 1].t === 'ek') ? hatch(0, FL - 90, 60, 90, 'Karussell') + `<g transform="translate(0 ${-((P.ah || 90) - 90)})"><rect x="60" y="${FL - 10}" width="30" height="${10 + (P.ah || 90) - 90}" fill="#2b2b2b"/>${stack2d(60, FL - 86, 30, 76, [{ k: 'door', p: 1, a: 'r' }], 'b')}<rect x="59.7" y="${FL - 90}" width="30.6" height="4" fill="${topCol()}"/></g>` : hatch(0, FL - 90, a, 90);
     if (b < L) s += (w === 'W' && N[0] && N[0].t === 'ek') ? `<g transform="translate(0 ${-((P.ah || 90) - 90)})"><rect x="${b}" y="${FL - 10}" width="30" height="${10 + (P.ah || 90) - 90}" fill="#2b2b2b"/>${stack2d(b, FL - 86, 30, 76, [{ k: 'door', p: 1, a: 'l' }], 'b')}<rect x="${b - .3}" y="${FL - 90}" width="30.6" height="4" fill="${topCol()}"/></g>` + hatch(b + 30, FL - 90, L - b - 30, 90, 'Karussell') : hatch(b, FL - 90, L - b, 90);
-    let x = a; const sel = opt.sel;
+    const LY = layout(w), sel = opt.sel; let x = a;
     rowsW.forEach((m, i) => {
-      m._cs = cornerSide(w, i);
+      m._cs = cornerSide(w, i); x = LY.X.get(m);
       const tall = M[m.t].h === 't', hy = tall ? FL - hOf(m) : FL - 92, hh = tall ? hOf(m) : 92;
       s += `<g data-m="${m.id}" class="kp-m${sel === m.id ? ' on' : ''}"${opt.ghost === m.id ? ' opacity=".25"' : ''}>${elev(m, x)}<rect class="kp-hit" x="${x}" y="${hy}" width="${m.w}" height="${hh}" fill="transparent"/></g>`;
       x += m.w;
     });
-    const fr = b - x;
-    if (fr >= 1) s += `<g class="kp-free"><rect x="${x + 1}" y="${FL - 89}" width="${fr - 2}" height="88" rx="2" fill="rgba(255,255,255,.4)" stroke="${ACC}" stroke-dasharray="3 2.4" stroke-width=".8"/>${fr >= 28 ? `<text x="${x + fr / 2}" y="${FL - 42}" font-size="${Math.min(8, fr / 5)}" text-anchor="middle" fill="${ACC}" font-family="system-ui" font-weight="700">frei ${Math.round(fr)}</text>` : ''}</g>`;
+    const fr = LY.fr, gx = LY.gx;
+    if (fr >= 1) s += `<g class="kp-free">${LY.inner ? `<g transform="translate(0 ${-((P.ah || 90) - 90)})"><rect x="${gx}" y="${FL - 10}" width="${fr}" height="${10 + (P.ah || 90) - 90}" fill="#2b2b2b"/>${front(gx, FL - 86, fr, 76, { noH: 1 })}<rect x="${gx - .3}" y="${FL - 90}" width="${fr + .6}" height="4" fill="${topCol()}"/></g>` : ''}<rect x="${gx + 1}" y="${FL - 89}" width="${fr - 2}" height="88" rx="2" fill="rgba(255,255,255,${LY.inner ? .25 : .4})" stroke="${ACC}" stroke-dasharray="3 2.4" stroke-width=".8"/>${fr >= 28 ? `<text x="${gx + fr / 2}" y="${FL - 42}" font-size="${Math.min(8, fr / 5)}" text-anchor="middle" fill="${ACC}" font-family="system-ui" font-weight="700">${LY.inner ? 'Blende' : 'frei'} ${Math.round(fr)}</text>` : ''}</g>`;
     if (fr < -0.5) s += `<rect x="${b}" y="${FL - 92}" width="${Math.min(-fr, 400)}" height="92" fill="rgba(208,40,40,.25)" stroke="#d02828" stroke-width=".8"/>`;
+    { const cf = upCornerFill(w); if (cf) s += `<g pointer-events="none">${front(cf.s, cf.y, cf.w, cf.h, { noH: 1 })}<rect x="${cf.sx}" y="${cf.y}" width="35" height="${cf.h}" fill="${shade(fcol(), -.1)}" stroke="rgba(0,0,0,.18)" stroke-width=".4"/></g>`; }
     // Hängeschränke und Hauben
     upList(w).forEach(u => {
       const [hx, hy, hw, hh] = upHit(u, u.s), bad = upConflict(w, u);
@@ -407,8 +431,8 @@
     if (!P.rows[w]) return '';
     const b = P.style.back || 'wand', dh = (P.ah || 90) - 90, led = !!P.style.backLed, y1 = FL - 90 - dh;
     const fill = b === 'platte' ? topCol() : b === 'fliese' ? 'url(#kptile)' : b === 'holz' ? (BACKW.find(x => x[0] === (P.style.backWood || 'eiche')) || BACKW[0])[2] : b === 'motiv' ? '#d9d4cc' : b === 'dibond' ? backCol() : shade(backCol(), P.style.backC ? 0 : -.12);
-    let x = range(w)[0], s = '', rects = '', x0 = null, x1 = 0, tops = '';
-    P.rows[w].forEach(m => { const h = nsH(w, m, x); if (M[m.t].h === 'b' && h > 0) { rects += `<rect x="${x}" y="${y1 - h}" width="${m.w}" height="${h}"/>`; if (h >= 40) tops += `<rect x="${x}" y="${y1 - h}" width="${m.w}" height="1.2"/>`; if (x0 == null) x0 = x; x1 = x + m.w; } x += m.w; });
+    let s = '', rects = '', x0 = null, x1 = 0, tops = '';
+    nsSegs(w).forEach(([x, sw, h]) => { rects += `<rect x="${x}" y="${y1 - h}" width="${sw}" height="${h}"/>`; if (h >= 40) tops += `<rect x="${x}" y="${y1 - h}" width="${sw}" height="1.2"/>`; if (x0 == null || x < x0) x0 = x; x1 = Math.max(x1, x + sw); });
     if (x0 == null) return '';
     if (b !== 'wand') {
       if (b === 'motiv' && motif) s += `<clipPath id="kpbs${w}">${rects}</clipPath><image href="${motif._url}" x="${x0}" y="${y1 - 55}" width="${x1 - x0}" height="55" preserveAspectRatio="xMidYMid slice" clip-path="url(#kpbs${w})"/>`;
@@ -419,6 +443,14 @@
     if (led) s += `<linearGradient id="kpled${w}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe2a8" stop-opacity=".75"/><stop offset="1" stop-color="#ffe2a8" stop-opacity="0"/></linearGradient><g fill="url(#kpled${w})">${rects}</g><g fill="#fff6dc">${tops}</g>`;
     s += `<g data-bs="${w}" class="kp-bs" fill="transparent">${rects}</g>`;
     return s;
+  }
+  // Nischen-Abschnitte einer Wand: über jedem Unterschrank + über der Ecke (Eckschrank der Rückwand) – damit die Rückwand über Eck durchläuft
+  function nsSegs(w) {
+    const out = [], X = xs(w), [a, b] = range(w), L = wallLen(w), seg = (x, sw) => { const h = nsH(w, { w: sw }, x); if (h > 0 && sw > .5) out.push([x, sw, h]); };
+    if (cornerAt(w, 0) && w !== 'N') seg(1.6, a - 1.6);
+    P.rows[w].forEach((m, i) => { if (M[m.t].h === 'b') seg(X[i], m.w); });
+    if (cornerAt(w, 1) && w !== 'N') seg(b, L - b - 1.6);
+    return out.sort((p, q) => p[0] - q[0]);
   }
   function nsH(w, m, x0) { const ops = P.op.filter(o => o.wall === w && opOver(o, x0, m.w)); if (ops.some(o => o.t !== 'fenster')) return 0; return ops.length ? Math.max(0, 15 - ((P.ah || 90) - 90)) : 55; }
   const DEFS = `<defs><linearGradient id="kpsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bcdcf5"/><stop offset="1" stop-color="#eaf5fc"/></linearGradient><pattern id="kptile" width="20" height="10" patternUnits="userSpaceOnUse"><rect width="20" height="10" fill="#d9d4cc"/><rect x=".6" y=".6" width="18.8" height="3.8" rx=".6" fill="#f6f4ef"/><rect x="-9.4" y="5.6" width="18.8" height="3.8" rx=".6" fill="#f6f4ef"/><rect x="10.6" y="5.6" width="18.8" height="3.8" rx=".6" fill="#f6f4ef"/></pattern><pattern id="kphatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#e9e3da"/><line x1="0" y1="0" x2="0" y2="6" stroke="#cfc5b8" stroke-width="2"/></pattern><filter id="kpgrain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".02 .5" numOctaves="2" seed="4" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -.9 .55" result="a"/><feComposite in="a" in2="SourceGraphic" operator="in" result="g"/><feBlend in="SourceGraphic" in2="g" mode="multiply"/></filter></defs>`;
@@ -450,8 +482,8 @@
   let drag = null; const ghost = $('[data-kp-ghost]'), caret = $('[data-kp-caret]'), trash = $('[data-kp-trash]');
   function wallAt(cx, cy) { for (const el of $$('.kp-wall', wallsEl)) { if (getComputedStyle(el).display === 'none') continue; const r = el.getBoundingClientRect(); if (cx >= r.left - 10 && cx <= r.right + 10 && cy >= r.top - 40 && cy <= r.bottom + 30) return el; } return null; }
   function sAt(el, cx) { const svg = $('svg', el), p = svg.createSVGPoint(); p.x = cx; p.y = 0; return p.matrixTransform(svg.getScreenCTM().inverse()).x; }
-  function insIndex(w, s, skipId) { const [a] = range(w); let x = a, i = 0; for (const m of P.rows[w]) { if (m.id === skipId) { i++; continue; } if (s < x + m.w / 2) return i; x += m.w; i++; } return P.rows[w].length; }
-  function caretX(w, idx, skipId) { let x = range(w)[0]; P.rows[w].slice(0, idx).forEach(m => { if (m.id !== skipId) x += m.w; }); return x; }
+  function insIndex(w, s, skipId) { const L = layout(w, skipId); let i = 0; for (const m of P.rows[w]) { if (m.id === skipId) { i++; continue; } if (s < L.X.get(m) + m.w / 2) return i; i++; } return P.rows[w].length; }
+  function caretX(w, idx, skipId) { const L = layout(w, skipId), r = P.rows[w]; for (let j = idx; j < r.length; j++) if (r[j].id !== skipId) return L.X.get(r[j]); let e = range(w)[0]; for (let j = r.length - 1; j >= 0; j--) if (r[j].id !== skipId) { e = L.X.get(r[j]) + r[j].w; break; } return e; }
   const palById = k => PAL.find(p => p.k === k);
   function startDrag(e, kind, payload) { drag = { kind, ...payload, x0: e.clientX, y0: e.clientY, on: false, pid: e.pointerId }; }
   function tileSvg(t, w, o = {}) {
@@ -732,7 +764,7 @@
     if (k === 'hobW') { P.style.hobW = +v; let grown = 0; for (const w in P.rows) P.rows[w].forEach(m => { if (m.t === 'kf' && m.w < +v) { m.w = M.kf.ws.find(x => x >= +v) || m.w; makeRoom(w, m); grown = m.w; } }); if (grown) toast(`Der Kochfeldschrank ist jetzt ${grown} cm breit, damit das ${v}er Kochfeld hineinpasst.`); }
     if (k === 'hobV') {
       P.style.hobV = v;
-      for (const w in P.up) { const hobs = []; let x = range(w)[0]; (P.rows[w] || []).forEach(m => { if (m.t === 'kf' || m.t === 'ko') hobs.push([x, m.w]); x += m.w; });
+      for (const w in P.up) { const hobs = [], X = xs(w); (P.rows[w] || []).forEach((m, i) => { if (m.t === 'kf' || m.t === 'ko') hobs.push([X[i], m.w]); });
         if (v === 'dd') P.up[w] = P.up[w].filter(u => !(u.t === 'dh' && hobs.some(([a, b]) => ov(a, b, u.s, u.w))));
         else hobs.forEach(([a, b]) => { if (!P.up[w].some(u => u.t === 'dh' && ov(a, b, u.s, u.w))) { const hw = Math.min(90, Math.max(60, b)); P.up[w].push({ id: uid++, t: 'dh', s: a + b / 2 - hw / 2, w: hw }); } }); }
       toast(v === 'dd' ? 'Muldenlüfter gewählt – er saugt direkt am Kochfeld ab, die Haube entfällt.' : 'Normales Kochfeld – die Haube hängt wieder darüber.');
@@ -793,7 +825,7 @@
   function renderPlan() {
     if (!planEl) return;
     const W = P.room.w, D = P.room.d; let s = `<rect x="0" y="0" width="${W}" height="${D}" fill="#f7f2ea"/>`;
-    for (const w in P.rows) { let x = range(w)[0]; P.rows[w].forEach((m, i) => { const [cx, cy, cw, ch] = cabR(w, x, m.w, 60), tall = M[m.t].h === 't'; s += `<rect x="${cx}" y="${cy}" width="${cw}" height="${ch}" fill="${tall ? '#cdbfab' : '#e6dccd'}" stroke="#a89880" stroke-width="1.2"/>`; if (m.t === 'ek') { const cs = cornerSide(w, i); s += `<rect x="${cs === 'r' ? W - 60 : 0}" y="60" width="60" height="30" fill="#e6dccd" stroke="#a89880" stroke-width="1.2"/>`; } const mx = cx + cw / 2, my = cy + ch / 2; if (m.t === 'sp') s += `<rect x="${mx - 17}" y="${my - 14}" width="34" height="28" rx="6" fill="#fff" stroke="#8d9296" stroke-width="1.5"/>`; if (m.t === 'kf' || m.t === 'ko') [[-11, -11], [11, -11], [-11, 11], [11, 11]].forEach(([a, b]) => s += `<circle cx="${mx + a}" cy="${my + b}" r="7" fill="none" stroke="#45474b" stroke-width="1.6"/>`); if (m.t === 'kue') s += `<text x="${mx}" y="${my + 5}" font-size="15" text-anchor="middle" fill="#6e655b" font-family="system-ui">❄</text>`; x += m.w; }); }
+    for (const w in P.rows) { const X = xs(w); P.rows[w].forEach((m, i) => { const x = X[i]; const [cx, cy, cw, ch] = cabR(w, x, m.w, 60), tall = M[m.t].h === 't'; s += `<rect x="${cx}" y="${cy}" width="${cw}" height="${ch}" fill="${tall ? '#cdbfab' : '#e6dccd'}" stroke="#a89880" stroke-width="1.2"/>`; if (m.t === 'ek') { const cs = cornerSide(w, i); s += `<rect x="${cs === 'r' ? W - 60 : 0}" y="60" width="60" height="30" fill="#e6dccd" stroke="#a89880" stroke-width="1.2"/>`; } const mx = cx + cw / 2, my = cy + ch / 2; if (m.t === 'sp') s += `<rect x="${mx - 17}" y="${my - 14}" width="34" height="28" rx="6" fill="#fff" stroke="#8d9296" stroke-width="1.5"/>`; if (m.t === 'kf' || m.t === 'ko') [[-11, -11], [11, -11], [-11, 11], [11, 11]].forEach(([a, b]) => s += `<circle cx="${mx + a}" cy="${my + b}" r="7" fill="none" stroke="#45474b" stroke-width="1.6"/>`); if (m.t === 'kue') s += `<text x="${mx}" y="${my + 5}" font-size="15" text-anchor="middle" fill="#6e655b" font-family="system-ui">❄</text>`;  }); }
     if (P.form === 'insel') { const z = Math.max(210, Math.min(D - 120, 225)); s += `<rect x="${W / 2 - P.island.w / 2}" y="${z - 50}" width="${P.island.w}" height="100" rx="4" fill="#e6dccd" stroke="#a89880" stroke-width="1.2"/>`; }
     s += `<rect x="-6" y="-6" width="${W + 12}" height="${D + 12}" fill="none" stroke="#2b2724" stroke-width="12"/>`;
     P.op.forEach(o => {
@@ -826,7 +858,7 @@
       const L = wallLen(wall), o = { id: uid++, t, wall, w: Math.min(w0, L - 40), s: 0 }, ok = [];
       for (let s0 = 10; s0 <= L - o.w - 10; s0 += 5) {
         if (P.op.some(q => q.wall === wall && s0 + o.w > q.s - 20 && s0 < q.s + q.w + 20)) continue;
-        if (P.rows[wall]) { let x = range(wall)[0], bad = false; P.rows[wall].forEach(m => { if (s0 + o.w > x + 2 && s0 < x + m.w - 2 && (t !== 'fenster' || M[m.t].h === 't' || m.t === 'kf' || m.t === 'ko')) bad = true; x += m.w; }); if (bad) continue; }
+        if (P.rows[wall]) { const X = xs(wall); let bad = false; P.rows[wall].forEach((m, i) => { const x = X[i]; if (s0 + o.w > x + 2 && s0 < x + m.w - 2 && (t !== 'fenster' || M[m.t].h === 't' || m.t === 'kf' || m.t === 'ko')) bad = true; }); if (bad) continue; }
         ok.push(s0);
       }
       if (ok.length) { o.s = ok.sort((a, b) => Math.abs(a + o.w / 2 - L / 2) - Math.abs(b + o.w / 2 - L / 2))[0]; P.op.push(o); selOp = o.id; sel = null; change(); toast(`${OPN[t]} eingesetzt – zum Verschieben anfassen.`); return; }
@@ -864,7 +896,7 @@
     for (const w in P.rows) { const r = P.rows[w]; r.forEach((m, i) => { if (m.t !== 'kf' && m.t !== 'ko') return; const [a, b] = range(w); const L = locate(w, i); const nb = [r[i - 1], r[i + 1]]; if (nb.some(x => x && M[x.t].h === 't') || L.x0 - a < 1 && a === 0 || (i === r.length - 1 && L.x0 + L.w >= b - 1 && b === wallLen(w))) warn('Neben dem Kochfeld etwas Ablage lassen (min. 30 cm)'); }); }
     P.op.forEach(o => { const r = P.rows[o.wall]; if (!r) return; r.forEach((m, i) => { const L = locate(o.wall, i); if (!opOver(o, L.x0, L.w)) return; if (o.t === 'fenster') { if (M[m.t].h === 't' && hOf(m) > 105) warn('Ein Hochschrank steht vor dem Fenster'); } else warn(o.t === 'tuer' ? 'Vor der Tür stehen Schränke – Tür im Grundriss verschieben' : 'Vor der Balkontür stehen Schränke'); }); });
     for (const w in P.rows) upList(w).forEach(u => { const c = upConflict(w, u); if (c === 'tall') warn('Ein Hängeschrank stößt an einen Hochschrank – verschieben oder Hochschrank niedriger'); if (c === 'win') warn('Ein Hängeschrank hängt vor einem Fenster oder einer Tür'); });
-    if (!isDD()) for (const w in P.up) { let x = range(w)[0]; P.rows[w] && P.rows[w].forEach(m => { if ((m.t === 'kf' || m.t === 'ko') && !P.up[w].some(u => u.t === 'dh' && ov(u.s, u.w, x, m.w))) warn('Über dem Kochfeld fehlt die Dunstabzugshaube'); x += m.w; }); }
+    if (!isDD()) for (const w in P.up) { const X = xs(w); P.rows[w] && P.rows[w].forEach((m, i) => { if ((m.t === 'kf' || m.t === 'ko') && !P.up[w].some(u => u.t === 'dh' && ov(u.s, u.w, X[i], m.w))) warn('Über dem Kochfeld fehlt die Dunstabzugshaube'); }); }
     if (P.rows.N && (hasCornerSlot('l') || hasCornerSlot('r'))) { const N = P.rows.N; if ((hasCornerSlot('l') && M[N[0].t].corner) || (hasCornerSlot('r') && M[N[N.length - 1].t].corner)) ok('Ecke clever genutzt'); }
     if (!P.op.some(o => o.t === 'tuer' || o.t === 'balkon')) warn('Noch keine Tür – wie kommt man in die Küche?');
     if (isl && P.room.d < 380) warn('Für eine Insel sollte der Raum mind. 3,80 m tief sein');
@@ -882,15 +914,18 @@
     const pos = (w, along, d) => ({ N: { x: along, z: d / 2, r: 0 }, S: { x: W - along, z: D - d / 2, r: 180 }, W: { x: d / 2, z: D - along, r: 90 }, E: { x: W - d / 2, z: along, r: 270 } })[w];
     const bk = P.style.back || 'wand', withNs = true; // auch ohne Rückwand: unsichtbare Fläche zum Antippen
     for (const w in P.rows) {
-      let x = range(w)[0], nx0 = null, nx1 = 0;
-      P.rows[w].forEach(m => { if (M[m.t].h === 'b' && nsH(w, m, x) > 0) { if (nx0 == null) nx0 = x; nx1 = x + m.w; } x += m.w; });
-      x = range(w)[0];
+      const LY = layout(w), [ra, rb] = range(w), N0 = P.rows.N || [], segs = nsSegs(w), nx0 = segs.length ? segs[0][0] : 0, nx1 = segs.length ? Math.max(...segs.map(q => q[0] + q[1])) : 0;
+      // Stoßfuge über Eck: Arbeitsplatte der Seitenwand endet an der Platte der Rückwand (2 cm Überstand), Sockel läuft in die Ecke
+      const ekL = N0[0] && N0[0].t === 'ek', ekR = N0.length && N0[N0.length - 1].t === 'ek' && hasCornerSlot('r');
       P.rows[w].forEach((m, i) => {
-        const cs = cornerSide(w, i), c = M[m.t], sp = spec(m, cs);
-        items.push({ t: 'cab', id: m.id, label: label(m, cs), kind: c.h, w: m.w, h: c.h === 't' ? hOf(m) : undefined, ah, ...sp, ...(m.t === 'kf' ? { hob: Math.min(eqv('hobW', 80), m.w) - 2 } : {}), ...pos(w, x + m.w / 2, 60) });
-        if (c.h === 'b' && withNs) { const h = nsH(w, m, x); if (h > 0) items.push({ t: 'ns', wall: w, w: m.w, h, ah, nx: x - nx0, nW: nx1 - nx0, ...pos(w, x + m.w / 2, 2) }); }
-        x += m.w;
+        const x = LY.X.get(m), cs = cornerSide(w, i), c = M[m.t], sp = spec(m, cs);
+        const cutR = w === 'W' && cornerAt(w, 1) && Math.abs(x + m.w - rb) < .6 && !ekL ? 1 : 0, cutL = w === 'E' && cornerAt(w, 0) && Math.abs(x - ra) < .6 && !ekR ? 1 : 0;
+        items.push({ t: 'cab', id: m.id, label: label(m, cs), kind: c.h, w: m.w, h: c.h === 't' ? hOf(m) : undefined, ah, ...sp, ...(m.t === 'kf' ? { hob: Math.min(eqv('hobW', 80), m.w) - 2 } : {}), ...(cutL || cutR ? { topCut: [cutL * 2, cutR * 2], plExt: [cutL * 6, cutR * 6] } : {}), ...pos(w, x + m.w / 2, 60) });
       });
+      // freier Platz zwischen zwei Ecken: Passblende mit durchlaufender Arbeitsplatte – keine offene Lücke
+      if (LY.inner && LY.fr >= 1) items.push({ t: 'cab', kind: 'b', w: LY.fr, ah, fr: [{ k: 'blind', p: 1 }], noGrip: 1, ...pos(w, LY.gx + LY.fr / 2, 60) });
+      if (withNs) segs.forEach(([x, sw, h]) => items.push({ t: 'ns', wall: w, w: sw, h, ah, nx: x - nx0, nW: nx1 - nx0, ...pos(w, x + sw / 2, 2) }));
+      { const cf = upCornerFill(w); if (cf) items.push({ t: 'cab', kind: 'u', w: cf.w, h: cf.h, y0: cf.bottom, fr: [{ k: 'blind', p: 1 }], led: false, ...pos(w, cf.s + cf.w / 2, 35) }); }
       upList(w).forEach(u => {
         if (u.t === 'dh') items.push({ t: 'hb', id: u.id, wall: w, v: eqv('hood', 'schraeg'), w: u.w, ...pos(w, u.s + u.w / 2, 50) });
         else { const { bottom, h } = upY(u); items.push({ t: 'cab', id: u.id, label: label(u), kind: 'u', w: u.w, h, y0: bottom, led: u.t !== 'ho', ...spec(u), ...pos(w, u.s + u.w / 2, 35) }); }
@@ -938,6 +973,7 @@
   let lastHash = '';
   function change(noHist) {
     const dropped = normCorners(); if (dropped.length) toast('Eckschränke passen nur in die Ecken einer L- oder U-Küche.');
+    const filled = fillCorners(); if (filled.length && !dropped.length) toast('Die Ecke bleibt nicht offen: Blindeckschrank eingesetzt – in „Ecke“ können Sie Karussell oder Le-Mans wählen.');
     const j = ser(); if (!noHist && hist[hist.length - 1] !== j) { hist.push(j); if (hist.length > 60) hist.shift(); }
     lastHash = '#k=' + b64(j); history.replaceState(null, '', lastHash);
     renderWalls(); renderTips(); syncUI(); schedule3D(); $$('[data-undo]').forEach(b => b.disabled = hist.length < 2);
@@ -1054,9 +1090,9 @@
     const waende = ['N', 'E', 'S', 'W'].map(w => {
       const L = wallLen(w), rowsW = P.rows[w], o = { wand: w, name: WN[w], laenge: L, kueche: !!rowsW, oeffnungen: P.op.filter(q => q.wall === w).map(opOf) };
       if (!rowsW) return o;
-      const [a, b] = range(w); let x = a;
-      o.nutzbarVon = a; o.nutzbarBis = b; o.frei = Math.round(free(w));
-      o.unten = rowsW.map((m, i) => { const cs = cornerSide(w, i), c = M[m.t], tall = c.h === 't', r = { id: m.id, typ: m.t, name: c.n, variante: variant(m, cs), art: tall ? 'hoch' : 'unter', breite: m.w, hoehe: tall ? hOf(m) : ah, tiefe: 60, abWand: x, ecke: cs || null, tuerAnschlag: hasHinge(m, cs) ? (aOf(m, cs) === 'l' ? 'links' : 'rechts') : null }; x += m.w; return r; });
+      const [a, b] = range(w), X = xs(w), LY = layout(w);
+      o.nutzbarVon = a; o.nutzbarBis = b; o.frei = Math.round(free(w)); if (LY.fr > .5) o.freiAb = Math.round(LY.gx);
+      o.unten = rowsW.map((m, i) => { const cs = cornerSide(w, i), c = M[m.t], tall = c.h === 't', r = { id: m.id, typ: m.t, name: c.n, variante: variant(m, cs), art: tall ? 'hoch' : 'unter', breite: m.w, hoehe: tall ? hOf(m) : ah, tiefe: 60, abWand: X[i], ecke: cs || null, tuerAnschlag: hasHinge(m, cs) ? (aOf(m, cs) === 'l' ? 'links' : 'rechts') : null }; return r; });
       o.oben = [...upList(w)].sort((p, q) => p.s - q.s).map(u => u.t === 'dh' ? { id: u.id, typ: 'dh', name: 'Dunstabzug', variante: nm(HOODS, eqv('hood', 'schraeg')), art: 'haube', breite: u.w, hoehe: 108, tiefe: 50, abWand: Math.round(u.s), unterkante: 152 } : { id: u.id, typ: u.t, name: M[u.t].n, variante: variant(u), art: 'haenge', breite: u.w, hoehe: hOf(u), tiefe: 35, abWand: Math.round(u.s), unterkante: upY(u).bottom, oberkante: upY(u).bottom + hOf(u), tuerAnschlag: hasHinge(u) ? (aOf(u) === 'l' ? 'links' : 'rechts') : null, automatisch: !!u.auto });
       return o;
     });
