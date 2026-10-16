@@ -459,3 +459,7 @@ html.kpf-on,html.kpf-on body{overflow:hidden}
   .kp-eqrow{grid-template-columns:1fr}.kp-eqrow>.kp-pl{padding-top:0}
 }
 .kp-toast:not(.on){pointer-events:none}
+@media (max-width:600px){
+  .kp-acts .kp-doorb{padding:6px 8px}.kp-acts .kp-doorb span{font-size:0}.kp-acts .kp-doorb{gap:0}
+  .kp-acts>*{flex:none}.kp-acts .kpr-launch{padding:6px 10px;font-size:11.5px;min-height:0}
+}
