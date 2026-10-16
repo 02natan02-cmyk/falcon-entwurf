@@ -4,8 +4,9 @@
    Hängt sich selbst in den Planer ein (Kopf-Knopf + Karte in Schritt 1), braucht kein eigenes Markup. */
 (function () {
   'use strict';
-  // Make-Szenario „Falcon Eye · KI-Küchenplanung (Entwurf)" (eu1). Leer lassen = nur lokaler Assistent.
-  const HOOK = 'https://hook.eu1.make.com/uszzkc96m42herxgpxwrxulhskdapcx2';
+  // Optionaler Webhook (z. B. Make-Szenario mit KI). Standard: leer = nur der eingebaute Planungs-Assistent, keine externen Aufrufe.
+  // Setzen über window.KPAI_HOOK = 'https://…' oder data-kpai-hook="https://…" am [data-kp]-Element.
+  const HOOK = '';
   const MAXLEN = 1500, MAXREQ = 3, MAXSESS = 8, TIMEOUT = 25000, MINWAIT = 2600;
 
   /* ================= Katalog (Spiegel von kp.js – nur lesen) ================= */
@@ -30,7 +31,7 @@
   const HANDLES = { grifflos: 'grifflos', bar: 'mit Edelstahlgriffen', schwarz: 'mit schwarzen Griffen', gold: 'mit Messinggriffen', knopf: 'mit Knopfgriffen' };
   const TOPS = { eiche: 'Eiche', keramik: 'Stein hell', beton: 'Beton', marmor: 'Marmor dunkel' };
   const FINISH = { matt: 'matt', seide: 'seidenmatt', glanz: 'in Hochglanz' };
-  const BACKS = ['wand', 'platte', 'fliese', 'glas'], WALLC = ['#f3efe9', '#e6dccb', '#d3d7cb', '#cdd5de', '#e2c2ab', '#5a5c5f'], FLOORS = ['eiche', 'dunkel', 'hell', 'grau'];
+  const BACKS = ['wand', 'platte', 'fliese', 'glas', 'dibond', 'holz', 'motiv'], WALLC = ['#f3efe9', '#e6dccb', '#d3d7cb', '#cdd5de', '#e2c2ab', '#5a5c5f'], FLOORS = ['eiche', 'dunkel', 'hell', 'grau'];
   const LOOKS = {
     modern: { front: '#cfc8bc', wood: null, handle: 'grifflos', top: 'eiche', finish: 'matt', frame: 0, back: 'platte', wall: '#f3efe9', floor: 'hell' },
     landhaus: { front: '#7f8e77', wood: null, handle: 'gold', top: 'eiche', finish: 'matt', frame: 1, back: 'fliese', wall: '#e6dccb', floor: 'eiche' },
@@ -44,7 +45,7 @@
   const FILL = ['us', 'ut', 'u1', 'u2', 's2', 's4', 'ui', 'ur', 'fa', 'ap'];
   const snap = (ws, v) => ws.reduce((b, x) => Math.abs(x - v) < Math.abs(b - v) ? x : b, ws[0]);
   const r10 = v => Math.round(v / 10) * 10, clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-  const mtr = cm => (cm / 100).toFixed(2).replace('.', ',');
+  const mtr = cm => (cm / 100).toFixed(2).replace('.', ','), mm = (a, b) => `${mtr(a)}\u00a0×\u00a0${mtr(b)}\u00a0m`;
 
   /* ================= Hash-Format (wie kp.js) ================= */
   const b64 = s => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -60,13 +61,20 @@
   /* ================= 1) Text verstehen ================= */
   function parse(raw, cur) {
     let t = ' ' + String(raw || '').toLowerCase().replace(/[×*]/g, ' x ').replace(/\bmal\b/g, ' x ').replace(/ae/g, 'ä').replace(/oe/g, 'ö').replace(/ue/g, 'ü').replace(/\s+/g, ' ') + ' ';
+    // Millimeter → Zentimeter („3200 x 2400 mm", „3.200 mm")
+    t = t.replace(/(\d+(?:[.,]\d+)?)(\s*(?:mm|millimeter)\b)?(\s*x\s*)(\d+(?:[.,]\d+)?)\s*(?:mm|millimeter)\b/g, (a, n1, u1, xx, n2) => mmcm(n1) + ' cm x ' + mmcm(n2) + ' cm').replace(/(\d+(?:[.,]\d+)?)\s*(?:mm|millimeter)\b/g, (a, n) => mmcm(n) + ' cm');
     const has = re => re.test(t);
     const neg = w => new RegExp('(kein\\w*|ohne|nicht|brauche?n? kein\\w*)\\s+(\\S+\\s+){0,2}' + w).test(t);
-    const b = { form: null, formSaid: false, room: null, roomGiven: false, win: { wall: null, w: 120, none: false }, door: { wall: null, w: 90 }, balkon: false, isl: { want: false, v: 'kochfeld', w: null, big: false }, W: {}, style: {}, look: null, ah: null, notes: [], got: [] };
+    const b = { raw: t, budget: null, form: null, formSaid: false, room: null, roomGiven: false, win: { wall: null, w: 120, none: false }, door: { wall: null, w: 90 }, balkon: false, isl: { want: false, v: 'kochfeld', w: null, big: false }, W: {}, style: {}, look: null, ah: null, notes: [], got: [] };
     const N = s => parseFloat(String(s).replace(',', '.'));
     const cm = (v, u) => u === 'cm' ? v : (u && u[0] === 'm') ? v * 100 : (v < 15 ? v * 100 : v);
     const blank = (m) => { t = t.slice(0, m.index) + ' '.repeat(m[0].length) + t.slice(m.index + m[0].length); };
     let m;
+    // Budget („Budget 15.000 €", „bis 25000 Euro", „20 Tsd.", „12k €")
+    {
+      const BU = [[/(\d{1,3}(?:[.\s]\d{3})+|\d{4,6})(?:,-|,00)?\s*(?:€|euro\b|eur\b)/, 1], [/(\d{1,3}(?:[.,]\d)?)\s*(?:tsd\.?|tausend|k(?![a-zäöüß]))\s*(?:€|euro\b|eur\b)?/, 1000], [/(?:budget|preisrahmen|kostenrahmen)\D{0,14}?(\d{1,3}(?:[.\s]\d{3})+|\d{4,6})/, 1]];
+      for (const [r, f] of BU) { if (!(m = t.match(r))) continue; const v = f === 1 ? +m[1].replace(/[.\s]/g, '') : parseFloat(m[1].replace(',', '.')) * f; if (v >= 1500 && v <= 250000) { b.budget = Math.round(v / 100) * 100; blank(m); break; } }
+    }
     // Körpergröße / Arbeitshöhe
     if ((m = t.match(/(?:ich bin|wir sind|körpergrö(?:ß|ss)e)\D{0,10}?(\d[.,]\d{1,2}|1\d{2})\s*(m|cm)?/)) || (m = t.match(/(\d[.,]\d{1,2}|1\d{2})\s*(m|cm)?\s*gro(?:ß|ss)\b/))) { const v = cm(N(m[1]), m[2]); if (v >= 140 && v <= 215) b.body = v; blank(m); }
     if ((m = t.match(/arbeitshöhe\D{0,14}?(\d{2,3})\s*(cm)?/))) { const v = +m[1]; if (v >= 80 && v <= 110) b.ah = v; blank(m); }
@@ -157,6 +165,14 @@
       const s = m[0]; st.floor = /dunkel/.test(s) ? 'dunkel' : /grau|beton/.test(s) ? 'grau' : /hell|weiß/.test(s) ? 'hell' : 'eiche'; blank(m);
     }
     if ((m = t.match(/wand\w*\s+(in\s+)?(salbei|grün|blau|terrakotta|anthrazit|sand|beige|weiß)\w*/))) { const s = m[0]; st.wall = /salbei|grün/.test(s) ? '#d3d7cb' : /blau/.test(s) ? '#cdd5de' : /terra/.test(s) ? '#e2c2ab' : /anthrazit/.test(s) ? '#5a5c5f' : /sand|beige/.test(s) ? '#e6dccb' : '#f3efe9'; blank(m); }
+    if ((m = t.match(/(granit\w*\s+)?schwarz\w*\s+(granit)?spüle|spüle\w*\s+(in\s+|aus\s+)?(granit\s+)?schwarz/))) { st.sink = 'gschwarz'; blank(m); }
+    else if ((m = t.match(/anthrazit\w*\s+spüle|spüle\w*\s+(in\s+|aus\s+)?(granit\s+)?anthrazit/))) { st.sink = 'ganth'; blank(m); }
+    else if ((m = t.match(/keramik\w*spüle|keramik\w*\s+spüle|weiße\w*\s+spüle|spüle\w*\s+(in\s+|aus\s+)?(keramik|weiß)/))) { st.sink = 'kweiss'; blank(m); }
+    else if ((m = t.match(/edelstahl\w*\s*spüle|spüle\w*\s+(in\s+|aus\s+)?edelstahl/))) { st.sink = 'edel'; blank(m); }
+    if ((m = t.match(/schwarz\w*\s+armatur|armatur\w*\s+(in\s+)?schwarz/))) { st.tap = 'schwarz'; blank(m); }
+    else if ((m = t.match(/(messing|gold)\w*\s*armatur|armatur\w*\s+(in\s+|aus\s+)?(messing|gold)/))) { st.tap = 'gold'; blank(m); }
+    if (has(/inselhaube|haube über der insel/)) st.ihood = 'insel'; else if (has(/deckenlüfter|deckenhaube|abzug in der decke/)) { st.ihood = 'decke'; st.hood = 'decke'; }
+    else if (has(/flachschirm|flachhaube/)) st.hood = 'flach'; else if (has(/\besse\b|pyramide/)) st.hood = 'esse';
     if (has(/metro|fliesenspiegel|fliesen an der wand|wandfliesen/)) st.back = 'fliese'; else if (has(/glasrückwand|rückwand aus glas/)) st.back = 'glas';
     if (has(/hochglanz|glänzend|glanz\b/)) st.finish = 'glanz'; else if (has(/seidenmatt|seidig/)) st.finish = 'seide'; else if (has(/\bmatt/)) st.finish = 'matt';
     if (has(/landhaus|rahmenfront|kassette|klassisch|country|cottage/)) { b.look = 'landhaus'; st.frame = 1; }
@@ -197,7 +213,7 @@
     // Erkanntes für die Chips
     const g = b.got;
     if (b.formSaid || b.halb) g.push(FORMS[form].n.replace(/^k/, 'K')); else g.push(FORMS[form].n.replace(/^k/, 'K') + ' (Vorschlag)');
-    if (b.roomGiven) g.push(`Raum ${mtr(room.w)} × ${mtr(room.d)} m`);
+    if (b.roomGiven) g.push(`Raum ${mm(room.w, room.d)}`);
     if (b.win.none) g.push('Kein Fenster'); else if (b.win.wall) g.push('Fenster ' + ({ lang: 'an der langen Wand', kurz: 'an der kurzen Wand', W: 'links', E: 'rechts', S: 'gegenüber', N: 'an der Rückwand' })[b.win.wall]);
     if (/spüle\s+(unter|am|vor)\s+(dem\s+)?fenster/.test(t)) g.push('Spüle am Fenster');
     if (b.isl.want) g.push(b.islDropped ? 'Insel (zu wenig Platz)' : 'Kochinsel' + (b.isl.v === 'spuele' ? ' mit Spüle' : b.isl.v === 'frei' ? ' als Arbeitsfläche' : ''));
@@ -211,6 +227,7 @@
     if (st.handle) g.push({ grifflos: 'Grifflos', gold: 'Messinggriffe', schwarz: 'Schwarze Griffe', bar: 'Edelstahlgriffe', knopf: 'Knopfgriffe' }[st.handle]);
     if (st.top) g.push('Platte ' + TOPS[st.top]); if (st.finish) g.push({ matt: 'Matt', seide: 'Seidenmatt', glanz: 'Hochglanz' }[st.finish]);
     if (b.ah) g.push(`Arbeitshöhe ${b.ah} cm`);
+    if (b.budget) g.push(`Budget ca. ${eur(b.budget)} €`);
     return b;
   }
 
@@ -290,7 +307,8 @@
     if (w === 'E') return L - (N.length ? 60 + (N.length && N[N.length - 1].t === 'ek' && walls.includes('E') ? 30 : 0) : 0);
     return L;
   }
-  function generate(b, cur) {
+  function generate(b, cur, opt) {
+    opt = opt || {};
     const f = b.form, room = b.room, W = b.W, notes = b.notes.slice();
     // Fensterwand → Spülenwand
     const walls = FORMS[f].walls;
@@ -300,20 +318,23 @@
     let sinkWall = 'N';
     if (f === 'l' && ww === 'W') sinkWall = 'W';
     if (f === 'zwei' && ww === 'S') sinkWall = 'S';
+    if (opt.altSink && f === 'l') sinkWall = sinkWall === 'W' ? 'N' : 'W';
+    if (opt.altSink && f === 'zwei') sinkWall = sinkWall === 'S' ? 'N' : 'S';
     const isl = f === 'insel' ? { w: 180, v: b.isl.v } : null;
     if (isl) { const mx = Math.min(b.isl.big ? 270 : 240, room.w - 180); isl.w = b.isl.w ? snap(ISW, b.isl.w) : (ISW.filter(v => v <= mx).pop() || 120); if (isl.w > room.w - 140) isl.w = ISW.filter(v => v <= room.w - 140).pop() || 120; }
-    const talls = ['kue'];
+    const talls = ['kue'], islCook = !!(isl && isl.v === 'kochfeld'), herd = !islCook && (W.herd || !!opt.herd);
     if (W.side) talls.push('kue');
-    if (!W.herd) talls.push(W.micro ? 'bm' : 'bo');
+    if (!herd) talls.push(W.micro ? 'bm' : 'bo');
+    if (islCook && W.herd) notes.push('Gekocht wird auf der Insel – der Backofen sitzt darum im Hochschrank, unter dem Kochfeld bleibt Platz für Töpfe.');
     if (W.apo === 'tall') talls.push('ah');
     if (W.storage) talls.push('vo');
     if (W.storage && room.w >= 500) talls.push('vo');
     if (W.besen) talls.push('bs');
     if (W.vitrine) talls.push('vg');
     const ctx = {
-      room, talls, sink: W.bigSink ? 100 : 80, dw: W.noDw ? 0 : 60, mt: W.muell ? 60 : 0, apS: W.apo === 'small' ? 30 : 0,
-      cook: (isl && isl.v === 'kochfeld') ? null : W.herd ? { t: 'ko', w: W.bigHob ? 90 : 60 } : { t: 'kf', w: W.bigHob ? 90 : 80 },
-      cornerL: (f === 'l' || f === 'u') ? (W.corner === 'ek' ? { t: 'ek', w: 90 } : W.corner === 'eb' ? { t: 'eb', w: 100 } : { t: 'el', w: 110 }) : null,
+      room, talls, sink: W.bigSink ? 100 : 80, dw: W.noDw || opt.noDw ? 0 : 60, mt: W.muell ? 60 : 0, apS: W.apo === 'small' ? 30 : 0,
+      cook: islCook ? null : herd ? { t: 'ko', w: W.bigHob ? 90 : 60 } : { t: 'kf', w: W.bigHob ? 90 : 80 },
+      cornerL: (f === 'l' || f === 'u') ? (W.corner === 'ek' ? { t: 'ek', w: 90 } : W.corner === 'eb' || (b.budget && b.budget < 10000 && W.corner !== 'el') ? { t: 'eb', w: 100 } : { t: 'el', w: 110 }) : null,
       cornerR: f === 'u' ? { t: 'eb', w: 100 } : null, sinkWall, islV: isl ? isl.v : null, fmin: 30, work: 60,
     };
     const rmT = (c, t) => { const i = c.talls.lastIndexOf(t); if (i < 0 || (t === 'kue' && c.talls.indexOf('kue') === i)) return false; c.talls.splice(i, 1); return true; };
@@ -332,11 +353,11 @@
       c => c.cook && c.cook.w > 60 ? (c.cook.w = 60, true) : false,
       c => c.talls.filter(t => t === 'kue').length > 1 ? rmT(c, 'kue') : false,
       c => c.apS ? (c.apS = 0, true) : false,
-      c => c.cornerR ? (c.cornerR = null, true) : false,
+      c => c.cornerL && c.cornerL.t !== 'eb' && c.cornerL.t !== 'ek' ? (c.cornerL = { t: 'eb', w: 90 }, true) : false,
+      c => c.cornerL && c.cornerL.t === 'ek' ? (c.cornerL = { t: 'eb', w: 90 }, true) : false,
       c => { const i = c.talls.findIndex(t => t === 'bo' || t === 'bm'); if (i < 0 || !c.cook || c.cook.t !== 'kf') return false; c.talls.splice(i, 1); c.cook = { t: 'ko', w: 60 }; return true; },
       c => c.fmin > 0 ? (c.fmin = 0, true) : false,
       c => c.work > 0 ? (c.work = 0, true) : false,
-      c => c.cornerL ? (c.cornerL = null, true) : false,
       c => c.dw ? (c.dw = 0, true) : false,
       c => rmT(c, 'ah') || rmT(c, 'bs') || rmT(c, 'vg') || rmT(c, 'vo'),
     ];
@@ -358,8 +379,8 @@
     walls.forEach(w => plan.tp[w] = (w === 'N' || f === 'zwei' || W.upAll || (W.storage && f !== 'u')) ? 1 : 0);
     if (W.noUp) walls.forEach(w => plan.tp[w] = 0);
     placeOps(plan, b, ww, sinkWall);
-    if (W.mulde) applyMulde(plan);
     plan.s = buildStyle(b, cur);
+    if (W.mulde && Object.values(plan.rw).some(r => r.some(m => m[0] === 'kf' || m[0] === 'ko'))) plan.s.hobV = 'dd';
     // Ehrliche Hinweise: was gewünscht war, aber nicht hineinpasst
     const all = [].concat(...walls.map(w => rows[w].map(m => m[0]))), cnt = t => all.filter(x => x === t).length;
     if (W.apo === 'tall' && !cnt('ah')) notes.push(cnt('ap') ? 'Für den großen Apothekerschrank reicht die Wand nicht – darum ein schmaler Apotheker-Auszug direkt am Kochfeld.' : 'Für einen Apothekerschrank reicht der Platz leider nicht – im Planer lässt er sich gegen einen anderen Schrank tauschen.');
@@ -370,8 +391,38 @@
     if (W.besen && !cnt('bs')) notes.push('Für den Besenschrank reicht die Wand nicht – Tipp: Flur oder Hauswirtschaftsraum.');
     if (W.vitrine && !cnt('vg')) notes.push('Die Vitrine hat keinen Platz mehr gefunden – im Planer gibt es auch Glas-Hängeschränke.');
     if (W.muell && !cnt('mt')) notes.push('Der Mülltrenner sitzt bei dieser Größe am besten im Spülenschrank.');
-    if (!W.noDw && !cnt('gs')) notes.push('Eine Spülmaschine passt bei dieser Wandlänge leider nicht hinein.');
-    return { plan, notes: notes.filter(Boolean), ctx, sinkWall, ww };
+    if (!W.noDw && !cnt('gs') && !(isl && isl.v === 'spuele')) notes.push('Eine Spülmaschine passt bei dieser Wandlänge leider nicht hinein.');
+    if (opt.herd && cnt('ko') && !W.herd) notes.push('Bei dieser Wandlänge sitzt der Backofen im Herd unter dem Kochfeld – so bleibt genug Arbeitsfläche zwischen Kochfeld und Spüle.');
+    if (b.budget) notes.push(b.budget < 10000 ? `Für ca. ${eur(b.budget)} € ist alles bewusst schlicht geplant${cnt('eb') && !W.corner ? ' (Blindecke statt Le-Mans-Auszug)' : ''} – Geräte und Fronten stimmt ${person()} mit Ihnen auf das Budget ab.` : `Ihr Budget von ca. ${eur(b.budget)} € geht mit Ihrer Anfrage mit – die genaue Kalkulation macht ${person()} mit Ihnen.`);
+    return { plan, notes: notes.filter(Boolean), ctx, sinkWall, ww, opt };
+  }
+  function mmcm(n) { const s = String(n); const v = /^\d{1,2}\.\d{3}$/.test(s) ? +s.replace('.', '') : parseFloat(s.replace(',', '.')); return Math.round(v / 10); }
+  const eur = n => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  const person = () => { const p = (window.KP && KP.person) || ''; return p && p !== 'Wir' ? p : 'das Studio'; };
+  // Mehrere sinnvolle Varianten durchrechnen und die mit den wenigsten Kompromissen nehmen – gemessen mit den Live-Tipps des Planers
+  function score(res, b) {
+    let s = 0; const W = b.W, o = res.opt || {}, p = res.plan;
+    let warns = []; try { if (window.KP && KP.tipsOf) warns = KP.tipsOf(p) || []; } catch (e) { warns = []; }
+    warns.forEach(t => { const m = /Nur (\d+) cm Platz zwischen Spüle/.exec(t); s += m ? (+m[1] < 30 ? 9 : 4) : 6; });
+    s += res.notes.filter(n => !/^Bei dieser Wandlänge sitzt der Backofen/.test(n)).length * 5;
+    if (o.noDw) s += 3;
+    if (o.herd) s += 3;
+    if (o.altSink && (b.win.wall || /spüle\s+(unter|am|vor)\s+(dem\s+)?fenster/.test(b.raw || ''))) s += 3;
+    if (!b.win.none && !p.op.some(x => x[0] === 'fenster')) s += 3;
+    return s;
+  }
+  function generateBest(b, cur) {
+    const W = b.W, V = [{}];
+    if (b.form === 'l' || b.form === 'zwei') V.push({ altSink: 1 });
+    if (!W.herd && !W.ovenHigh && !(b.form === 'insel' && b.isl.v === 'kochfeld')) V.slice().forEach(v => V.push(Object.assign({}, v, { herd: 1 })));
+    if (!W.noDw) V.slice().forEach(v => V.push(Object.assign({}, v, { noDw: 1 })));
+    let best = null, bs = Infinity;
+    for (const o of V) {
+      let r = null; try { r = generate(JSON.parse(JSON.stringify(b)), cur, o); } catch (e) { r = null; }
+      if (!r || !valid(r.plan)) continue;
+      const sc = score(r, b); if (sc < bs) { best = r; bs = sc; }
+    }
+    return best;
   }
   // Positionen entlang einer Wand
   function rangeStart(plan, w) { const N = plan.rw.N || []; if (w === 'E' && N.length) return 60 + (N[N.length - 1][0] === 'ek' && FORMS[plan.f].walls.includes('E') ? 30 : 0); return 0; }
@@ -424,25 +475,19 @@
       for (const w of bo) { const o = fitOp(plan, w, 'balkon', 120, wlen(plan, w) * (plan.op.some(q => q[1] === w) ? 0.75 : 0.5)); if (o) { plan.op.push(o); break; } }
     }
   }
-  // Muldenlüfter: Hängeschränke wie automatisch, aber ohne Haube über dem Kochfeld
-  function applyMulde(plan) {
-    for (const w in plan.rw) {
-      if (!plan.tp[w] || !plan.rw[w].some(m => m[0] === 'kf' || m[0] === 'ko')) continue;
-      const L = wlen(plan, w), up = [];
-      spans(plan, w).forEach(s => { if (isTall(s.t) || s.t === 'kf' || s.t === 'ko' || s.x + s.w > L + .5) return; if (plan.op.some(o => o[1] === w && ov(s.x, s.w, o[2], o[3]))) return; up.push([s.w > 60 ? 'h2' : 'h1', s.x, s.w]); });
-      (plan.up = plan.up || {})[w] = up;
-    }
-  }
   function buildStyle(b, cur) {
-    const st = b.style, base = b.look ? Object.assign({}, LOOKS[b.look], { look: b.look }) : Object.assign({}, DEF_STYLE, cur.style || {});
+    // Neue Frontfarbe genannt → frischer, stimmiger Grundstil (Griffe/Platte/Rahmen nicht vom alten Entwurf erben); sonst aktuellen Stil behalten
+    const st = b.style, fresh = st.front != null || st.wood != null;
+    const base = b.look ? Object.assign({}, LOOKS[b.look], { look: b.look }) : fresh ? Object.assign({}, DEF_STYLE, cur.style || {}, { front: '#f1eee8', wood: null, handle: 'grifflos', top: 'eiche', finish: 'matt', frame: 0, look: null }) : Object.assign({}, DEF_STYLE, cur.style || {});
     const s = Object.assign({}, base);
     if (st.front) { s.front = st.front; s.wood = null; }
     if (st.wood) { s.wood = st.wood; }
-    ['handle', 'top', 'finish', 'floor', 'wall', 'back'].forEach(k => { if (st[k] != null) s[k] = st[k]; });
+    ['handle', 'top', 'finish', 'floor', 'wall', 'back', 'sink', 'tap', 'hood', 'ihood'].forEach(k => { if (st[k] != null) s[k] = st[k]; });
+    const extra = {}; if (cur.style) for (const k in cur.style) if (!(k in DEF_STYLE) && !['look', 'frame', 'back', 'hobV'].includes(k) && /^(string|number)$/.test(typeof cur.style[k]) && String(cur.style[k]).length < 24) extra[k] = cur.style[k];
     if (st.frame != null) s.frame = st.frame;
     if (b.look === 'landhaus' && !st.handle && s.front === '#232426') s.handle = 'gold';
     if (s.look && (st.front || st.wood || st.handle || st.top) && JSON.stringify(Object.assign({}, LOOKS[s.look], { look: s.look })) !== JSON.stringify(s)) { /* bleibt Ausgangsstil, Details angepasst */ }
-    return cleanStyle(s);
+    return Object.assign(extra, cleanStyle(s));
   }
   function cleanStyle(s0) {
     const s = Object.assign({}, DEF_STYLE, s0 || {}), out = {};
@@ -456,6 +501,8 @@
     if (s.frame != null) out.frame = s.frame ? 1 : 0;
     if (BACKS.includes(s.back)) out.back = s.back;
     if (LOOKS[s.look]) out.look = s.look;
+    const EQ = { sink: ['edel', 'gschwarz', 'ganth', 'gweiss', 'kweiss'], tap: ['chrom', 'edel', 'schwarz', 'gold'], hood: ['schraeg', 'esse', 'flach', 'decke'], ihood: ['mulde', 'insel', 'decke'], hobV: ['normal', 'dd'] };
+    for (const k in EQ) if (EQ[k].includes(s[k])) out[k] = s[k];
     return out;
   }
 
@@ -479,7 +526,7 @@
     const uniq = tl.filter((x, i) => tl.indexOf(x) === i).map(x => x === 'Kühlschrank' && tl.filter(y => y === x).length > 1 ? 'Kühl- und Gefrierschrank' : x);
     if (uniq.length) S.push(`${list(uniq)} ${uniq.length > 1 ? 'stehen als Hochschrank-Block' : 'steht als Hochschrank'} am Wandende – so bleibt die Arbeitsfläche durchgehend frei${b.W.ovenHigh && tl.includes('Backofen') ? ', und der Backofen ist rückenschonend auf Augenhöhe' : ''}.`);
     const s = p.s, fr = s.wood ? (s.wood === 'nuss' ? 'Nussbaum' : 'Eiche') : (FRONTS.find(x => x[1] === s.front) || ['Weiß'])[0];
-    S.push(`Fronten in ${fr} ${FINISH[s.finish]}${s.frame ? ' mit Rahmen im Landhausstil' : ''}, ${HANDLES[s.handle]}, Arbeitsplatte ${TOPS[s.top]}${b.W.mulde ? ' – der Muldenlüfter saugt direkt am Kochfeld ab, darum hängt keine Haube darüber' : ''}.`);
+    S.push(`Fronten in ${fr} ${FINISH[s.finish]}${s.frame ? ' mit Rahmen im Landhausstil' : ''}, ${HANDLES[s.handle]}, Arbeitsplatte ${TOPS[s.top]}${b.W.mulde ? (s.hobV === 'dd' ? ' – der Muldenlüfter saugt direkt am Kochfeld ab, darum hängt keine Haube darüber' : f === 'insel' ? ' – der Muldenlüfter sitzt direkt im Kochfeld der Insel' : '') : ''}.`);
     return S.slice(0, 5).join(' ');
   }
   const list = a => a.length < 2 ? (a[0] || '') : a.slice(0, -1).join(', ') + ' und ' + a[a.length - 1];
@@ -527,6 +574,8 @@
     for (const w of walls) {
       let row = (Array.isArray(rw0[w]) ? rw0[w] : []).map(norm).filter(Boolean);
       row = row.map((m, i) => { if (!M[m[0]].c) return m; const okL = w === 'N' && i === 0 && walls.includes('W'), okR = w === 'N' && i === row.length - 1 && walls.includes('E'); return okL || okR ? m : ['us', snap(M.us.ws, m[1])]; });
+      if (w === 'N' && walls.includes('W') && !(row[0] && M[row[0][0]].c)) row.unshift(['eb', 90]);
+      if (w === 'N' && walls.includes('E') && !(row.length > 1 && M[row[row.length - 1][0]].c)) row.push(['eb', 90]);
       plan.rw[w] = row;
     }
     // Pflicht: Spüle, Kochstelle, Kühlschrank
@@ -550,7 +599,8 @@
     if (!plan.op.some(x => x[0] === 'tuer' || x[0] === 'balkon')) placeOps(plan, Object.assign({}, b, { win: { none: true }, balkon: false }), null, 'N');
     plan.s = cleanStyle(Object.assign({}, o.s || o.style || {}));
     // Stilwünsche aus dem Text haben Vorrang, falls die KI sie übersehen hat
-    const loc = buildStyle(b, cur); ['front', 'wood', 'handle', 'top', 'finish', 'frame', 'back', 'floor', 'wall'].forEach(k => { if (b.style[k] != null) plan.s[k] = loc[k]; });
+    const loc = buildStyle(b, cur); ['front', 'wood', 'handle', 'top', 'finish', 'frame', 'back', 'floor', 'wall', 'sink', 'tap', 'hood', 'ihood'].forEach(k => { if (b.style[k] != null) plan.s[k] = loc[k]; });
+    if (b.W.mulde && Object.values(plan.rw).some(r => r.some(m => m[0] === 'kf' || m[0] === 'ko'))) plan.s.hobV = 'dd';
     if (b.style.front) plan.s.wood = null;
     plan.ah = clamp(Math.round(+o.ah || b.ah || cur.ah || 90), 84, 106);
     const why = typeof o.why === 'string' ? o.why.replace(/\s+/g, ' ').trim().slice(0, 900) : '';
@@ -558,18 +608,22 @@
   }
   function valid(plan) {
     try { if (window.KP && KP.stateOf) { const r = KP.stateOf(plan); if (!r || !r.state || !r.state.items || !r.state.items.length) return false; } } catch (e) { return false; }
+    const N = plan.rw.N || [], ws = FORMS[plan.f].walls;
+    if (ws.includes('W') && !(N[0] && M[N[0][0]].c)) return false;
+    if (ws.includes('E') && !(N.length > 1 && M[N[N.length - 1][0]].c)) return false;
     for (const w in plan.rw) { const L = usableOf(w, { N: (plan.rw.N || []).map(m => ({ t: m[0] })) }, plan.f, plan.r), s = plan.rw[w].reduce((a, m) => a + m[1], 0); if (s !== L) return false; }
     return true;
   }
   function localPlan(text, cur) {
     const b = parse(text, cur);
-    let res = generate(b, cur);
-    if (!res || !valid(res.plan)) { b.form = 'l'; b.room = { w: Math.max(b.room.w, 300), d: Math.max(b.room.d, 300) }; res = generate(b, cur); }
+    let res = generateBest(b, cur);
+    if (!res) { b.form = 'l'; b.room = { w: Math.max(b.room.w, 300), d: Math.max(b.room.d, 300) }; res = generateBest(b, cur); }
     if (!res) return null;
     return { plan: res.plan, why: whyOf(res, b), notes: res.notes, got: b.got, brief: b, src: 'local' };
   }
   async function askServer(text, cur) {
-    const hook = (window.KPAI_HOOK != null ? window.KPAI_HOOK : HOOK); if (!hook) return null;
+    const el = document.querySelector('[data-kp]'), hook = String((window.KPAI_HOOK != null ? window.KPAI_HOOK : (el && el.dataset.kpaiHook)) || HOOK || '').trim();
+    if (!/^https:\/\/[^\s"'<>]+$/i.test(hook)) return null;
     if (srvCount >= MAXREQ) return null; let sc = 0; try { sc = +sessionStorage.getItem('kpai-n') || 0; } catch (e) { }
     if (sc >= MAXSESS) return null; srvCount++; try { sessionStorage.setItem('kpai-n', sc + 1); } catch (e) { }
     const ctl = typeof AbortController === 'function' ? new AbortController() : null, tm = setTimeout(() => ctl && ctl.abort(), TIMEOUT);
@@ -593,7 +647,8 @@
   /* ================= 5) Grundriss-Skizze ================= */
   function planSvg(p) {
     const W = p.r.w, D = p.r.d, pad = 34, out = [];
-    const rect = (x, y, w, h, cls, i, lab) => out.push(`<g class="kpai-m ${cls}" style="--i:${i}"><rect x="${x + .8}" y="${y + .8}" width="${Math.max(1, w - 1.6)}" height="${Math.max(1, h - 1.6)}" rx="3"/>${lab ? `<text x="${x + w / 2}" y="${y + h / 2}" dy=".35em">${lab}</text>` : ''}</g>`);
+    const fit = (lab, w) => lab.length * 8.8 > w - 6 ? ` textLength="${Math.max(10, w - 8)}" lengthAdjust="spacingAndGlyphs"` : '';
+    const rect = (x, y, w, h, cls, i, lab) => out.push(`<g class="kpai-m ${cls}" style="--i:${i}"><rect x="${x + .8}" y="${y + .8}" width="${Math.max(1, w - 1.6)}" height="${Math.max(1, h - 1.6)}" rx="3"/>${lab ? `<text x="${x + w / 2}" y="${y + h / 2}" dy=".35em"${fit(lab, Math.min(w, h > w ? 60 : w))}>${lab}</text>` : ''}</g>`);
     const LB = { sp: 'Spüle', kf: 'Kochfeld', ko: 'Herd', gs: 'SM', kue: 'Kühl', bo: 'Ofen', bm: 'Ofen', vo: 'Vorrat', ah: 'Apo', bs: 'Besen', vg: 'Vitr.', mt: 'Müll', ek: '', el: '', eb: '' };
     const cls = t => isTall(t) ? 'tall' : (t === 'sp' || t === 'kf' || t === 'ko' || t === 'gs') ? 'dev' : M[t].c ? 'cor' : 'base';
     let i = 0;
@@ -621,8 +676,8 @@
     mic: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
   };
   const EX = 'L-Küche, Raum 3,80 × 2,60 m, Fenster an der langen Wand, Spüle unter dem Fenster, großer Kühlschrank, Backofen auf Augenhöhe, viel Stauraum, Kochinsel wäre toll, grifflos in Sandgrau mit Eiche';
-  const CHIPS_F = [['Küchenzeile', 'Küchenzeile an einer Wand'], ['L-Küche', 'L-Küche über Eck'], ['U-Küche', 'U-Küche'], ['Zweizeilig', 'zweizeilige Küche'], ['Kochinsel', 'mit Kochinsel']];
-  const CHIPS_W = [['Apothekerschrank', 'Apothekerschrank'], ['Backofen hoch', 'Backofen auf Augenhöhe'], ['Großer Kühlschrank', 'großer Kühlschrank'], ['Muldenlüfter', 'Muldenlüfter statt Haube'], ['Viel Stauraum', 'viel Stauraum'], ['Mülltrenner', 'Mülltrenner'], ['Landhaus', 'Landhausstil'], ['Grifflos', 'grifflos'], ['Dunkel & elegant', 'dunkel und elegant'], ['Hell & Holz', 'weiß mit Eiche'], ['Ohne Hängeschränke', 'keine Hängeschränke']];
+  const CHIPS_F = [['Küchenzeile', 'Küchenzeile'], ['L-Küche', 'L-Küche'], ['U-Küche', 'U-Küche'], ['Zweizeilig', 'zweizeilig'], ['Kochinsel', 'Kochinsel']];
+  const CHIPS_W = [['Apothekerschrank', 'Apothekerschrank'], ['Backofen hoch', 'Backofen auf Augenhöhe'], ['Großer Kühlschrank', 'großer Kühlschrank'], ['Muldenlüfter', 'Muldenlüfter'], ['Viel Stauraum', 'viel Stauraum'], ['Mülltrenner', 'Mülltrenner'], ['Landhaus', 'Landhausstil'], ['Grifflos', 'grifflos'], ['Dunkel & elegant', 'dunkel und elegant'], ['Hell & Holz', 'weiß mit Eiche'], ['Ohne Hängeschränke', 'keine Hängeschränke']];
   const STAT = ['Raum wird vermessen …', 'Fenster und Türen werden eingezeichnet …', 'Spüle an das Fenster …', 'Arbeitsdreieck wird optimiert …', 'Hochschränke werden gebündelt …', 'Stauraum wird verteilt …', 'Farben und Griffe werden abgestimmt …', 'Letzter Feinschliff …'];
   const RMO = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -718,13 +773,13 @@
   }
   function open(pre) {
     if (!ov_) ov_ = build(); accent();
-    lastFocus = document.activeElement; ov_.hidden = false; document.documentElement.classList.add('kpai-lock');
+    lastFocus = document.activeElement; ov_.hidden = false; document.documentElement.classList.add('kpai-lock'); try { window.__lenis && window.__lenis.stop(); } catch (e) { }
     requestAnimationFrame(() => ov_.classList.add('in'));
     if (pre) { const ta = ov_.querySelector('textarea'); ta.value = pre; ta.dispatchEvent(new Event('input')); }
     show('in');
   }
   function close() {
-    if (!ov_ || ov_.hidden) return; ov_.classList.remove('in'); document.documentElement.classList.remove('kpai-lock');
+    if (!ov_ || ov_.hidden) return; ov_.classList.remove('in'); document.documentElement.classList.remove('kpai-lock'); try { window.__lenis && window.__lenis.start(); } catch (e) { }
     setTimeout(() => { ov_.hidden = true; }, RMO ? 0 : 260); if (lastFocus && lastFocus.focus) lastFocus.focus();
   }
   let busy = false;
@@ -742,14 +797,14 @@
     clearInterval(iv); bar.style.transitionDuration = '.25s'; bar.style.width = '100%'; busy = false;
     setTimeout(() => { bar.style.transitionDuration = '0s'; bar.style.width = '0'; }, 400);
     if (!res) { show('in'); err.textContent = 'Das hat leider nicht geklappt – bitte etwas anders formulieren.'; return; }
-    result = res; renderResult(res);
+    res.text = text; result = res; renderResult(res);
     show('res');
   }
   function renderResult(r) {
     const p = r.plan;
     ov_.querySelector('[data-s="res"]').dataset.src = r.src;
-    ov_.querySelector('.kpai-pv').innerHTML = planSvg(p) + `<p class="kpai-leg"><i class="dev"></i>Geräte<i class="tall"></i>Hochschränke<i class="base"></i>Unterschränke<i class="win"></i>Fenster<i class="door"></i>Tür</p>`;
-    ov_.querySelector('.kpai-h3').textContent = `${FORMS[p.f].n.replace(/^k/, 'K')} · ${mtr(p.r.w)} × ${mtr(p.r.d)} m`;
+    ov_.querySelector('.kpai-pv').innerHTML = planSvg(p) + `<p class="kpai-leg"><span><i class="dev"></i>Geräte</span><span><i class="tall"></i>Hochschränke</span><span><i class="base"></i>Unterschränke</span><span><i class="win"></i>Fenster</span><span><i class="door"></i>Tür</span></p>`;
+    ov_.querySelector('.kpai-h3').textContent = `${FORMS[p.f].n.replace(/^k/, 'K')} · ${mm(p.r.w, p.r.d)}`;
     ov_.querySelector('.kpai-got').innerHTML = (r.got || []).slice(0, 14).map(g => `<span>${esc(g)}</span>`).join('');
     ov_.querySelector('.kpai-why').textContent = r.why || '';
     ov_.querySelector('.kpai-notes').innerHTML = (r.notes || []).slice(0, 3).map(n => `<li>${esc(n)}</li>`).join('');
@@ -757,23 +812,52 @@
   function apply() {
     if (!result) return; const p = result.plan;
     if (window.KP && typeof KP.applyPlan === 'function') {
-      try { KP.applyPlan(JSON.parse(JSON.stringify(p))); close(); done({ why: result.why, prev: '' }); return; } catch (e) { }
+      let prev = ''; try { prev = (KP.hash && KP.hash()) || location.hash || ''; } catch (e) { prev = ''; }
+      let ok = false; try { KP.applyPlan(JSON.parse(JSON.stringify(p))); ok = true; } catch (e) { ok = false; }
+      if (ok) {
+        toForm(result.text);
+        close(); done({ why: result.why, prev: /^#k=/.test(prev) ? prev : '' });
+        if (innerWidth < 1000) setTimeout(toStage, 300);
+        return;
+      }
     }
-    try { sessionStorage.setItem('kpai-after', JSON.stringify({ why: result.why, prev: location.hash, t: Date.now() })); } catch (e) { }
+    try { sessionStorage.setItem('kpai-after', JSON.stringify({ why: result.why, prev: location.hash, t: Date.now(), text: result.text || '' })); } catch (e) { }
+    try { history.scrollRestoration = 'manual'; } catch (e) { }
     history.replaceState(null, '', '#k=' + b64(JSON.stringify(p)));
-    location.reload();
+    scrollTo(0, 0); location.reload();
+  }
+  // Handy: zur 3D-Bühne scrollen – unter dem klebenden Kopf (Seitenkopf + Planer-Schritte)
+  function toStage() {
+    const st = document.querySelector('.kp-stage'), hd = document.querySelector('.kp-head'); if (!st) return;
+    let off = 0; try { off = hd ? (parseFloat(getComputedStyle(hd).top) || 0) + hd.offsetHeight : 0; } catch (e) { off = 0; }
+    const y = Math.max(0, st.getBoundingClientRect().top + scrollY - off - 2), L = window.__lenis;
+    if (L && typeof L.scrollTo === 'function') { try { L.scrollTo(y, { immediate: RMO }); return; } catch (e) { } }
+    scrollTo({ top: y, behavior: RMO ? 'auto' : 'smooth' });
+  }
+  // Die eigene Beschreibung geht mit der Anfrage mit (FormSubmit-Formular in Schritt 4)
+  function toForm(text) {
+    try {
+      const f = document.querySelector('[data-kp-form]'); if (!f || !text) return;
+      let i = f.querySelector('[name="KI-Beschreibung"]'); if (!i) { i = document.createElement('input'); i.type = 'hidden'; i.name = 'KI-Beschreibung'; const e = f.querySelector('[name="Entwurf"]'); if (e && e.parentNode) e.parentNode.insertBefore(i, e.nextSibling); else f.appendChild(i); }
+      i.value = String(text).slice(0, MAXLEN);
+    } catch (e) { }
   }
   // Nach dem Übernehmen: Hinweis „Jetzt nach Herzenslust anpassen"
   function done(info) {
     const stage = document.querySelector('.kp-stage') || document.querySelector('[data-kp]'); if (!stage) return;
+    document.querySelectorAll('.kpai-done').forEach(x => x.remove());
     const d = document.createElement('div'); d.className = 'kpai-done'; d.setAttribute('role', 'status');
-    d.innerHTML = `<div class="kpai-dh">${ICO.spark}<div><b>Ihre KI-Küche steht.</b><span>Jetzt nach Herzenslust anpassen – Schränke antippen, ziehen, tauschen.</span></div><button type="button" class="kpai-dx" aria-label="Hinweis schließen">×</button></div>${info.why ? `<details><summary>Warum so geplant?</summary><p>${esc(info.why)}</p></details>` : ''}<div class="kpai-da">${info.prev ? '<button type="button" data-kpai-prev>Vorherigen Entwurf zurückholen</button>' : ''}<button type="button" data-kpai-again>Neu beschreiben</button></div>`;
+    d.innerHTML = `<div class="kpai-dh">${ICO.spark}<div><b>Ihre KI-Küche steht.</b><span>Jetzt nach Herzenslust anpassen – Schränke antippen, ziehen, tauschen.</span></div><button type="button" class="kpai-dx" aria-label="Hinweis schließen">×</button></div>${info.why ? `<details><summary>Warum so geplant?</summary><p>${esc(info.why)}</p></details>` : ''}<div class="kpai-da">${info.prev ? '<button type="button" data-kpai-prev>Alten Entwurf zurück</button>' : ''}<button type="button" data-kpai-again>Neu beschreiben</button></div>`;
     stage.appendChild(d); requestAnimationFrame(() => d.classList.add('in'));
     const rm = () => { d.classList.remove('in'); setTimeout(() => d.remove(), 300); };
     d.querySelector('.kpai-dx').onclick = rm;
-    const pv = d.querySelector('[data-kpai-prev]'); if (pv) pv.onclick = () => { history.replaceState(null, '', info.prev); location.reload(); };
+    const pv = d.querySelector('[data-kpai-prev]');
+    if (pv) pv.onclick = () => {
+      if (window.KP && typeof KP.applyPlan === 'function') { try { KP.applyPlan(unb64(info.prev.slice(3))); rm(); if (KP.toast) KP.toast('Ihr vorheriger Entwurf ist wieder da.'); return; } catch (e) { } }
+      history.replaceState(null, '', info.prev); location.reload();
+    };
     d.querySelector('[data-kpai-again]').onclick = () => { rm(); open(); };
-    setTimeout(() => { if (d.isConnected && !d.matches(':hover') && !d.querySelector('details[open]')) d.classList.add('mini'); }, 14000);
+    setTimeout(() => { if (d.isConnected && !d.matches(':hover') && !d.querySelector('details[open]')) d.classList.add('mini'); }, innerWidth < 1000 ? 9000 : 14000);
   }
 
   /* ================= 7) Einhängen ================= */
@@ -794,7 +878,10 @@
     document.addEventListener('click', e => { const t = e.target.closest('[data-kpai-open]'); if (t) { e.preventDefault(); open(); } });
     // nach dem Neuladen
     let info = null; try { info = JSON.parse(sessionStorage.getItem('kpai-after') || 'null'); sessionStorage.removeItem('kpai-after'); } catch (e) { }
-    if (info && Date.now() - info.t < 120000) setTimeout(() => done(info), 700);
+    if (info && Date.now() - info.t < 120000) {
+      const top = () => { const L = window.__lenis || window.lenis; if (L && L.scrollTo) try { L.scrollTo(0, { immediate: true }); } catch (e) { } scrollTo(0, 0); };
+      top(); setTimeout(() => { top(); done(info); toForm(info.text); }, 700); setTimeout(() => { try { history.scrollRestoration = 'auto'; } catch (e) { } }, 2500);
+    }
     if (/[?&]ki=1/.test(location.search)) setTimeout(() => open(), 500);
   }
   function boot() { let n = 0; (function wait() { if (window.KP || n++ > 60) inject(); else setTimeout(wait, 100); })(); }

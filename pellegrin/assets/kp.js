@@ -106,7 +106,8 @@
   const isDD = () => eqv('hobV', 'normal') === 'dd';
   const backCol = () => P.style.backC || (P.style.wood ? '#2a2420' : P.style.front);
   // eigenes Motiv: bleibt nur im Browser (Speicher + localStorage), wird nie hochgeladen
-  let motif = null; // Canvas (max. 1600 px)
+  let motif = null, motSend = true; // Canvas (max. 1600 px) · motSend: geht mit der Anfrage mit (Schritt 4 abwählbar)
+  const motifToSend = () => (P && P.style && P.style.back === 'motiv' && motif && motif._url && motSend) ? motif : null;
   try { const d = localStorage.getItem('kp-motiv'); if (d) { const im = new Image(); im.onload = () => { const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; c.getContext('2d').drawImage(im, 0, 0); c._url = d; motif = c; if (P && P.style.back === 'motiv') { renderWalls(); schedule3D(); syncUI(); } }; im.src = d; } } catch (e) { }
 
   /* ---------------- Zustand ---------------- */
@@ -226,7 +227,7 @@
     if (!r && P.op.some(o => o.wall === w && ov(o.s, o.w, u.s, u.w))) r = 'win';
     return r;
   }
-  function upEdges(w, u) { const L = wallLen(w), e = [0, L]; const X = xs(w); P.rows[w].forEach((m, i) => { e.push(X[i], X[i] + m.w); }); (P.up[w] || []).forEach(o => { if (o !== u) e.push(o.s, o.s + o.w); }); P.op.filter(o => o.wall === w).forEach(o => e.push(o.s, o.s + o.w)); return e; }
+  function upEdges(w, u) { const L = wallLen(w), e = [0, L]; const X = xs(w); P.rows[w].forEach((m, i) => { e.push(X[i], X[i] + m.w); }); (P.up[w] || []).forEach(o => { if (o !== u) e.push(o.s, o.s + o.w); }); P.op.filter(o => o.wall === w).forEach(o => e.push(o.s, o.s + o.w)); if (u && u.t === 'dh') hobsOf(w).forEach(h => e.push(Math.round(h.c - u.w / 2))); return e; }
   function resolveUp(w, u, ds, noSnap) {
     const L = wallLen(w), others = (P.up[w] || []).filter(o => o !== u);
     let s = Math.max(0, Math.min(L - u.w, ds));
@@ -245,6 +246,47 @@
     // Bevorzugt über normalen Unterschränken, nicht über dem Kochfeld
     const good = ok.filter(s => { let bad = false; P.rows[w].forEach((m, i) => { if (ov(X[i], m.w, s, width) && (m.t === 'kf' || m.t === 'ko')) bad = true; }); return !bad; });
     return (good.length ? good : ok)[0];
+  }
+  // Haube ↔ Kochfeld: Haube rastet mittig über dem Kochfeld ein (Fangbereich HSNAP cm) und wandert mit, wenn das Kochfeld verschoben wird
+  const HSNAP = 30;
+  function hobsOf(w) { if (!P.rows[w]) return []; const X = xs(w); return P.rows[w].map((m, i) => (m.t === 'kf' || m.t === 'ko') ? { id: m.id, c: X[i] + m.w / 2 } : null).filter(Boolean); }
+  function hoodSnap(w, u, s) {
+    if (!u || u.t !== 'dh' || s == null) return s; const L = wallLen(w), others = (P.up[w] || []).filter(o => o !== u && o.id !== u.id);
+    let best = null; hobsOf(w).forEach(h => { const c = Math.round(h.c - u.w / 2), d = Math.abs(s - c); if (d <= HSNAP && c >= 0 && c + u.w <= L && !others.some(o => ov(o.s, o.w, c, u.w)) && (!best || d < best.d)) best = { c, d }; });
+    return best ? best.c : s;
+  }
+  function relinkHood(w, u) { if (!u || u.t !== 'dh') return; const h = hobsOf(w).find(q => Math.abs(q.c - (u.s + u.w / 2)) < 1); if (h) u.hob = h.id; else delete u.hob; }
+  function linkHoods() { for (const w in P.up) P.up[w].forEach(u => relinkHood(w, u)); }
+  // Hängeschrank, der einer mitgewanderten Haube im Weg ist: an die nächste freie Stelle rücken, sonst entfernen
+  function clearAround(w, u) {
+    const L = wallLen(w); let gone = 0;
+    [...(P.up[w] || [])].forEach(o => {
+      if (o === u || !ov(o.s, o.w, u.s, u.w)) return;
+      const rest = P.up[w].filter(x => x !== o), cand = new Set([0, L - o.w]); rest.forEach(x => { cand.add(x.s - o.w); cand.add(x.s + x.w); }); const X = xs(w); (P.rows[w] || []).forEach((m, i) => { cand.add(X[i]); cand.add(X[i] + m.w - o.w); });
+      const ok = [...cand].map(Math.round).filter(s => s >= 0 && s + o.w <= L && !rest.some(x => ov(x.s, x.w, s, o.w)) && (o.t === 'dh' || !upConflict(w, { ...o, s }))).sort((p, q) => Math.abs(p - o.s) - Math.abs(q - o.s));
+      if (ok.length) o.s = ok[0]; else { P.up[w] = rest; gone++; }
+    });
+    if (P.up[w]) P.up[w].sort((a, b) => a.s - b.s);
+    return gone;
+  }
+  function followHoods() {
+    let gone = 0;
+    for (const w of Object.keys(P.up)) {
+      [...P.up[w]].forEach(u => {
+        if (u.t !== 'dh' || u.hob == null || !P.up[w].includes(u)) return;
+        let ww = null, c = 0; for (const w2 in P.rows) { const i = P.rows[w2].findIndex(m => m.id === u.hob); if (i >= 0) { ww = w2; c = xs(w2)[i] + P.rows[w2][i].w / 2; break; } }
+        if (ww == null) { delete u.hob; return; } // Kochfeld entfernt – Haube bleibt, wo sie ist
+        if (ww !== w) { // Kochfeld an eine andere Wand gezogen: Haube geht mit (automatische Wand bekommt ihre Haube ohnehin)
+          P.up[w] = P.up[w].filter(x => x !== u);
+          if (P.up[ww] && !P.up[ww].some(x => x.t === 'dh' && ov(x.s, x.w, c - u.w / 2, u.w))) { u.s = Math.round(Math.max(0, Math.min(wallLen(ww) - u.w, c - u.w / 2))); P.up[ww].push(u); gone += clearAround(ww, u); }
+          return;
+        }
+        const ns = Math.round(Math.max(0, Math.min(wallLen(w) - u.w, c - u.w / 2)));
+        if (Math.abs(ns - u.s) < .5) return;
+        u.s = ns; gone += clearAround(w, u);
+      });
+    }
+    return gone;
   }
 
   /* ---------------- Front-Beschreibung (gemeinsam für Zeichnung und 3D) ---------------- */
@@ -511,7 +553,7 @@
     if (hit && !(t === 'dh') !== !(hit.t === 'dh')) { /* Haube nur gegen Haube tauschen */ }
     else if (hit) return { w, s: hit.s, width: hit.w, rep: hit.id, ok: true, t, a: pe.o && pe.o.a };
     const tmp = { t, w: width, h: HDEF(t) }, saved = P.up[w]; if (!P.up[w]) P.up[w] = autoUp(w).map(u => ({ ...u }));
-    const s = resolveUp(w, tmp, sx - width / 2); const ok = s != null && !upConflict(w, { ...tmp, s });
+    const s = hoodSnap(w, tmp, resolveUp(w, tmp, sx - width / 2)); const ok = s != null && !upConflict(w, { ...tmp, s });
     if (!saved) delete P.up[w];
     return { w, s: s == null ? Math.round(sx - width / 2) : s, width, ok: s != null, warn: !ok, t, a: pe.o && pe.o.a };
   }
@@ -525,7 +567,7 @@
     if (drag.kind === 'plan') { planMove(e); return; }
     if (drag.kind === 'up') {
       const u = (P.up[drag.wall] || []).find(x => x.id === drag.uid); if (!u) return;
-      if (el && el.dataset.wall === drag.wall) { trash.classList.remove('hot'); const s = resolveUp(drag.wall, u, drag.us + (sAt(el, e.clientX) - drag.s0)); if (s != null) u.s = s; ghostId = null; renderWalls(); schedule3D(); }
+      if (el && el.dataset.wall === drag.wall) { trash.classList.remove('hot'); drag.raw = drag.us + (sAt(el, e.clientX) - drag.s0); const s = hoodSnap(drag.wall, u, resolveUp(drag.wall, u, drag.raw)); if (s != null) u.s = s; ghostId = null; renderWalls(); schedule3D(); }
       else if (!el) { trash.classList.add('hot'); ghostId = u.id; renderWalls(); }
       return;
     }
@@ -562,6 +604,12 @@
         if (d.auto) { sel = id; change(); return; } sel = sel === id ? null : id; selOp = null; renderWalls(); return; }
       ghostId = null; const list = P.up[d.wall] || [], u = list.find(x => x.id === d.uid);
       if (u && !wallAt(e.clientX, e.clientY)) { const i = list.indexOf(u); list.splice(i, 1); sel = null; toast(`${M[u.t].n} entfernt`, undo); }
+      else if (u && u.t === 'dh') {
+        // Haube nah am Kochfeld losgelassen, aber ein Hängeschrank sitzt dort: Haube nimmt den Platz über dem Kochfeld, der Schrank rückt zur Seite
+        const h = d.raw == null ? null : hobsOf(d.wall).find(q => Math.abs(q.c - (d.raw + u.w / 2)) <= HSNAP), L = wallLen(d.wall);
+        if (h && Math.abs(h.c - (u.s + u.w / 2)) >= 1) { const c = Math.round(h.c - u.w / 2); if (c >= 0 && c + u.w <= L && !list.some(o => o !== u && o.t === 'dh' && ov(o.s, o.w, c, u.w))) { u.s = c; const g = clearAround(d.wall, u); toast(g ? 'Die Haube sitzt über dem Kochfeld – ein Hängeschrank hatte daneben keinen Platz mehr.' : 'Die Haube sitzt über dem Kochfeld – der Hängeschrank ist zur Seite gerückt.', undo); } }
+        relinkHood(d.wall, u);
+      }
       change(); return;
     }
     if (!d.on) { // Tippen
@@ -617,7 +665,7 @@
   function addUp(w, t, o) {
     if (!P.rows[w]) return; materialize(w);
     const f = sel != null && findSel();
-    const width = M[t].w, s = freeUpSpot(w, t, width);
+    const width = M[t].w, hs = t === 'dh' ? hobsOf(w).map(h => Math.round(h.c - width / 2)).find(x => x >= 0 && x + width <= wallLen(w) && !P.up[w].some(o => ov(o.s, o.w, x, width))) : null, s = hs != null ? hs : freeUpSpot(w, t, width);
     if (s == null) {
       if (f && f.up && f.w === w) { const u = f.m; setUpType(u, t, o); change(); toast(`Hängeschrank getauscht: ${M[t].n} · ${variant(u)}`, undo); return; }
       armed = { t, o }; root.classList.add('kp-arm'); toast(`Oben ist alles belegt – tippen Sie jetzt den Hängeschrank an, der zu „${M[t].n} · ${variant({ t, w: M[t].w, a: o && o.a })}“ werden soll.`); return;
@@ -695,16 +743,17 @@
     const isO = openNow.has(String(m.id)) || (K && K.isAllOpen && K.isAllOpen());
     h += `<div class="kp-pb">${canL || canR ? `<button type="button" data-p="l"${canL ? '' : ' disabled'} aria-label="nach links">←</button><button type="button" data-p="r"${canR ? '' : ' disabled'} aria-label="nach rechts">→</button>` : ''}${openable(m) && K ? `<button type="button" data-p="o" class="kp-ob">${isO ? 'In 3D schließen' : 'In 3D öffnen'}</button>` : ''}<button type="button" data-p="del" class="kp-del">Entfernen</button></div>`;
     pop.innerHTML = h; pop.hidden = false;
-    const g = $(`[data-${up ? 'u' : 'm'}="${m.id}"]`, wallsEl); if (!g || !g.getBoundingClientRect().width) { pop.hidden = true; return; } const r = g.getBoundingClientRect();
+    const g = $(`[data-${up ? 'u' : 'm'}="${m.id}"]`, wallsEl); if (!g || !g.getBoundingClientRect().width) { pop.hidden = true; return; } const r = g.getBoundingClientRect(); if (offView(r)) { pop.hidden = true; return; }
     const pw = pop.offsetWidth, ph = pop.offsetHeight; let left = r.left + r.width / 2 - pw / 2; left = Math.max(8, Math.min(innerWidth - pw - 8, left));
     let top = r.top - ph - 10; if (top < 70) top = Math.min(innerHeight - ph - 8, r.bottom + 10); pop.style.left = left + 'px'; pop.style.top = Math.max(64, top) + 'px';
   }
+  const offView = r => r.bottom < 60 || r.top > innerHeight - 8;
   function renderOpPop() {
     const o = opById(selOp), ws = OPW[o.t];
     pop.innerHTML = `<div class="kp-pt"><b>${OPN[o.t]} <small>${WN[o.wall]}</small></b><button type="button" class="kp-px" data-o="x" aria-label="Auswahl schließen">×</button></div><div class="kp-step"><button type="button" data-o="w-"${o.w <= ws[0] ? ' disabled' : ''} aria-label="schmaler">−</button><span>${o.w} cm</span><button type="button" data-o="w+"${o.w >= ws[ws.length - 1] ? ' disabled' : ''} aria-label="breiter">+</button></div><div class="kp-pb"><button type="button" data-o="l" aria-label="nach links">←</button><button type="button" data-o="r" aria-label="nach rechts">→</button><button type="button" data-o="del" class="kp-del">Entfernen</button></div>`;
     pop.hidden = false;
     const cands = [$(`[data-pop="${o.id}"]`), $(`[data-op="${o.id}"]`, wallsEl)].filter(el => el && el.getBoundingClientRect().width > 0);
-    const r = cands.length ? cands[0].getBoundingClientRect() : null; if (!r) { pop.hidden = true; return; }
+    const r = cands.length ? cands[0].getBoundingClientRect() : null; if (!r || offView(r)) { pop.hidden = true; return; }
     const pw = pop.offsetWidth; let left = r.left + r.width / 2 - pw / 2; left = Math.max(8, Math.min(innerWidth - pw - 8, left));
     pop.style.left = left + 'px'; pop.style.top = (r.top - pop.offsetHeight - 10 < 70 ? r.bottom + 10 : r.top - pop.offsetHeight - 10) + 'px';
   }
@@ -746,7 +795,7 @@
       h += eqRow(blk ? 'Material' : 'Rückwand', BACKS2.map(([v, n, d]) => chip('back', v, b === v, IC.back(v), n, blk ? d : '')).join(''), blk);
       if (b === 'glas' || b === 'dibond') h += eqRow('Farbe', BACKC.map(([n, c]) => chip('backC', c, (P.style.backC || '') === c, IC.dot(c || (P.style.wood ? WOOD[P.style.wood] : P.style.front)), n)).join(''), blk);
       if (b === 'holz') h += eqRow('Holz', BACKW.map(([v, n, c]) => chip('backWood', v, (P.style.backWood || 'eiche') === v, IC.back('holz').replace(/fill="#[0-9a-f]{6}"/, `fill="${c}"`), n)).join(''), blk);
-      if (b === 'motiv') h += eqRow('Motiv', `<button type="button" class="kp-eq kp-equp" data-e="motif" data-v="1">${IC.back('motiv')}<span>${motif ? 'Anderes Foto wählen' : 'Foto hochladen'}<small>bleibt auf Ihrem Gerät</small></span></button>`, blk);
+      if (b === 'motiv') h += eqRow('Motiv', `<button type="button" class="kp-eq kp-equp" data-e="motif" data-v="1">${IC.back('motiv')}<span>${motif ? 'Anderes Foto wählen' : 'Foto hochladen'}<small>bleibt auf Ihrem Gerät, bis Sie anfragen</small></span></button>`, blk);
       h += eqRow('Licht', chip('backLed', P.style.backLed ? 0 : 1, !!P.style.backLed, IC.led(!!P.style.backLed), 'LED beleuchtet', 'leuchtet im Abendmodus'), blk);
     }
     return h;
@@ -757,6 +806,7 @@
     pop.innerHTML = `<div class="kp-pt"><b>${T[0]} <small>${T[1]}</small></b><button type="button" class="kp-px" data-e="close" data-v="1" aria-label="Auswahl schließen">×</button></div>` + eqRows(q.k, m);
     pop.hidden = false; pop.classList.add('kp-pop-eq');
     let r; if (q.rx != null) { const hr = host3.getBoundingClientRect(); const x = hr.left + q.rx, y = hr.top + q.ry; r = { left: x, right: x, top: y - 8, bottom: y + 8, width: 0 }; } else { const el = q.q && $(q.q, wallsEl); if (!el || !el.getBoundingClientRect().width) { pop.hidden = true; return; } r = el.getBoundingClientRect(); }
+    if (offView(r)) { pop.hidden = true; return; }
     const pw = pop.offsetWidth, ph = pop.offsetHeight; let left = r.left + r.width / 2 - pw / 2; left = Math.max(8, Math.min(innerWidth - pw - 8, left));
     let top = r.top - ph - 10; if (top < 70) top = Math.min(innerHeight - ph - 8, r.bottom + 10); pop.style.left = left + 'px'; pop.style.top = Math.max(64, top) + 'px';
   }
@@ -765,7 +815,7 @@
   motifIn.addEventListener('change', () => {
     const f = motifIn.files && motifIn.files[0]; motifIn.value = ''; if (!f) return;
     const url = URL.createObjectURL(f), im = new Image();
-    im.onload = () => { const sc = Math.min(1, 1600 / Math.max(im.naturalWidth, im.naturalHeight)), c = document.createElement('canvas'); c.width = Math.round(im.naturalWidth * sc); c.height = Math.round(im.naturalHeight * sc); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(url); c._url = c.toDataURL('image/jpeg', .86); motif = c; try { localStorage.setItem('kp-motiv', c._url); } catch (e) { } P.style.back = 'motiv'; xfade(); change(); toast('Ihr Motiv ist jetzt die Glasrückwand – das Foto bleibt auf Ihrem Gerät.'); };
+    im.onload = () => { const sc = Math.min(1, 1600 / Math.max(im.naturalWidth, im.naturalHeight)), c = document.createElement('canvas'); c.width = Math.round(im.naturalWidth * sc); c.height = Math.round(im.naturalHeight * sc); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(url); c._url = c.toDataURL('image/jpeg', .86); motif = c; motSend = true; try { localStorage.setItem('kp-motiv', c._url); } catch (e) { } P.style.back = 'motiv'; xfade(); change(); toast('Ihr Motiv ist jetzt die Glasrückwand – das Foto bleibt auf Ihrem Gerät, bis Sie Ihre Anfrage absenden.'); };
     im.onerror = () => { URL.revokeObjectURL(url); toast('Dieses Bild kann der Browser nicht öffnen – bitte ein JPG oder PNG wählen.'); };
     im.src = url;
   });
@@ -819,10 +869,12 @@
       else if (k === 'r' && i < P.rows[w].length - 1) { P.rows[w].splice(i, 1); P.rows[w].splice(i + 1, 0, m); }
     }
     if (k === 'del') { const list = up ? P.up[w] : P.rows[w]; list.splice(i, 1); sel = null; toast(`${c.n} entfernt`, undo); }
+    else if (up && m.t === 'dh') relinkHood(w, m);
     change();
   });
   addEventListener('resize', () => renderPop());
-  addEventListener('scroll', () => { if (!pop.hidden) renderPop(); }, { passive: true });
+  // Auswahl-Popup folgt seinem Element; ist es aus dem Bild gescrollt, verschwindet das Popup (und kommt beim Zurückscrollen wieder)
+  addEventListener('scroll', () => { if (!pop.hidden || sel != null || selOp != null || eqSel) renderPop(); }, { passive: true });
   addEventListener('keydown', e => {
     if (/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) || document.querySelector('.kpf:not([hidden])')) return;
     if ((e.key === 'Delete' || e.key === 'Backspace') && selOp) { P.op = P.op.filter(o => o.id !== selOp); selOp = null; change(); e.preventDefault(); return; }
@@ -990,6 +1042,7 @@
   function change(noHist) {
     const dropped = normCorners(); if (dropped.length) toast('Eckschränke passen nur in die Ecken einer L- oder U-Küche.');
     const filled = fillCorners(); if (filled.length && !dropped.length) toast('Die Ecke bleibt nicht offen: Blindeckschrank eingesetzt – in „Ecke“ können Sie Karussell oder Le-Mans wählen.');
+    const goneUp = followHoods(); linkHoods(); if (goneUp) toast(`Die Haube ist mit dem Kochfeld mitgewandert – ${goneUp > 1 ? goneUp + ' Hängeschränke hatten' : 'ein Hängeschrank hatte'} daneben keinen Platz mehr.`, undo);
     const j = ser(); if (!noHist && hist[hist.length - 1] !== j) { hist.push(j); if (hist.length > 60) hist.shift(); }
     lastHash = '#k=' + b64(j); history.replaceState(null, '', lastHash);
     renderWalls(); renderTips(); syncUI(); schedule3D(); $$('[data-undo]').forEach(b => b.disabled = hist.length < 2);
@@ -1015,7 +1068,7 @@
   $('[data-kp-forms]').innerHTML = Object.entries(FORMS).map(([k, f]) => `<button type="button" data-form="${k}"><svg viewBox="0 0 64 46" aria-hidden="true"><rect x="2" y="2" width="60" height="42" rx="3" fill="none" stroke="currentColor" stroke-opacity=".25"/><path d="${f.p}"/></svg><b>${f.n}</b><small>${f.d}</small></button>`).join('');
   $('[data-kp-forms]').addEventListener('click', e => { const b = e.target.closest('[data-form]'); if (!b) return; const st = P.style, room = { ...P.room }; fresh(b.dataset.form, { style: st, room }); sel = null; change(); K && K.view('perspektive'); });
   const rw = $('[data-kp-rw]'), rd = $('[data-kp-rd]');
-  function roomIn() { P.room.w = +rw.value; P.room.d = +rd.value; for (const w in P.rows) makeRoomQuiet(w); for (const w in P.up) { const L = wallLen(w); P.up[w] = P.up[w].filter(u => u.w <= L); P.up[w].forEach(u => { u.s = Math.max(0, Math.min(L - u.w, u.s)); }); } P.op.forEach(o => { if (o.w > wallLen(o.wall) - 20) o.w = OPW[o.t].filter(v => v <= wallLen(o.wall) - 20).pop() || o.w; o.s = clampOp(o, o.s); }); syncRoomOut(); renderWalls(); renderTips(); schedule3D(); }
+  function roomIn() { P.room.w = +rw.value; P.room.d = +rd.value; for (const w in P.rows) makeRoomQuiet(w); for (const w in P.up) { const L = wallLen(w); P.up[w] = P.up[w].filter(u => u.w <= L); P.up[w].forEach(u => { u.s = Math.max(0, Math.min(L - u.w, u.s)); }); } P.op.forEach(o => { if (o.w > wallLen(o.wall) - 20) o.w = OPW[o.t].filter(v => v <= wallLen(o.wall) - 20).pop() || o.w; o.s = clampOp(o, o.s); }); followHoods(); syncRoomOut(); renderWalls(); renderTips(); schedule3D(); }
   function makeRoomQuiet(w) { let over = -free(w); if (over <= 0) { fillGap(w); return; } const R = [...P.rows[w]].reverse().filter(x => x.t === 'us'); for (const x of R) { if (over <= 0.5) break; const fit = M.us.ws.filter(v => v <= x.w - over).pop(); if (fit) { over -= x.w - fit; x.w = fit; } else { over -= x.w; P.rows[w] = P.rows[w].filter(y => y !== x); } } }
   function fillGap(w) { const f = free(w); if (f >= 30) { const last = [...P.rows[w]].reverse().find(x => x.t === 'us'); const grow = last && M.us.ws.filter(v => v <= last.w + f).pop(); if (last && grow > last.w) last.w = grow; else fillRest(w); } }
   [rw, rd].forEach(el => { el.addEventListener('input', roomIn); el.addEventListener('change', () => change()); });
@@ -1089,6 +1142,7 @@
     rw.value = P.room.w; rd.value = P.room.d; syncRoomOut();
     const n = Object.values(P.rows).reduce((a, r) => a + r.length, 0) + Object.keys(P.rows).reduce((a, w) => a + upList(w).length, 0) + (P.form === 'insel' ? 1 : 0);
     $$('[data-kp-count]').forEach(el => el.textContent = n + ' Elemente');
+    try { syncAttach(); } catch (e) { }
   }
 
   /* ---------------- Senden ---------------- */
@@ -1124,16 +1178,17 @@
       zusammenfassung: summary(),
     };
   }
-  function backName() {
+  function backName(att) {
     const b = P.style.back || 'wand', cn = (BACKC.find(c => c[1] === (P.style.backC || '')) || ['eigene Farbe'])[0];
-    const t = { wand: 'keine (Wandfarbe)', glas: `Glas ${cn} glänzend`, dibond: `Dibond ${cn} matt`, holz: `Holz ${nm(BACKW, P.style.backWood || 'eiche')}`, fliese: 'Metro-Fliesen', platte: 'Stein wie Arbeitsplatte', motiv: 'Glas bedruckt mit eigenem Motiv (Foto bitte separat mitschicken)' }[b] || b;
+    const mt = !motif ? 'Glas bedruckt mit eigenem Motiv (Foto noch nicht gewählt)' : att ? 'Glas bedruckt mit eigenem Motiv (Motiv-Foto hängt an: „Rueckwand-Motiv“)' : 'Glas bedruckt mit eigenem Motiv (Foto bitte separat mitschicken)';
+    const t = { wand: 'keine (Wandfarbe)', glas: `Glas ${cn} glänzend`, dibond: `Dibond ${cn} matt`, holz: `Holz ${nm(BACKW, P.style.backWood || 'eiche')}`, fliese: 'Metro-Fliesen', platte: 'Stein wie Arbeitsplatte', motiv: mt }[b] || b;
     return t + (P.style.backLed ? ', mit LED beleuchtet' : '');
   }
   function eqData() {
     const all = Object.values(P.rows).flat(), sp = all.some(m => m.t === 'sp') || (P.form === 'insel' && P.island.v === 'spuele'), wh = all.some(m => m.t === 'kf' || m.t === 'ko'), ih = P.form === 'insel' && P.island.v === 'kochfeld';
     return { spuele: sp ? nm(SINKS, eqv('sink', 'edel')) : null, armatur: sp ? nm(TAPS, eqv('tap', 'chrom')) : null, kochfeldBreite: wh || ih ? eqv('hobW', 80) : null, kochfeldArt: wh ? (isDD() ? 'mit Muldenlüfter' : 'normal') : null, dunstabzug: wh ? (isDD() ? 'Muldenlüfter im Kochfeld' : nm(HOODS, eqv('hood', 'schraeg'))) : null, inselAbzug: ih ? nm(IHOODS, eqv('ihood', 'mulde')) : null, rueckwand: backName(), rueckwandTyp: P.style.back || 'wand', rueckwandBeleuchtet: !!P.style.backLed, eigenesMotiv: (P.style.back === 'motiv') };
   }
-  function summary() {
+  function summary(motAtt) {
     const s = P.style, fr = FRONTS.find(f => s.wood ? f[1] === 'wood:' + s.wood : f[1] === s.front);
     const L = [`Form: ${FORMS[P.form].n} · Raum ${P.room.w} × ${P.room.d} cm`];
     for (const w in P.rows) {
@@ -1146,7 +1201,7 @@
     L.push(`Fronten: ${fr ? fr[0] : s.front} · Griffe: ${HANDLES.find(h => h[0] === s.handle)[1]} · Arbeitsplatte: ${TOPS.find(t => t[0] === s.top)[1]} · Hängeschränke: ${Object.keys(P.up).length ? 'individuell geplant' : anyTop() ? 'automatisch' : 'keine'}`);
     const LK = LOOKS.find(x => x[0] === s.look); if (LK) L.push(`Ausgangsstil: ${LK[1]}`);
     { const q = eqData(), A = []; if (q.spuele) A.push(`Spüle ${q.spuele}`, `Armatur ${q.armatur}`); if (q.kochfeldBreite) A.push(`Kochfeld ${q.kochfeldBreite} cm${q.kochfeldArt === 'mit Muldenlüfter' ? ' mit Muldenlüfter' : ''}`); if (q.dunstabzug && q.kochfeldArt !== 'mit Muldenlüfter') A.push(`Dunstabzug: ${q.dunstabzug}`); if (q.inselAbzug) A.push(`Abzug an der Insel: ${q.inselAbzug}`); if (A.length) L.push('Ausstattung: ' + A.join(' · ')); }
-    L.push(`Frontart: ${s.frame ? 'Rahmenfront (Landhaus)' : 'glatt'} · Oberfläche: ${(FINISHES.find(f => f[0] === (s.finish || 'matt')) || FINISHES[0])[1]} · Küchenrückwand: ${backName()} · Wand: ${(WALLC.find(c => c[1] === s.wall) || ['eigene Farbe'])[0]} · Boden: ${(FLOORS.find(f => f[0] === s.floor) || FLOORS[0])[1]}`);
+    L.push(`Frontart: ${s.frame ? 'Rahmenfront (Landhaus)' : 'glatt'} · Oberfläche: ${(FINISHES.find(f => f[0] === (s.finish || 'matt')) || FINISHES[0])[1]} · Küchenrückwand: ${backName(motAtt)} · Wand: ${(WALLC.find(c => c[1] === s.wall) || ['eigene Farbe'])[0]} · Boden: ${(FLOORS.find(f => f[0] === s.floor) || FLOORS[0])[1]}`);
     if (attach) L.push('Raumfoto: eigenes Foto mit eingesetzter Küche angehängt (Vorher und Nachher).');
     const w = tips().filter(x => x[0] === 'warn').map(x => x[1]); if (w.length) L.push('Hinweise: ' + w.join('; '));
     return L.join('\n');
@@ -1172,22 +1227,30 @@
   // Raumfoto als Anhang (kommt aus der Foto-Projektion)
   let attach = null; // {files: [File, File], thumb: dataURL}
   function syncAttach() {
+    const mot = motifToSend(); $$('[data-kp-motatt]').forEach(el => { el.hidden = !mot; }); $$('[data-kp-motimg]').forEach(im => { if (mot && im.getAttribute('src') !== mot._url) im.src = mot._url; });
     $$('[data-kpf-att]').forEach(el => { el.hidden = !attach; }); $$('[data-kpf-thumb]').forEach(im => { if (attach) im.src = attach.thumb; });
     $$('[data-kpf-cta]').forEach(el => { el.textContent = attach ? 'Raumfoto ändern' : 'Raumfoto hochladen'; });
   }
   $$('[data-kpf-drop]').forEach(b => b.addEventListener('click', () => { attach = null; syncAttach(); toast('Raumfoto wird nicht mitgeschickt.'); }));
+  $$('[data-kp-motdrop]').forEach(b => b.addEventListener('click', () => { motSend = false; syncAttach(); toast('Das Motiv-Foto wird nicht mitgeschickt – im Entwurf steht trotzdem „eigenes Motiv“.'); }));
   const form = $('[data-kp-form]');
   if (form) {
     const b0 = $('[type="submit"]', form);
     form.addEventListener('submit', async e => {
       const fi = $('[data-files]', form), files = fi ? fi.files : []; let total = 0; for (const f of files) total += f.size; if (attach) attach.files.forEach(f => total += f.size);
-      if (total > 9.5e6) { e.preventDefault(); $('[data-form-msg]', form).textContent = 'Die Dateien sind zusammen größer als 10 MB' + (attach ? ' – entfernen Sie ein Foto oder das Raumfoto.' : '.'); return; }
+      const mot = motifToSend(); if (mot) total += Math.round((mot._url || '').length * .75);
+      if (total > 9.5e6) { e.preventDefault(); $('[data-form-msg]', form).textContent = 'Die Dateien sind zusammen größer als 10 MB' + (attach ? ' – entfernen Sie ein Foto oder das Raumfoto.' : mot ? ' – entfernen Sie ein Foto oder schicken Sie das Rückwand-Motiv nicht mit.' : '.'); return; }
       $('[name="Entwurf"]', form).value = summary() + '\n\nLink: ' + location.href.split('#')[0] + lastHash;
       $('[name="_next"]', form).value = location.href.split('#')[0].split('?')[0] + '?gesendet=1'; try { sessionStorage.setItem('kp-last', lastHash); } catch (er) { }
       if (window.DataTransfer) {
         e.preventDefault(); b0.disabled = true; b0.textContent = 'Wird gesendet …';
         try { const c = await composite(); const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', .85)); const dt = new DataTransfer(); dt.items.add(new File([blob], 'kuechenentwurf.jpg', { type: 'image/jpeg' })); $('[name="Entwurf-Bild"]', form).files = dt.files; } catch (err) { }
         if (attach) [['Raumfoto', 0], ['Raumfoto-mit-Kueche', 1]].forEach(([n, i]) => { const inp = $(`[name="${n}"]`, form); if (!inp || !attach.files[i]) return; try { const dt = new DataTransfer(); dt.items.add(attach.files[i]); inp.files = dt.files; } catch (err) { } });
+        // Eigenes Rückwand-Motiv (bereits auf max. 1600 px verkleinert) als JPEG anhängen
+        if (mot) { let ok = false; try { let inp = $('[name="Rueckwand-Motiv"]', form); if (!inp) { inp = Object.assign(document.createElement('input'), { type: 'file', name: 'Rueckwand-Motiv', className: 'hp', tabIndex: -1 }); inp.setAttribute('aria-hidden', 'true'); form.appendChild(inp); }
+          let blob = await new Promise(r => { try { mot.toBlob(r, 'image/jpeg', .86); } catch (err) { r(null); } }); if (!blob && mot._url) blob = await (await fetch(mot._url)).blob();
+          if (blob) { const dt = new DataTransfer(); dt.items.add(new File([blob], 'rueckwand-motiv.jpg', { type: 'image/jpeg' })); inp.files = dt.files; ok = inp.files.length > 0; } } catch (err) { ok = false; }
+          if (ok) $('[name="Entwurf"]', form).value = summary(true) + '\n\nLink: ' + location.href.split('#')[0] + lastHash; }
         HTMLFormElement.prototype.submit.call(form);
       }
     });
@@ -1200,7 +1263,9 @@
   function openFoto(o) { loadFoto().then(() => window.KPF && window.KPF.open(o || {})).catch(() => { pf = null; toast('Die Foto-Ansicht konnte nicht geladen werden – bitte Seite neu laden.'); }); }
   window.KP = {
     state3d: () => toState(), room: () => ({ ...P.room }),
-    stateOf: j => { const keep = P, ks = sel, ko = selOp; try { des(typeof j === 'string' ? j : JSON.stringify(j)); return { state: toState(), room: { ...P.room } }; } finally { P = keep; sel = ks; selOp = ko; } }, form: () => P.form, walls: () => FORMS[P.form].walls.slice(), wn: WN, person: PERSON, studio: STUDIO, acc: ACC, logo: LOGO, summary: () => summary(),
+    stateOf: j => { const keep = P, ks = sel, ko = selOp; try { des(typeof j === 'string' ? j : JSON.stringify(j)); return { state: toState(), room: { ...P.room } }; } finally { P = keep; sel = ks; selOp = ko; } }, form: () => P.form,
+    // Live-Tipps (Warnungen) für einen Plan im Hash-Format – ohne den aktuellen Entwurf zu verändern
+    tipsOf: j => { const keep = P, ks = sel, ko = selOp; try { des(typeof j === 'string' ? j : JSON.stringify(j)); return tips().filter(x => x[0] === 'warn').map(x => x[1]); } finally { P = keep; sel = ks; selOp = ko; } }, walls: () => FORMS[P.form].walls.slice(), wn: WN, person: PERSON, studio: STUDIO, acc: ACC, logo: LOGO, summary: () => summary(),
     pause3d: b => { if (K) K.pause(b); }, toast: (m) => toast(m), k3d: () => K,
     // Hochwertiges Standbild der aktuellen 3D-Ansicht → Promise<Canvas>
     renderHQ: (w = 1600, h = 1000) => load3D().then(() => { if (!K || !K.renderHQ) throw new Error('3D-Ansicht nicht verfügbar'); return K.renderHQ(w, h); }),
@@ -1208,6 +1273,9 @@
     planData: () => planData(),
     setAttach: a => { attach = a; syncAttach(); }, getAttach: () => attach,
     toSend: () => { go(3); setTimeout(() => { const c = $('[data-kpf-card]'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 120); },
+    // Fertigen Plan (Hash-Format) übernehmen – ohne Neuladen, mit Rückgängig; bei Fehler bleibt der alte Entwurf
+    applyPlan: j => { const keep = P; try { des(typeof j === 'string' ? j : JSON.stringify(j)); if (!P || !P.room || !FORMS[P.form]) throw new Error('Plan ungültig'); } catch (e) { P = keep; throw e; } sel = null; selOp = null; eqSel = null; disarm(); pop.hidden = true; openNow.clear(); xfade(); change(); renderPal(); if (K && K.view) { K.view('perspektive'); $$('[data-cam]').forEach(x => x.classList.toggle('on', x.dataset.cam === 'perspektive')); } return lastHash; },
+    hash: () => lastHash,
   };
   document.addEventListener('click', e => { const b = e.target.closest('[data-kpf-open]'); if (!b) return; e.preventDefault(); openFoto({ sample: b.hasAttribute('data-kpf-sample') }); });
 

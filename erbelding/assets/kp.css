@@ -463,3 +463,6 @@ html.kpf-on,html.kpf-on body{overflow:hidden}
   .kp-acts .kp-doorb{padding:6px 8px}.kp-acts .kp-doorb span{font-size:0}.kp-acts .kp-doorb{gap:0}
   .kp-acts>*{flex:none}.kp-acts .kpr-launch{padding:6px 10px;font-size:11.5px;min-height:0}
 }
+
+/* Handy: Bühne und Schritte beim Hinscrollen nicht unter dem klebenden Kopf (Seitenkopf + Planer-Schritte) verstecken */
+@media (max-width:999px){.kp-stage,.kp-pane{scroll-margin-top:112px}}
