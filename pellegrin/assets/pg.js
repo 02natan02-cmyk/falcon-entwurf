@@ -131,46 +131,53 @@
   const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const once = (el, fn, opt) => { if (!el) return; if (!('IntersectionObserver' in window)) { fn(); return; } const o = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { o.disconnect(); fn(); } }, opt || { threshold: .45 }); o.observe(el); };
 
-  /* ---------- Handschrift: vom Rohbau (30. Juni, Tag 0) bis zur fertigen Küche (25. September, Tag 87) ---------- */
+  /* ---------- Handschrift: 87 Tage – Zeitleiste zum Ziehen (Maus, Finger, Tastatur), mit Impuls beim Erscheinen ---------- */
   const tl = $('[data-hwtl]');
   if (tl) {
     const sec = tl.closest('.hw'), cards = $$('.hw-s', sec), track = $('.hw-steps', sec);
     const num = $('[data-hwtl-n]', tl), unit = $('[data-hwtl-u]', tl), lab = $('[data-hwtl-l]', tl), bar = $('.hw-tl-bar', tl), ms = $$('.hw-tl-m', tl), band = $('.hw-tl-band', tl);
-    const STEPS = [{ d: 0, l: 'Aufmaß im Rohbau' }, { d: 10, l: 'Der 3D-Entwurf steht' }, { d: null, l: 'Montage im September' }, { d: 87, l: 'Fertig – derselbe Raum' }];
-    const AT = [0, 10, 63, 87]; // ab Tag 63 = 1. September
-    const bars = d => { bar.style.setProperty('--p', d / 87); ms.forEach(m => m.classList.toggle('on', d >= +m.dataset.d - .01)); band.classList.toggle('on', d >= 63); };
-    const lit = f => cards.forEach((c, i) => c.classList.toggle('lit', f(i)));
-    const txt = (n, i) => { if (n === null) { num.textContent = 'Sept.'; unit.textContent = ''; } else { num.textContent = n; unit.textContent = n === 1 ? 'Tag' : 'Tage'; } lab.textContent = STEPS[i].l; };
+    const STEPS = ['Aufmaß im Rohbau', 'Der 3D-Entwurf steht', 'Montage im September', 'Fertig – derselbe Raum'];
+    const AT = [0, 10, 63, 87], CARD_D = [0, 10, 72, 87];
     const mob = () => innerWidth <= 640;
     sec.classList.add('tl-js');
-    if (mob() && track) {
-      // Handy: Wischen durch die Karten = Reise durch die Zeit
-      let cur = -1, shown = 0, raf = 0;
-      const go = i => {
-        if (i === cur) return; cur = i; lit(k => k === i);
-        const to = [0, 10, 75, 87][i], from = shown, sd = STEPS[i].d; cancelAnimationFrame(raf);
-        if (sd === null) txt(null, i);
-        if (RM) { shown = to; bars(to); if (sd !== null) txt(sd, i); return; }
-        const t0 = performance.now();
-        const f = now => { const t = Math.min(1, (now - t0) / 650), v = from + (to - from) * (1 - Math.pow(1 - t, 3)); shown = v; bars(v); if (sd !== null) txt(Math.round(sd === to ? v : sd), i); if (t < 1) raf = requestAnimationFrame(f); };
-        raf = requestAnimationFrame(f);
-      };
-      const pick = () => { const step = cards[1] ? cards[1].offsetLeft - cards[0].offsetLeft : 1; let i = Math.round(track.scrollLeft / step); if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 4) i = cards.length - 1; go(Math.max(0, Math.min(cards.length - 1, i))); };
-      let q = 0; track.addEventListener('scroll', () => { if (!q) q = requestAnimationFrame(() => { q = 0; pick(); }); }, { passive: true });
-      go(0);
-    } else {
-      // Desktop: einmal von Tag 0 bis Tag 87 laufen, Karten leuchten nacheinander auf
-      const end = () => { bars(87); lit(() => true); txt(87, 3); bar.style.setProperty('--head', 0); };
-      if (RM) end();
-      else {
-        bars(0); lit(i => i === 0); txt(0, 0);
-        once(tl, () => {
-          const t0 = performance.now(), T = 3400; bar.style.setProperty('--head', 1);
-          const f = now => { const t = Math.min(1, (now - t0) / T), d = 87 * (1 - Math.pow(1 - t, 2.4)); const s = AT.reduce((a, v, i) => d >= v - .01 ? i : a, 0); bars(d); lit(i => i <= s); txt(Math.round(d), s); if (t < 1) requestAnimationFrame(f); else end(); };
-          requestAnimationFrame(f);
-        }, { threshold: .6 });
-      }
+    // kleines Bild in der Zeitleiste, wechselt mit dem Schritt
+    const ph = document.createElement('div'); ph.className = 'hw-tl-ph'; ph.setAttribute('aria-hidden', 'true');
+    cards.forEach((c, i) => { const im = $('.hw-mimg img', c); const x = new Image(); x.alt = ''; x.decoding = 'async'; if (im) x.src = im.getAttribute('src'); if (i === 0) x.className = 'on'; ph.appendChild(x); });
+    tl.insertBefore(ph, tl.firstChild); tl.classList.add('has-ph');
+    const phs = $$('img', ph);
+    let day = 0, cur = -1, user = false, raf = 0, prog = 0;
+    const stepOf = d => AT.reduce((a, v, i) => d >= v - .01 ? i : a, 0);
+    const setDay = (d, fromTrack) => {
+      d = Math.max(0, Math.min(87, d)); day = d; const n = Math.round(d), s = stepOf(n);
+      bar.style.setProperty('--p', d / 87); ms.forEach(m => m.classList.toggle('on', d >= +m.dataset.d - .01)); band.classList.toggle('on', d >= 63);
+      num.textContent = n; unit.textContent = n === 1 ? 'Tag' : 'Tage'; lab.textContent = STEPS[s];
+      cards.forEach((c, i) => c.classList.toggle('lit', d >= 86.5 || i === s)); phs.forEach((m, i) => m.classList.toggle('on', i === s));
+      tl.setAttribute('aria-valuenow', n); tl.setAttribute('aria-valuetext', n + (n === 1 ? ' Tag' : ' Tage') + ' – ' + STEPS[s]);
+      if (s !== cur) { cur = s; if (mob() && track && !fromTrack) { const c = cards[s]; prog = performance.now(); track.scrollTo({ left: c.offsetLeft - (track.clientWidth - c.offsetWidth) / 2, behavior: RM ? 'auto' : 'smooth' }); } }
+    };
+    const tween = (to, dur, done) => { cancelAnimationFrame(raf); const from = day, t0 = performance.now(); const f = now => { const t = Math.min(1, (now - t0) / dur), e = t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; setDay(from + (to - from) * e); if (t < 1) raf = requestAnimationFrame(f); else if (done) done(); }; raf = requestAnimationFrame(f); };
+    const stopNudge = () => { if (!user) { user = true; tl.dispatchEvent(new CustomEvent('uni:user')); } cancelAnimationFrame(raf); };
+    // Ziehen auf der Leiste
+    const fromX = x => { const r = bar.getBoundingClientRect(); return (x - r.left) / r.width * 87; };
+    let drag = false;
+    tl.addEventListener('pointerdown', e => { if (e.button) return; stopNudge(); drag = true; tl.classList.add('drag'); setDay(fromX(e.clientX)); try { tl.setPointerCapture(e.pointerId); } catch (x) {} });
+    tl.addEventListener('pointermove', e => { if (drag) setDay(fromX(e.clientX)); });
+    const end = () => { if (!drag) return; drag = false; tl.classList.remove('drag'); const near = AT.reduce((a, v) => Math.abs(v - day) < Math.abs(a - day) ? v : a, AT[0]); if (Math.abs(near - day) < 4) tween(near, 280); };
+    tl.addEventListener('pointerup', end); tl.addEventListener('pointercancel', end); tl.addEventListener('lostpointercapture', end);
+    tl.addEventListener('keydown', e => { const k = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1, PageUp: 10, PageDown: -10 }[e.key]; let to = null; if (e.key === 'Home') to = 0; else if (e.key === 'End') to = 87; else if (k) to = Math.round(day) + k; if (to === null) return; e.preventDefault(); stopNudge(); setDay(to); });
+    // Desktop: über die Karten fahren = zu diesem Tag springen
+    cards.forEach((c, i) => { c.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse' && !mob() && user) tween(CARD_D[i], 520); }); c.addEventListener('click', () => { if (!mob()) { stopNudge(); tween(CARD_D[i], 520); } }); });
+    // Handy: Wischen durch die Karten = Reise durch die Zeit
+    if (track) {
+      let q = 0;
+      track.addEventListener('scroll', () => { if (!mob() || q || performance.now() - prog < 700) return; q = requestAnimationFrame(() => { q = 0; const st = cards[1] ? cards[1].offsetLeft - cards[0].offsetLeft : 1; let i = Math.round(track.scrollLeft / st); if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 4) i = cards.length - 1; i = Math.max(0, Math.min(cards.length - 1, i)); if (stepOf(day) !== i) { cur = i; tween(CARD_D[i], 520); } }); }, { passive: true });
+      ['pointerdown', 'touchstart'].forEach(t => track.addEventListener(t, e => { if (e.isTrusted) stopNudge(); }, { passive: true }));
     }
+    tl.dataset.uh = mob() ? 'Wischen oder ziehen' : 'Ziehen'; tl.dataset.uhKind = 'swipe';
+    setDay(0);
+    // Impuls: sobald sichtbar 0 → Tag 10 → kurz Richtung Montage → wieder zurück
+    if (RM) setDay(87);
+    else once(tl, () => { if (user) return; tween(10, 950, () => setTimeout(() => { if (!user) tween(54, 1150, () => setTimeout(() => { if (!user) tween(0, 1050); }, 500)); }, 600)); }, { threshold: .6 });
   }
 
   /* ---------- Pellegrin-Detail: Licht im Foto selbst schalten ---------- */
