@@ -7,7 +7,14 @@
   const DPR = () => Math.min(2, devicePixelRatio || 1);
   const portrait = () => innerHeight > innerWidth * 1.05;
   if (hasG) gsap.registerPlugin(ScrollTrigger);
-  const onView = (el, fn, margin = '200px') => { if (!el) return; let done = false; const go = () => { if (done) return; done = true; fn(); }; const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { io.disconnect(); go(); } }, { rootMargin: margin }); io.observe(el); const chk = () => { if (done) return removeEventListener('scroll', chk); const r = el.getBoundingClientRect(); if (r.top < innerHeight + 200 && r.bottom > -200) go(); }; addEventListener('scroll', chk, { passive: true }); setTimeout(chk, 300); };
+  // v6: Scroll-Fallback respektiert jetzt den Rand (vorher feuerte er schon 200px vor dem Bild – Impulse liefen unsichtbar ab)
+  const onView = (el, fn, margin = '200px') => { if (!el) return; let done = false;
+    const mpx = () => { const v = parseFloat(margin) || 0; return /%$/.test(margin) ? v / 100 * innerHeight : v; };
+    const go = () => { if (done) return; done = true; io.disconnect(); removeEventListener('scroll', chk); fn(); };
+    const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) go(); }, { rootMargin: margin });
+    const chk = () => { if (done) return; const r = el.getBoundingClientRect(), m = mpx(); if (!r.width && !r.height) return; if (r.top < innerHeight + m && r.bottom > -m) go(); };
+    io.observe(el); addEventListener('scroll', chk, { passive: true }); setTimeout(chk, 300); };
+  const HAND = '<svg class="hand" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 11.2V4.6a1.6 1.6 0 0 1 3.2 0v5.2h.4V8.6a1.6 1.6 0 0 1 3.2 0v1.6h.4v-.7a1.6 1.6 0 0 1 3.2 0v5.6c0 3.6-2.8 6.5-6.4 6.5h-1.3a6.3 6.3 0 0 1-4.9-2.3l-3.4-4.2a1.7 1.7 0 0 1 2.5-2.2l1.9 1.8z"/></svg>';
   const visTrack = (el, cb) => { let v = false; new IntersectionObserver(([e]) => { v = e.isIntersecting; cb && cb(v); }).observe(el); const chk = () => { const r = el.getBoundingClientRect(); v = r.top < innerHeight && r.bottom > 0; }; addEventListener('scroll', chk, { passive: true }); chk(); return () => v; };
 
   /* ---------- smooth scroll ---------- */
@@ -68,7 +75,7 @@
      INTRO: Seifenblasen – die große platzt, das Logo steht scharf da
      ===================================================================== */
   const intro = $('.intro');
-  const heroIn = () => { if (!hasG || reduce) return; gsap.from('.hero-c > *', { y: 46, opacity: 0, duration: 1.2, ease: 'power3.out', stagger: .09 }); gsap.from('.hud > span', { opacity: 0, duration: 1, delay: .4, stagger: .1 }); };
+  const heroIn = () => { if (!hasG || reduce || !$('.hero-c')) return; gsap.from('.hero-c > *', { y: 46, opacity: 0, duration: 1.2, ease: 'power3.out', stagger: .09 }); gsap.from('.hud > span', { opacity: 0, duration: 1, delay: .4, stagger: .1 }); };
   if (intro) {
     const force = /[?&]intro/.test(location.search);
     if (!hasG || reduce || !force) { /* Intro nur noch mit ?intro – der Kirchturm-Flug ist der erste Eindruck */ intro.classList.add('gone'); heroIn(); }
@@ -135,6 +142,7 @@
      BEFUND: Abzieher über das Bild ziehen
      ===================================================================== */
   const bfs = $$('[data-bf]'); const sum = $('[data-bf-sum]');
+  let bfLast = 0; const bfSlot = () => { const n = performance.now(), t = Math.max(n + 450, bfLast + 700); bfLast = t; return t - n; }; // v6: Impulse nacheinander wie eine Welle
   const countDone = () => { if (!sum) return; const n = bfs.filter(b => b.classList.contains('done')).length; sum.textContent = n === bfs.length ? 'Alles sauber. So fährt es vom Hof.' : `${n} von ${bfs.length} Stellen sauber`; sum.classList.toggle('ok', n === bfs.length); };
   bfs.forEach((bf, idx) => {
     const st = $('.bf-stage', bf), inp = $('input', st), cv = $('.bf-wet', st), ctx = cv.getContext('2d');
@@ -145,23 +153,26 @@
     const set = v => { v = Math.max(0, Math.min(100, v)); const dx = v - x; x = v; st.style.setProperty('--x', v + '%'); { const w = st.clientWidth, kw = (knob && knob.offsetWidth) || 52, px = v / 100 * w, h = kw / 2 + 6; st.style.setProperty('--ko', (Math.max(h, Math.min(w - h, px)) - px - kw / 2) + 'px'); } inp.value = Math.round(v); bf.classList.toggle('part', v > 4); const was = bf.classList.contains('done'); bf.classList.toggle('done', v > 95); if (was !== bf.classList.contains('done')) countDone();
       if (Math.abs(dx) > .4 && Math.random() < .55) drips.push({ x: v / 100 * W - Math.sign(dx) * (4 + Math.random() * 10) * DPR(), y: Math.random() * H, l: 0, v: (30 + Math.random() * 80), w: (1 + Math.random() * 1.8) * DPR(), a: .8 }); };
     set(0); new ResizeObserver(() => set(x)).observe(st);
-    inp.addEventListener('input', () => set(+inp.value));
+    // v6: erste echte Berührung beendet Impuls + Hinweis dieser Karte
+    let touched = false, tw = null;
+    const touch = () => { tw && tw.kill(); tw = null; if (touched) return; touched = true; bf.classList.add('touched'); };
+    inp.addEventListener('input', () => { touch(); set(+inp.value); });
     let down = false, sx = 0, sy = 0, dragging = false;
-    st.addEventListener('pointerdown', e => { down = true; dragging = false; sx = e.clientX; sy = e.clientY; if (e.pointerType === 'mouse') { dragging = true; st.setPointerCapture(e.pointerId); move(e); } });
+    st.addEventListener('pointerdown', e => { touch(); down = true; dragging = false; sx = e.clientX; sy = e.clientY; if (e.pointerType === 'mouse') { dragging = true; st.setPointerCapture(e.pointerId); move(e); } });
     const move = e => { const r = st.getBoundingClientRect(); set((e.clientX - r.left) / r.width * 100); };
     st.addEventListener('pointermove', e => { if (!down) return; if (!dragging) { if (Math.abs(e.clientX - sx) > 6 && Math.abs(e.clientX - sx) > Math.abs(e.clientY - sy)) { dragging = true; try { st.setPointerCapture(e.pointerId); } catch (_) {} } else return; } move(e); });
     const up = () => { down = false; dragging = false; };
     st.addEventListener('pointerup', up); st.addEventListener('pointercancel', up);
     st.addEventListener('click', e => { if (Math.abs(e.clientX - sx) < 4 && x < 5) { animTo(100); } });
-    const animTo = (to, dur = 1.6) => { if (!hasG) return set(to); const o = { v: x }; gsap.to(o, { v: to, duration: dur, ease: 'power2.inOut', onUpdate: () => set(o.v) }); };
-    bf._anim = animTo;
+    const animTo = (to, dur = 1.6) => { if (!hasG) return set(to); tw && tw.kill(); const o = { v: x }; tw = gsap.to(o, { v: to, duration: dur, ease: 'power2.inOut', onUpdate: () => set(o.v), onComplete: () => tw = null }); };
+    bf._anim = (to, dur) => { touch(); animTo(to, dur); };
     // nasse Spur hinter dem Abzieher
     visTrack(st, v => vis = v);
     (function loop(now) { requestAnimationFrame(loop); if (!vis || !drips.length) { if (drips.length === 0 && lastX !== -1) { ctx.clearRect(0, 0, W, H); lastX = -1; } return; } lastX = 0; ctx.clearRect(0, 0, W, H);
       for (const d of drips) { d.l = Math.min(d.l + d.v * .016 * DPR(), 34 * DPR()); d.y += d.v * .006; d.a -= .016; if (d.a <= 0) continue; const g = ctx.createLinearGradient(0, d.y - d.l, 0, d.y); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, `rgba(235,250,252,${.4 * d.a})`); ctx.strokeStyle = g; ctx.lineWidth = d.w; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(d.x, d.y - d.l); ctx.lineTo(d.x, d.y); ctx.stroke(); ctx.fillStyle = `rgba(255,255,255,${.7 * d.a})`; ctx.beginPath(); ctx.arc(d.x, d.y, d.w * 1.2, 0, 7); ctx.fill(); }
       drips = drips.filter(d => d.a > 0).slice(-160); })();
-    // Hinweis-Animation beim ersten Erscheinen
-    if (idx === 0) onView(st, () => setTimeout(() => { if (x < 2 && hasG) { const o = { v: 0 }; gsap.timeline().to(o, { v: 42, duration: 1.1, ease: 'power2.inOut', onUpdate: () => set(o.v) }).to(o, { v: 0, duration: .9, ease: 'power2.inOut', onUpdate: () => set(o.v) }, '+=.35'); } }, 500), '-25%');
+    // v6: Impuls für JEDE Karte beim ersten Sichtkontakt (Abzieher fährt ein Stück und zurück), Paare leicht versetzt
+    onView(st, () => setTimeout(() => { if (touched || x > 2 || !hasG || reduce) return; const o = { v: 0 }; tw = gsap.timeline({ onComplete: () => tw = null }).to(o, { v: 44, duration: 1.15, ease: 'power2.inOut', onUpdate: () => set(o.v) }).to(o, { v: 0, duration: .95, ease: 'power2.inOut', onUpdate: () => set(o.v) }, '+=.4'); }, bfSlot()), '-22%');
   });
   const all = $('[data-bf-all]'); if (all) all.addEventListener('click', () => bfs.forEach((b, i) => setTimeout(() => b._anim(100, 1.2), i * 180)));
   countDone();
@@ -198,14 +209,27 @@
     const size = () => { dpr = DPR(); W = cv.width = sw.width = Math.max(10, pol.clientWidth * dpr); H = cv.height = sw.height = Math.max(10, pol.clientHeight * dpr); paintBase(); scratch(); };
     size(); let rw = pol.clientWidth; new ResizeObserver(() => { if (Math.abs(pol.clientWidth - rw) > 30) { rw = pol.clientWidth; size(); } }).observe(pol);
     visTrack(pol, v => vis = v);
-    const rub = (x, y) => { sctx.globalCompositeOperation = 'destination-out'; const g = sctx.createRadialGradient(x, y, 0, x, y, 64 * dpr); g.addColorStop(0, 'rgba(0,0,0,.55)'); g.addColorStop(1, 'rgba(0,0,0,0)'); sctx.fillStyle = g; sctx.beginPath(); sctx.arc(x, y, 64 * dpr, 0, 7); sctx.fill(); sctx.globalCompositeOperation = 'source-over'; };
+    const rub = (x, y, al = .55) => { sctx.globalCompositeOperation = 'destination-out'; const g = sctx.createRadialGradient(x, y, 0, x, y, 64 * dpr); g.addColorStop(0, `rgba(0,0,0,${al})`); g.addColorStop(1, 'rgba(0,0,0,0)'); sctx.fillStyle = g; sctx.beginPath(); sctx.arc(x, y, 64 * dpr, 0, 7); sctx.fill(); sctx.globalCompositeOperation = 'source-over'; };
     const pos = e => { const r = pol.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
     let mt = 0;
-    pol.addEventListener('pointerenter', () => pol.classList.add('on'));
-    pol.addEventListener('pointerleave', () => { pol.classList.remove('on', 'spin'); down = false; });
-    pol.addEventListener('pointerdown', e => { down = true; pol.classList.add('on', 'spin', 'used'); try { pol.setPointerCapture(e.pointerId); } catch (_) {} const [x, y] = pos(e); pad.style.transform = `translate(${x}px,${y}px)`; });
-    addEventListener('pointerup', () => { down = false; pol.classList.remove('spin'); if (!fine) pol.classList.remove('on'); upd(); });
-    pol.addEventListener('pointermove', e => { const [x, y] = pos(e); pad.style.transform = `translate(${x}px,${y}px)`; lx = x / pol.clientWidth; ly = y / pol.clientHeight; if (down) { rub(x * dpr, y * dpr); const n = performance.now(); if (n - mt > 140) { mt = n; upd(); } } });
+    // v6: Impuls – beim ersten Sichtkontakt poliert die Maschine selbst zwei Kreise, der Glanzgrad zählt sichtbar mit
+    let demo = false, demoDone = false;
+    const stopDemo = () => { if (!demo) return; demo = false; pol.classList.remove('spin', 'demo'); if (!down) pol.classList.remove('on'); upd(); };
+    const runDemo = () => { if (demoDone || pol.classList.contains('used') || reduce) return; demoDone = true; demo = true; pol.classList.add('on', 'spin', 'demo');
+      const t0 = performance.now(), D = 2700; let lp = null;
+      const st = now => { if (!demo) return; const p = Math.min(1, (now - t0) / D), w = pol.clientWidth, h = pol.clientHeight;
+        const th = p * Math.PI * 4 - Math.PI / 2, x = w * (.28 + .26 * p) + Math.cos(th) * w * .13, y = h * .52 + Math.sin(th) * h * .2;
+        pad.style.transform = `translate(${x}px,${y}px)`; lx = x / w; ly = y / h;
+        if (lp) { const n = Math.max(1, Math.ceil(Math.hypot(x - lp[0], y - lp[1]) / 9)); for (let i = 1; i <= n; i++) rub((lp[0] + (x - lp[0]) * i / n) * dpr, (lp[1] + (y - lp[1]) * i / n) * dpr, .32); }
+        lp = [x, y]; if (now - mt > 120) { mt = now; upd(); }
+        if (p < 1) requestAnimationFrame(st); else stopDemo(); };
+      requestAnimationFrame(st); };
+    onView(pol, () => setTimeout(runDemo, 450), '-28%');
+    pol.addEventListener('pointerenter', () => pol.classList.add('on')); /* Scrollen unter ruhender Maus beendet die Vorführung nicht */
+    pol.addEventListener('pointerleave', () => { if (!demo) pol.classList.remove('on', 'spin'); down = false; });
+    pol.addEventListener('pointerdown', e => { stopDemo(); down = true; pol.classList.add('on', 'spin', 'used'); try { pol.setPointerCapture(e.pointerId); } catch (_) {} const [x, y] = pos(e); pad.style.transform = `translate(${x}px,${y}px)`; });
+    addEventListener('pointerup', () => { if (demo) return; down = false; pol.classList.remove('spin'); if (!fine) pol.classList.remove('on'); upd(); });
+    pol.addEventListener('pointermove', e => { if (demo) { if (!e.movementX && !e.movementY) return; stopDemo(); } const [x, y] = pos(e); pad.style.transform = `translate(${x}px,${y}px)`; lx = x / pol.clientWidth; ly = y / pol.clientHeight; if (down) { rub(x * dpr, y * dpr); const n = performance.now(); if (n - mt > 140) { mt = n; upd(); } } });
     $('[data-polish-reset]').addEventListener('click', scratch);
     (function loop(t) { requestAnimationFrame(loop); if (!vis) return;
       if (!down && !pol.classList.contains('on')) { lx = .5 + Math.sin(t / 2600) * .3; ly = .35 + Math.sin(t / 1900) * .15; }
@@ -230,12 +254,17 @@
     visTrack(rain, v => vis = v);
     const sealX = () => W * (1 - seal);
     const add = (x, y, r) => drops.push({ x, y, r: r || (2.4 + Math.random() * 4.2) * dpr, vx: 0, vy: 0, life: 0 });
-    $('[data-seal]').addEventListener('input', e => seal = +e.target.value / 100);
+    // v6: Impuls – die Trennlinie wandert beim ersten Sichtkontakt einmal hin und her; Hinweis verschwindet nach der ersten Berührung
+    let rTouched = false, rTw = null;
+    const rTouch = () => { rTw && rTw.kill(); rTw = null; if (rTouched) return; rTouched = true; rain.classList.add('touched'); };
+    $('[data-seal]').addEventListener('input', e => { rTouch(); seal = +e.target.value / 100; });
     const sealIn = $('[data-seal]');
+    onView(rain, () => setTimeout(() => { if (rTouched || !hasG || reduce) return; const o = { v: seal }, u = () => { seal = o.v; sealIn.value = Math.round(seal * 100); };
+      rTw = gsap.timeline({ onComplete: () => rTw = null }).to(o, { v: .8, duration: 1.1, ease: 'power2.inOut', onUpdate: u }).to(o, { v: .22, duration: 1.4, ease: 'power2.inOut', onUpdate: u }, '+=.2').to(o, { v: .5, duration: 1, ease: 'power2.inOut', onUpdate: u }, '+=.2'); }, 500), '-28%');
     const shower = (cx, cy) => { const r = rain.getBoundingClientRect(); for (let i = 0; i < 26; i++) add((cx - r.left) * dpr + (Math.random() - .5) * 140 * dpr, (cy - r.top) * dpr + (Math.random() - .5) * 100 * dpr); };
     let pd = null;
     const setSealX = cx => { const r = rain.getBoundingClientRect(); seal = Math.max(0, Math.min(1, 1 - (cx - r.left) / r.width)); sealIn.value = Math.round(seal * 100); rain.classList.add('dragged'); };
-    rain.addEventListener('pointerdown', e => { pd = { x: e.clientX, y: e.clientY, drag: false, id: e.pointerId }; const r = rain.getBoundingClientRect(); if (Math.abs(e.clientX - (r.left + r.width * (1 - seal))) < 34) { pd.drag = true; try { rain.setPointerCapture(e.pointerId); } catch (_) {} setSealX(e.clientX); } });
+    rain.addEventListener('pointerdown', e => { rTouch(); pd = { x: e.clientX, y: e.clientY, drag: false, id: e.pointerId }; const r = rain.getBoundingClientRect(); if (Math.abs(e.clientX - (r.left + r.width * (1 - seal))) < 34) { pd.drag = true; try { rain.setPointerCapture(e.pointerId); } catch (_) {} setSealX(e.clientX); } });
     rain.addEventListener('pointermove', e => { if (!pd) return; const dx = e.clientX - pd.x, dy = e.clientY - pd.y; if (!pd.drag && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) { pd.drag = true; try { rain.setPointerCapture(e.pointerId); } catch (_) {} } if (pd.drag) setSealX(e.clientX); });
     rain.addEventListener('pointerup', e => { if (pd && !pd.drag) shower(e.clientX, e.clientY); pd = null; });
     rain.addEventListener('pointercancel', () => { pd = null; });
@@ -297,19 +326,23 @@
     visTrack(oz, v => vis = v);
     const mk = () => [['Rauch', .25, .35, '170,160,140'], ['Hund', .72, .3, '150,130,90'], ['Essen', .32, .72, '170,140,80'], ['Feuchtigkeit', .7, .7, '110,140,110']].map(([n, x, y, c]) => ({ n, x, y, c, a: 1, p: Math.random() * 6 }));
     let clouds = mk();
-    const setState = () => { const left = clouds.filter(c => c.a > .05).length; st.textContent = left ? `${left} ${left === 1 ? 'Geruch' : 'Gerüche'} im Innenraum` : 'Neutralisiert. Danach wird gründlich gelüftet.'; oz.classList.toggle('clean', !left); btn.textContent = left ? 'Ozon gedrückt halten' : 'Nochmal von vorn'; };
-    const on = e => { e.preventDefault(); if (!clouds.some(c => c.a > .05)) { clouds = mk(); setState(); return; } hold = true; btn.classList.add('hold'); };
-    const off = () => { hold = false; btn.classList.remove('hold'); };
+    const lab = $('[data-oz-l]', btn) || btn;
+    const setState = () => { const left = clouds.filter(c => c.a > .05).length; st.textContent = left ? `${left} ${left === 1 ? 'Geruch' : 'Gerüche'} im Innenraum` : 'Neutralisiert. Danach wird gründlich gelüftet.'; oz.classList.toggle('clean', !left); lab.textContent = left ? 'Ozon gedrückt halten' : 'Nochmal von vorn'; };
+    // v6: Impuls – beim ersten Sichtkontakt strömt kurz Ozon von selbst (Wolken werden dünner, keine verschwindet); Knopf pulsiert bis zum ersten Drücken
+    let ozDemo = false;
+    const on = e => { e.preventDefault(); ozDemo = false; btn.classList.add('tried'); if (!clouds.some(c => c.a > .05)) { clouds = mk(); setState(); return; } hold = true; btn.classList.add('hold'); };
+    const off = () => { hold = false; ozDemo = false; btn.classList.remove('hold'); };
+    onView(oz, () => setTimeout(() => { if (btn.classList.contains('tried') || reduce) return; ozDemo = true; hold = true; btn.classList.add('hold'); setTimeout(() => { if (ozDemo) off(); }, 1800); }, 650), '-28%');
     btn.addEventListener('pointerdown', on); addEventListener('pointerup', off); btn.addEventListener('pointerleave', off); btn.addEventListener('pointercancel', off); btn.addEventListener('contextmenu', e => e.preventDefault());
     btn.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (!e.repeat) on(e); } }); btn.addEventListener('keyup', off);
     let tick = 0;
     (function loop(t) { requestAnimationFrame(loop); if (!vis) return; ctx.clearRect(0, 0, W, H);
-      if (hold) for (let i = 0; i < 3; i++) mol.push({ x: W * (.45 + Math.random() * .1), y: H * .98, vx: (Math.random() - .5) * 6 * dpr, vy: -(3 + Math.random() * 4) * dpr, r: (4 + Math.random() * 3) * dpr, a: 6.28 * Math.random(), l: 1 });
+      if (hold) for (let i = 0; i < 3; i++) mol.push({ x: W * (.45 + Math.random() * .1), y: H * .98, vx: (Math.random() - .5) * 6 * dpr, vy: -(3 + Math.random() * 4) * dpr, r: (4 + Math.random() * 3) * dpr, a: 6.28 * Math.random(), l: 1, demo: ozDemo });
       for (const c of clouds) { if (c.a <= .02) continue; const cx = c.x * W + Math.sin(t / 1300 + c.p) * 14 * dpr, cy = c.y * H + Math.cos(t / 1700 + c.p) * 10 * dpr;
         for (let k = 0; k < 5; k++) { const r = (56 + k * 12) * dpr * (.6 + c.a * .4), ox = Math.sin(c.p + k * 1.7) * 30 * dpr, oy = Math.cos(c.p + k) * 18 * dpr; const g = ctx.createRadialGradient(cx + ox, cy + oy, 0, cx + ox, cy + oy, r); g.addColorStop(0, `rgba(${c.c},${.4 * c.a})`); g.addColorStop(1, `rgba(${c.c},0)`); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx + ox, cy + oy, r, 0, 7); ctx.fill(); }
         ctx.globalAlpha = c.a; ctx.fillStyle = '#fff'; ctx.font = `700 ${14 * dpr}px Figtree,sans-serif`; ctx.textAlign = 'center'; ctx.fillText(c.n, cx, cy); ctx.globalAlpha = 1; c.cx = cx; c.cy = cy; }
       for (const m of mol) { m.x += m.vx; m.y += m.vy; m.vx += (Math.random() - .5) * .6 * dpr; m.vy *= .995; m.a += .05; m.l -= .004;
-        for (const c of clouds) if (c.a > .02 && c.cx && Math.hypot(m.x - c.cx, m.y - c.cy) < 80 * dpr) { c.a = Math.max(0, c.a - .006); m.l -= .02; }
+        for (const c of clouds) if (c.a > .02 && c.cx && Math.hypot(m.x - c.cx, m.y - c.cy) < 80 * dpr) { c.a = Math.max(m.demo ? Math.min(c.a, .55) : 0, c.a - .006); m.l -= .02; }
         ctx.globalAlpha = Math.max(0, m.l); ctx.fillStyle = '#9ff0f2';
         for (let k = 0; k < 3; k++) { const a = m.a + k * 2.09; ctx.beginPath(); ctx.arc(m.x + Math.cos(a) * m.r, m.y + Math.sin(a) * m.r, m.r * .55, 0, 7); ctx.fill(); }
         ctx.globalAlpha = 1; }
@@ -350,6 +383,26 @@
     if (hasG) ScrollTrigger.create({ trigger: fpv, start: 'top top', end: 'bottom bottom', scrub: true, onUpdate: s => onP(s.progress) });
     addEventListener('scroll', () => { const r = fpv.getBoundingClientRect(); const p = Math.min(1, Math.max(0, -r.top / (fpv.offsetHeight - innerHeight))); if (!hasG) onP(p); }, { passive: true });
     phase(0);
+    // v6: „Flug abspielen“ – fliegt die Strecke von selbst (für alle, die nicht scrollen mögen); jede eigene Bewegung übernimmt sofort
+    const pb = $('[data-fpv-play]');
+    if (pb) { const pl = $('span', pb); let flying = false, fr = 0;
+      const jump = y => lenis ? lenis.scrollTo(y, { immediate: true, force: true }) : window.scrollTo(0, y);
+      const evs = ['wheel', 'touchstart', 'keydown'];
+      const stopFly = (txt) => { if (!flying) return; flying = false; cancelAnimationFrame(fr); pb.classList.remove('on'); pl.textContent = txt || 'Weiter fliegen'; pb.setAttribute('aria-label', 'Drohnenflug weiter abspielen'); evs.forEach(ev => removeEventListener(ev, onUser)); };
+      const onUser = e => { if (e.type !== 'wheel' && e.target && e.target.closest && e.target.closest('[data-fpv-play]')) return; /* Tippen/Taste auf dem Knopf selbst schaltet über click */ stopFly(); };
+      pb.addEventListener('click', () => {
+        if (flying) return stopFly();
+        pb.classList.add('used');
+        const top = fpv.getBoundingClientRect().top + scrollY, end = top + fpv.offsetHeight - innerHeight;
+        let y0 = scrollY; if (y0 >= end - 6 || y0 < top - 2) { y0 = top; jump(top); }
+        const D = Math.max(1800, (end - y0) / Math.max(1, end - top) * 16000), t0 = performance.now();
+        flying = true; pb.classList.add('on'); pl.textContent = 'Anhalten'; pb.setAttribute('aria-label', 'Drohnenflug anhalten');
+        const st = now => { if (!flying) return; const p = Math.min(1, (now - t0) / D), e = p * p * (3 - 2 * p) * .35 + p * .65;
+          jump(y0 + (end - y0) * e); if (p < 1) fr = requestAnimationFrame(st); else stopFly('Nochmal fliegen'); };
+        fr = requestAnimationFrame(st);
+        setTimeout(() => { if (flying) evs.forEach(ev => addEventListener(ev, onUser, { passive: true })); }, 60);
+      });
+    }
   }
 
   /* ---------- Reveals ---------- */
@@ -362,6 +415,24 @@
   $$('.sh').forEach((f, i) => { onView(f, () => setTimeout(() => f.classList.add('lit'), 200 + i * 140), '-10%');
     const mv = e => { const r = f.getBoundingClientRect(); f.style.setProperty('--mx', (e.clientX - r.left) + 'px'); f.style.setProperty('--my', (e.clientY - r.top) + 'px'); f.classList.add('lamp'); };
     f.addEventListener('pointermove', mv); f.addEventListener('pointerdown', mv); f.addEventListener('pointerleave', () => f.classList.remove('lamp')); f.addEventListener('pointercancel', () => f.classList.remove('lamp')); });
+  // v6: Leistungen – Licht folgt Maus/Finger auch auf den Leistungsbildern
+  $$('.sv-media').forEach(f => { const mv = e => { const r = f.getBoundingClientRect(); f.style.setProperty('--mx', (e.clientX - r.left) + 'px'); f.style.setProperty('--my', (e.clientY - r.top) + 'px'); f.classList.add('lamp'); };
+    f.addEventListener('pointermove', mv); f.addEventListener('pointerdown', mv); ['pointerleave', 'pointercancel'].forEach(ev => f.addEventListener(ev, () => f.classList.remove('lamp'))); });
+
+  /* ---------- v6: Glanz-Galerie als Wisch-Leiste auf dem Handy (Zähler, Punkte, Impuls) ---------- */
+  const shg = $('[data-shine]');
+  if (shg) { const items = $$('.sh', shg), dots = $('[data-sh-dots]'), num = $('[data-sh-n]'), sh_h = $('.sh-hint');
+    const strip = () => getComputedStyle(shg).display === 'flex';
+    if (dots) { dots.innerHTML = items.map((_, i) => `<i data-i="${i}"></i>`).join(''); dots.addEventListener('click', e => { const d = e.target.closest('[data-i]'); if (!d) return; shTouch(); const it = items[+d.dataset.i]; shg.scrollTo({ left: it.offsetLeft - items[0].offsetLeft, behavior: 'smooth' }); }); }
+    const di = dots ? $$('i', dots) : [];
+    let shTouched = false;
+    const shTouch = () => { if (shTouched) return; shTouched = true; sh_h && sh_h.classList.add('gone'); };
+    const cur = () => { const L = shg.scrollLeft; let best = 0, bd = 1e9; items.forEach((it, i) => { const d = Math.abs(it.offsetLeft - items[0].offsetLeft - L); if (d < bd) { bd = d; best = i; } }); return best; };
+    const upd = () => { const i = cur(); if (num) num.textContent = `${i + 1} / ${items.length}`; di.forEach((d, k) => d.classList.toggle('on', k === i)); };
+    let rq = 0; shg.addEventListener('scroll', () => { if (!rq) rq = requestAnimationFrame(() => { rq = 0; upd(); }); }, { passive: true }); upd();
+    ['pointerdown', 'touchstart', 'wheel'].forEach(ev => shg.addEventListener(ev, shTouch, { passive: true }));
+    onView(shg, () => setTimeout(() => { if (!strip() || reduce || shTouched) return; const w = items[0].offsetWidth; shg.scrollTo({ left: w * .6, behavior: 'smooth' }); setTimeout(() => { if (!shTouched) shg.scrollTo({ left: 0, behavior: 'smooth' }); }, 1250); }, 450), '-25%');
+  }
 
   /* ---------- Paket ---------- */
   const veh = $('[data-veh]');
@@ -370,12 +441,29 @@
     let v = 'Kleinwagen';
     const roof = $('[data-m^="Dach"]', mods);
     let prev = []; const render = () => { tv.textContent = v; const on = $$('button.on', mods).map(b => b.textContent); tl.innerHTML = on.length ? on.map(m => `<li${prev.length && !prev.includes(m) ? ' class="new"' : ''}>${m}</li>`).join('') : '<li style="opacity:.5">Noch nichts gewählt</li>'; if (prev.length || on.length) { tk.classList.remove('bump'); void tk.offsetWidth; tk.classList.add('bump'); } prev = on.length ? on : ['—']; no.textContent = 'Nr. ' + (1000 + (v.length * 37 + on.join('').length * 13) % 9000); tk.classList.remove('stamped'); void tk.offsetWidth; if (on.length >= 2) tk.classList.add('stamped'); };
-    $$('button', veh).forEach(b => b.addEventListener('click', () => { $$('button', veh).forEach(x => x.classList.toggle('on', x === b)); v = b.dataset.v; const wm = /Wohn/.test(v); roof.style.display = wm ? '' : 'none'; if (!wm) roof.classList.remove('on'); render(); }));
-    $$('button', mods).forEach(b => b.addEventListener('click', () => { b.classList.toggle('on'); render(); }));
-    roof.style.display = 'none';
     const twa = $('[data-tk-wa]'); const setWa = () => { const txt = `Hallo Z&H, hier meine Anfrage von der Website:\nFahrzeug: ${v}\nLeistungen: ${$$('button.on', mods).map(b => b.textContent).join(', ') || '—'}\nWann hätten Sie Zeit? Fotos schicke ich gern mit.`; twa.href = 'https://wa.me/4917624401827?text=' + encodeURIComponent(txt); };
-    $$('button', veh).concat($$('button', mods)).forEach(b => b.addEventListener('click', setWa)); setWa();
-    render();
+    const pick = b => { $$('button', veh).forEach(x => x.classList.toggle('on', x === b)); v = b.dataset.v; const wm = /Wohn/.test(v); roof.style.display = wm ? '' : 'none'; if (!wm) roof.classList.remove('on'); render(); setWa(); };
+    const tog = b => { b.classList.toggle('on'); render(); setWa(); };
+    $$('button', veh).forEach(b => b.addEventListener('click', () => pick(b)));
+    $$('button', mods).forEach(b => b.addEventListener('click', () => tog(b)));
+    roof.style.display = 'none';
+    setWa(); render();
+    /* v6: Impuls – ein „Finger“ tippt beim ersten Sichtkontakt einmal durch (SUV, Politur, Wohnmobil …) und stellt danach
+       exakt den Ausgangszustand wieder her. Jede echte Berührung bricht sofort ab und setzt vorher zurück. */
+    const pkBox = veh.parentElement, pkAll = veh.closest('.pk-g') || pkBox, ghost = $('.ghost', pkBox), tapH = $('[data-tap-hint]');
+    if (ghost) { let pkDemo = false, pkTouched = false, tms = [];
+      const defaults = () => { $$('button', mods).forEach(b => b.classList.toggle('on', b.dataset.m === 'Keramikversiegelung')); pick($('[data-v="Kleinwagen"]', veh)); };
+      const stopPk = () => { if (!pkDemo) return; pkDemo = false; tms.forEach(clearTimeout); tms = []; ghost.classList.remove('on', 'tap'); defaults(); };
+      const real = e => { if (e.type === 'pointerdown' && !(e.target.closest && e.target.closest('button,a'))) return; /* reines Weiterscrollen bricht nicht ab */ pkTouched = true; tapH && tapH.classList.add('gone'); stopPk(); };
+      pkAll.addEventListener('pointerdown', real, true); pkAll.addEventListener('keydown', real, true);
+      const moveTo = b => { const r = b.getBoundingClientRect(), R = pkBox.getBoundingClientRect(); ghost.style.transform = `translate(${Math.round(r.left - R.left + r.width * .55 - 21)}px,${Math.round(r.top - R.top + r.height * .55 - 6)}px)`; };
+      const seq = [['v', 'SUV'], ['m', 'Politur'], ['v', 'Wohnmobil'], ['v', 'Kleinwagen'], ['m', 'Politur']];
+      const runPk = () => { if (pkTouched || pkDemo || reduce) return; pkDemo = true; ghost.classList.add('on'); let t = 150;
+        seq.forEach(([k, val]) => { const b = k === 'v' ? $(`[data-v="${val}"]`, veh) : $(`[data-m="${val}"]`, mods); tms.push(setTimeout(() => moveTo(b), t)); t += 620;
+          tms.push(setTimeout(() => { ghost.classList.remove('tap'); void ghost.offsetWidth; ghost.classList.add('tap'); k === 'v' ? pick(b) : tog(b); }, t)); t += 480; });
+        tms.push(setTimeout(() => { ghost.classList.remove('on', 'tap'); pkDemo = false; tms = []; }, t + 250)); };
+      onView(veh, () => setTimeout(runPk, 500), '-30%');
+    }
   }
 
   /* ---------- Wetter (Open-Meteo) ---------- */
@@ -390,6 +478,7 @@
         const tile = x => { const we = x.t.getDay() === 0 || x.t.getDay() === 6, lab = x.t.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' }), inner = `<small>${x.t.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '')}</small><span class="ic" aria-hidden="true">${ICON(x.c)}</span><b>${x.tx}°</b><span class="pr" title="${x.pr.toFixed(1)} mm"><i style="height:${Math.min(100, x.pr / max * 100)}%"></i></span><span class="mm">${we ? 'geschlossen' : x.pr.toFixed(1) + ' mm'}</span>`; return we ? `<div class="wd off" style="--i:${days.indexOf(x)}" title="${lab}: geschlossen">${inner}</div>` : `<a class="wd${x === best ? ' best' : ''}" style="--i:${days.indexOf(x)}" href="https://wa.me/4917624401827?text=${encodeURIComponent('Hallo Z&H, passt ein Termin oder eine Abholung am ' + lab + '?')}" target="_blank" rel="noopener" aria-label="${lab}: Termin per WhatsApp anfragen">${inner}</a>`; };
         wx.innerHTML = days.map(tile).join('') +
           `<p class="wx-tip">Bester Abholtag: <b>${best.t.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}</b>. Tippen Sie auf einen Tag, um ihn per WhatsApp anzufragen. ${days.some(x => x.pr > 2) ? 'Regen in Sicht? Mit Keramikversiegelung perlt er einfach ab.' : 'Trocken und klar – perfekt für frischen Glanz.'}</p>`;
+      onView(wx, () => wx.classList.add('in'), '-12%'); /* v6: Kacheln fahren erst ein, wenn man sie sieht */
       sky(days.slice(0, 3).some(x => x.pr > 1) ? 'rain' : 'sun'); hasG && ScrollTrigger.refresh();
       }).catch(() => { wx.closest('section').style.display = 'none'; hasG && ScrollTrigger.refresh(); });
     // Himmel hinter den Kacheln: Regen, wenn welcher kommt – sonst Sonnenglanz
@@ -404,10 +493,31 @@
   /* ---------- Saisonplaner ---------- */
   const pls = $('[data-pl-start]');
   if (pls) {
-    const ple = $('[data-pl-end]'), yr = $('[data-pl-year]'), info = $('[data-pl-info]'), M = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
-    const calc = () => { const s = +pls.value, e = +ple.value, now = new Date(); let y = now.getFullYear(); let a = new Date(y, s, 1); a.setDate(a.getDate() - 21); if (a < now) { y++; a = new Date(y, s, 1); a.setDate(a.getDate() - 21); } const b = new Date(y + (e < s ? 1 : 0), e + 1, 7); return { s, e, a, b }; };
-    const draw = () => { const { s, e, a, b } = calc(); yr.innerHTML = M.map((m, i) => { const tour = s <= e ? i >= s && i <= e : i >= s || i <= e; const rem = i === a.getMonth() || i === b.getMonth(); return `<div class="${rem ? 'rem' : tour ? 'tour' : ''}"><span>${m}</span></div>`; }).join(''); info.textContent = `Erinnerung 1: ${a.toLocaleDateString('de-DE')} (Saison-Aufbereitung) · Erinnerung 2: ${b.toLocaleDateString('de-DE')} (Einwintern)`; };
-    pls.addEventListener('change', draw); ple.addEventListener('change', draw); draw();
+    const ple = $('[data-pl-end]'), yr = $('[data-pl-year]'), info = $('[data-pl-info]'), plH = $('[data-pl-hint]'), plM = $('[data-pl-mode]'), M = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+    const ML = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+    const BELL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a2.4 2.4 0 0 0 2.4-2.4H9.6A2.4 2.4 0 0 0 12 22zm6.5-6.2V11a6.5 6.5 0 0 0-5-6.3v-.9a1.5 1.5 0 0 0-3 0v.9a6.5 6.5 0 0 0-5 6.3v4.8L3.6 17.7v1h16.8v-1z"/></svg>';
+    // v6: jede Erinnerung ist der NÄCHSTE passende Termin ab heute (vorher landete „Einwintern“ ein Jahr zu spät)
+    const nextD = (m, d, off) => { const now = new Date(); now.setHours(0, 0, 0, 0); for (let k = -1; k < 3; k++) { const t = new Date(now.getFullYear() + k, m, d); t.setDate(t.getDate() + off); if (t > now) return t; } };
+    const calc = () => { const s = +pls.value, e = +ple.value; return { s, e, a: nextD(s, 1, -21), b: nextD(e + 1, 7, 0) }; };
+    const fmt = d => d.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' });
+    yr.innerHTML = M.map((m, i) => `<button type="button" data-mo="${i}"><span>${m}</span><small></small></button>`).join('');
+    const mb = $$('[data-mo]', yr);
+    const draw = () => { const { s, e, a, b } = calc();
+      mb.forEach((el, i) => { const tour = s <= e ? i >= s && i <= e : i >= s || i <= e, rem = i === a.getMonth() || i === b.getMonth(), tag = i === s ? 'Start' : i === e ? 'Ende' : '';
+        el.className = [tour && 'tour', rem && 'rem', tag && 'tag'].filter(Boolean).join(' '); el.style.setProperty('--k', (i - s + 12) % 12);
+        el.querySelector('small').innerHTML = tag || (rem ? BELL : '');
+        el.setAttribute('aria-label', ML[i] + (i === s ? ', erste Tour' : '') + (i === e ? ', letzte Tour' : '') + (rem ? ', Erinnerung' : '')); });
+      const L = [[a, 'Saison-Aufbereitung vereinbaren'], [b, 'Einwintern']].sort((x, y) => x[0] - y[0]);
+      info.textContent = `Nächste Erinnerung: ${fmt(L[0][0])} (${L[0][1]}) · danach: ${fmt(L[1][0])} (${L[1][1]})`; };
+    let want = 'start', plT = false;
+    const plTouch = () => { if (plT) return; plT = true; plH && plH.classList.add('done'); yr.classList.remove('sweep'); };
+    yr.addEventListener('click', ev => { const btn = ev.target.closest('[data-mo]'); if (!btn) return; plTouch(); const i = +btn.dataset.mo;
+      if (want === 'start') { pls.value = i; want = 'end'; plM.textContent = `Erste Tour im ${ML[i]}. Jetzt den Monat der letzten Tour antippen.`; }
+      else { ple.value = i; want = 'start'; plM.textContent = `Saison ${ML[+pls.value]} bis ${ML[i]} – die Erinnerungen stehen unten.`; }
+      draw(); btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop'); });
+    pls.addEventListener('change', () => { plTouch(); draw(); }); ple.addEventListener('change', () => { plTouch(); draw(); }); draw();
+    // Impuls: die Saison „läuft“ beim ersten Sichtkontakt einmal von Start bis Ende durch, die Glocken klingeln
+    onView(yr, () => setTimeout(() => { if (!plT && !reduce) yr.classList.add('sweep'); }, 300), '-22%');
     const f = d => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
     $('[data-pl-ics]').addEventListener('click', () => { const { a, b } = calc(); const ev = (d, s, desc) => { const e = new Date(d); e.setDate(e.getDate() + 1); return `BEGIN:VEVENT\r\nUID:${f(d)}-${Math.random().toString(36).slice(2)}@zh-aufbereitung\r\nDTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').slice(0, 15)}Z\r\nDTSTART;VALUE=DATE:${f(d)}\r\nDTEND;VALUE=DATE:${f(e)}\r\nSUMMARY:${s}\r\nDESCRIPTION:${desc}\\nZ&H Aufbereitung · Ortsstraße 14 · 66459 Kirkel-Altstadt · Tel. 06841 / 890 200\r\nBEGIN:VALARM\r\nTRIGGER:-PT0M\r\nACTION:DISPLAY\r\nDESCRIPTION:${s}\r\nEND:VALARM\r\nEND:VEVENT\r\n`; };
       const ics = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Z&H Aufbereitung//Saisonplaner//DE\r\n${ev(a, 'Wohnmobil: Termin für Saison-Aufbereitung vereinbaren', 'Jetzt bei Z&H anrufen: Außenreinigung, Dach, Keramikversiegelung, Innenraum.')}${ev(b, 'Wohnmobil einwintern: Aufbereitung bei Z&H', 'Vor dem Winter gründlich reinigen und versiegeln lassen.')}END:VCALENDAR\r\n`;
@@ -417,6 +527,18 @@
   /* ---------- Entwurf-Hinweis: über dem Footer ausblenden ---------- */
   const cpt = $('.concept'), ftr = $('.ftr');
   if (cpt && ftr) new IntersectionObserver(([e]) => cpt.classList.toggle('off', e.isIntersecting), { rootMargin: '0px 0px -40px 0px' }).observe(ftr);
+  // v6: Hinweis schrumpft beim Scrollen auf „Entwurf“ (überdeckt sonst Knöpfe), Hover zeigt den ganzen Text
+  if (cpt) { const mini = () => cpt.classList.toggle('mini', scrollY > 260); addEventListener('scroll', mini, { passive: true }); mini(); }
+
+  /* ---------- v6: Leistungs-Leiste – Pfeil, Randverlauf, kurzer Impuls nach rechts ---------- */
+  const lw = $('.lnav-w');
+  if (lw) { const ln = $('.lnav', lw), more = $('.lnav-more', lw);
+    const lst = () => { lw.classList.toggle('scrollable', ln.scrollWidth > ln.clientWidth + 4); lw.classList.toggle('end', ln.scrollLeft + ln.clientWidth >= ln.scrollWidth - 4); lw.classList.toggle('mid', ln.scrollLeft > 4); };
+    ln.addEventListener('scroll', lst, { passive: true }); addEventListener('resize', lst); lst();
+    more.addEventListener('click', () => ln.scrollBy({ left: Math.max(120, ln.clientWidth * .6), behavior: 'smooth' }));
+    let lnT = false; ['pointerdown', 'touchstart', 'wheel'].forEach(ev => ln.addEventListener(ev, () => lnT = true, { passive: true }));
+    if (!reduce) setTimeout(() => { if (lnT || !lw.classList.contains('scrollable') || ln.scrollLeft > 4) return; ln.scrollTo({ left: 110, behavior: 'smooth' }); setTimeout(() => { if (!lnT && ln.scrollLeft > 4) ln.scrollTo({ left: 0, behavior: 'smooth' }); }, 1000); }, 1300);
+  }
 
   /* ---------- Leistungen: Schaum-Abzieher ---------- */
   $$('[data-foam]').forEach(m => reduce ? m.classList.add('in') : onView(m, () => setTimeout(() => m.classList.add('in'), 120), '-18%'));

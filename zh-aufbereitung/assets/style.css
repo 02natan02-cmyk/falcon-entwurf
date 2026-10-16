@@ -579,3 +579,127 @@ a.wd:hover .ic{animation:wdic .6s var(--ease)}
 .concept{transition:opacity .4s,transform .4s var(--ease)}.concept.off{opacity:0;transform:translateY(12px);pointer-events:none}
 
 @media (max-width:900px){.sh.tall.m1{grid-row:span 1}.sh.mwide{grid-column:span 2}.shine-g{grid-auto-flow:dense}}
+
+/* =====================================================================
+   v6: Impulse + Bewegungs-Hinweise für jedes interaktive Element,
+   Wisch-Leiste (Handy), Flug abspielen, Saisonplaner zum Antippen
+   ===================================================================== */
+.hand{width:18px;height:18px;fill:currentColor;flex:none;display:inline-block;max-width:none}
+@keyframes tapme{0%,100%{transform:translate(0,0) rotate(-10deg)}45%,60%{transform:translate(2px,3px) rotate(-10deg) scale(.86)}}
+@keyframes swipe{0%,100%{transform:translateX(-5px) rotate(-14deg)}50%{transform:translateX(6px) rotate(-14deg)}}
+@keyframes ringp{0%{box-shadow:0 0 0 0 rgba(63,224,229,.55)}75%,100%{box-shadow:0 0 0 16px rgba(63,224,229,0)}}
+
+/* Befund: „← Abzieher ziehen →“ auf jeder Karte, verschwindet nach der ersten Berührung */
+.bf-hint{position:absolute;left:50%;bottom:14px;z-index:5;transform:translateX(-50%);display:inline-flex;align-items:center;gap:8px;padding:8px 15px 8px 11px;border-radius:999px;background:rgba(6,9,10,.74);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 0 0 1px rgba(63,224,229,.4),0 10px 24px -8px rgba(0,0,0,.5);color:#fff;font:700 12.5px var(--body);letter-spacing:.02em;white-space:nowrap;pointer-events:none;transition:opacity .45s,transform .45s var(--ease)}
+.bf-hint .hand{color:var(--aqua);animation:swipe 1.5s ease-in-out infinite}
+.bf.touched .bf-hint,.bf.done .bf-hint{opacity:0;transform:translate(-50%,10px)}
+
+/* Bühnen-Hinweise (Polieren, Versiegeln) mit Hand */
+.stage-hint{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;z-index:4;background:rgba(6,9,10,.6);box-shadow:0 0 0 1px rgba(63,224,229,.35)}
+.stage-hint .hand{color:var(--aqua);animation:tapme 1.3s ease-in-out infinite}
+.rain-hint .hand{animation:swipe 1.5s ease-in-out infinite}
+.rain.touched .rain-hint{opacity:0}
+.polish.demo .pad{opacity:1}
+
+/* Ozon: Knopf pulsiert + Hand tippt, bis zum ersten echten Drücken */
+[data-ozone] .hand{width:22px;height:22px;animation:tapme 1.3s ease-in-out infinite}
+[data-ozone]:not(.tried){animation:ringp 2s infinite}
+[data-ozone].tried .hand{display:none}
+
+/* Paket: „antippen“-Hinweis + Geister-Finger */
+.tap-hint{display:inline-flex;align-items:center;gap:5px;margin-left:10px;padding:3px 10px 3px 6px;border-radius:999px;background:rgba(10,166,173,.12);color:var(--teal-d);letter-spacing:.06em;vertical-align:middle;transition:opacity .4s}
+.tap-hint .hand{width:15px;height:15px;animation:tapme 1.3s ease-in-out infinite}
+.tap-hint.gone{opacity:0}
+.pk-g>div:first-child{position:relative}
+.ghost{position:absolute;left:0;top:0;z-index:6;width:44px;height:44px;opacity:0;pointer-events:none;transition:transform .55s var(--ease),opacity .3s;filter:drop-shadow(0 8px 12px rgba(0,0,0,.28))}
+.ghost .hand{width:44px;height:44px;fill:#fff;stroke:var(--ink);stroke-width:1.1}
+.ghost.on{opacity:1}
+.ghost::after{content:"";position:absolute;left:12px;top:-4px;width:20px;height:20px;border-radius:50%;border:2.5px solid var(--teal);opacity:0;pointer-events:none}
+.ghost.tap .hand{animation:gtap .4s var(--ease)}
+.ghost.tap::after{animation:gring .55s var(--ease)}
+@keyframes gtap{40%{transform:scale(.84) translateY(2px)}}
+@keyframes gring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(1.9)}}
+
+/* Wetter: Kacheln fahren erst ein, wenn sie zu sehen sind */
+.wd{animation:none}
+.wx-g .wd{opacity:0}
+.wx-g.in .wd{animation:wdin2 .7s var(--ease) both;animation-delay:calc(var(--i,0)*80ms)}
+@keyframes wdin2{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.wd .pr i{animation:none;transform:scaleY(0)}
+.wx-g.in .wd .pr i{animation:wdpr2 1.1s var(--ease) both;animation-delay:calc(.35s + var(--i,0)*80ms)}
+@keyframes wdpr2{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.wd.off{opacity:1}.wx-g .wd.off>*{opacity:.5}
+@media (prefers-reduced-motion:reduce){.wx-g .wd{opacity:1}.wd .pr i{transform:none}}
+
+/* FPV: Flug abspielen */
+.fpv-play{position:absolute;right:var(--gut);bottom:64px;z-index:3;display:inline-flex;align-items:center;gap:10px;min-height:48px;padding:0 18px 0 8px;border:0;border-radius:999px;background:rgba(6,9,10,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:inset 0 0 0 1px rgba(63,224,229,.45);color:#fff;font:700 14px var(--body);cursor:pointer;transition:background .25s,transform .25s var(--ease)}
+.fpv-play:hover,.fpv-play:focus-visible{background:rgba(63,224,229,.22);transform:translateY(-2px)}
+.fpv-play:active{transform:scale(.96)}
+.fpv-play i{position:relative;width:34px;height:34px;border-radius:50%;background:var(--aqua);flex:none}
+.fpv-play i::before{content:"";position:absolute;left:13px;top:10px;border-style:solid;border-width:7px 0 7px 11px;border-color:transparent transparent transparent var(--ink)}
+.fpv-play.on i::before{left:11px;top:11px;width:4px;height:12px;border:0;background:var(--ink);box-shadow:8px 0 0 var(--ink)}
+.fpv-play:not(.used) i{animation:ringp 2s infinite}
+@media (max-width:900px){.fpv-play{top:70px;bottom:auto;min-height:44px;font-size:13px;padding-right:15px}.fpv-play i{width:30px;height:30px}.fpv-play i::before{left:11px;top:8px}.fpv-play.on i::before{left:9px;top:9px}}
+
+/* Glanz-Galerie: Wisch-Leiste auf Handy und Tablet */
+.sh-ctl{display:none}
+@media (max-width:900px){
+  .shine-g{display:flex;gap:12px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;margin:0 calc(-1*var(--gut));padding:0 var(--gut) 2px;scroll-padding-inline:var(--gut);scrollbar-width:none}
+  .shine-g::-webkit-scrollbar{display:none}
+  .shine-g::after{content:"";flex:0 0 calc(var(--gut) - 12px)}
+  .shine-g .sh{flex:0 0 78%;height:auto;aspect-ratio:4/5;grid-column:auto;grid-row:auto;scroll-snap-align:start;touch-action:pan-x pan-y}
+  .sh-ctl{display:flex;align-items:center;gap:12px;margin-top:14px;min-height:24px}
+  .sh-hint{display:inline-flex;align-items:center;gap:6px;font:700 12.5px var(--body);color:var(--teal-d);white-space:nowrap;transition:opacity .4s}
+  .sh-hint .hand{animation:swipe 1.5s ease-in-out infinite}
+  .sh-hint.gone{opacity:0}
+  .sh-dots{display:flex;gap:6px;flex:1;justify-content:center}
+  .sh-dots i{width:7px;height:7px;border-radius:4px;background:rgba(6,9,10,.2);transition:width .3s var(--ease),background .3s;cursor:pointer}
+  .sh-dots i.on{width:20px;background:var(--teal)}
+  .sh-n{font:800 13px var(--disp);letter-spacing:-.01em;min-width:44px;text-align:right}
+}
+
+/* Leistungen: Leiste mit Pfeil + Randverlauf, Licht auf den Bildern */
+.lnav-w{position:sticky;top:64px;z-index:50;transition:top .45s var(--ease)}
+.hdr.hide~main .lnav-w{top:0}
+.lnav-w .lnav{position:relative;top:0;z-index:1}
+.lnav-w::before{content:"";position:absolute;left:0;top:0;bottom:1px;width:34px;z-index:2;pointer-events:none;background:linear-gradient(90deg,rgba(248,250,249,.97),rgba(248,250,249,0));opacity:0;transition:opacity .3s}
+.lnav-w.mid::before{opacity:1}
+.lnav-more{display:none;position:absolute;right:0;top:0;bottom:1px;z-index:2;width:62px;border:0;padding:0 10px 0 0;background:linear-gradient(90deg,rgba(248,250,249,0),rgba(248,250,249,.97) 46%);cursor:pointer;place-items:center end;transition:opacity .3s}
+.lnav-w.scrollable .lnav-more{display:grid}
+.lnav-w.end .lnav-more{opacity:0;pointer-events:none}
+.lnav-more i{position:relative;width:30px;height:30px;border-radius:50%;background:var(--ink);box-shadow:0 6px 14px -6px rgba(0,0,0,.5);animation:nudgeR 1.6s ease-in-out infinite}
+.lnav-more i::before{content:"";position:absolute;left:10px;top:10px;width:8px;height:8px;border:solid #fff;border-width:2.5px 2.5px 0 0;transform:rotate(45deg)}
+@keyframes nudgeR{0%,100%{transform:translateX(0)}50%{transform:translateX(3px)}}
+@media (max-width:900px){.lnav-w{top:66px}}
+.sv-media::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(300px circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,.34),rgba(255,255,255,0) 60%);mix-blend-mode:soft-light;opacity:0;transition:opacity .35s}
+.sv-media.lamp::before{opacity:1}
+@media (hover:hover){.sv-media.in:hover img{transform:scale(1.045)}}
+
+/* Saisonplaner: Monate zum Antippen, Saison läuft beim ersten Sichtkontakt durch */
+.pl-yw{min-width:0}
+.pl-hint{display:flex;align-items:center;gap:8px;min-height:22px;margin:0 0 12px;font:700 13px/1.35 var(--body);color:var(--aqua)}
+.pl-hint .hand{animation:tapme 1.3s ease-in-out infinite}
+.pl-hint.done .hand{display:none}
+.pl-year button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:58px;padding:10px 4px;border-radius:12px;background:var(--ink3);color:#e8f0f0;border:1px solid var(--nline);font:700 14px var(--body);cursor:pointer;transition:border-color .25s,background .25s,transform .25s var(--ease)}
+.pl-year button:hover,.pl-year button:focus-visible{border-color:var(--aqua);transform:translateY(-2px)}
+.pl-year button small{display:block;height:13px;font:700 9.5px/13px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--aqua)}
+.pl-year button small svg{width:13px;height:13px;fill:currentColor;margin:0 auto}
+.pl-year button.tour{background:rgba(63,224,229,.14);border-color:rgba(63,224,229,.4)}
+.pl-year button.rem{background:var(--aqua);color:var(--ink);border-color:var(--aqua)}
+.pl-year button.rem small{color:var(--ink)}
+.pl-year button.tag{box-shadow:inset 0 0 0 1.5px var(--aqua)}
+.pl-year button.pop{animation:plpop .45s var(--ease)}
+@keyframes plpop{40%{transform:scale(1.1)}}
+.pl-year.sweep button.tour{animation:plsw .9s var(--ease) both;animation-delay:calc(var(--k,0)*90ms)}
+.pl-year.sweep button.rem small svg{animation:bell .9s ease-in-out 1.2s 2;transform-origin:50% 10%}
+@keyframes plsw{0%{background:var(--ink3);transform:translateY(0)}35%{background:rgba(63,224,229,.55);transform:translateY(-4px)}100%{background:rgba(63,224,229,.14);transform:none}}
+@keyframes bell{0%,100%{transform:rotate(0)}20%{transform:rotate(18deg)}45%{transform:rotate(-16deg)}70%{transform:rotate(9deg)}}
+
+/* Entwurf-Hinweis: beim Scrollen kompakt */
+.concept .c-x{transition:opacity .3s}
+.concept.mini .c-x{display:none}
+.concept.mini:hover .c-x,.concept.mini:focus-visible .c-x{display:inline}
+
+/* v6: Tablet – Galerie-Karten schmaler, Vorher/Nachher bleibt zweispaltig */
+@media (min-width:701px) and (max-width:900px){.shine-g .sh{flex-basis:44%}}
+@media (min-width:641px) and (max-width:900px){.bf-g{grid-template-columns:repeat(2,minmax(0,1fr))}}
