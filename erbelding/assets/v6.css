@@ -1,0 +1,100 @@
+/* Küchenstudio Erbelding – v6: Hinweise, Impulse, Feinschliff (Entwurf Falcon Eye) */
+
+/* ---------- Hinweis-Pille mit Hand ---------- */
+.v6-rel{position:relative}
+.v6-hint{position:absolute;z-index:8;left:50%;top:50%;display:inline-flex;align-items:center;gap:9px;padding:7px 15px 7px 7px;border-radius:999px;background:rgba(16,38,74,.92);color:#fff;font:700 13.5px/1 var(--body);letter-spacing:.01em;white-space:nowrap;pointer-events:none;
+  border:1px solid rgba(255,255,255,.2);box-shadow:0 12px 28px -10px rgba(0,0,0,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  opacity:0;transform:translate(-50%,-50%) scale(.86);transition:opacity .45s,transform .5s var(--ease)}
+.v6-hint.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.v6-hint>i{display:grid;place-items:center;flex:none;width:28px;height:28px;border-radius:50%;background:var(--acc)}
+.v6-hint svg{width:17px;height:17px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.v6-hint.v6-acc{background:var(--acc);border-color:rgba(255,255,255,.35)}
+.v6-hint.v6-acc>i{background:#fff}.v6-hint.v6-acc svg{stroke:var(--acc-d)}
+.v6-hint.v6-dark{background:rgba(255,255,255,.95);color:var(--blue);border-color:rgba(16,38,74,.1)}
+.v6-swipe.on>i{animation:v6sw 1.7s var(--ease) infinite}
+.v6-tap.on>i{animation:v6tp 1.5s ease-in-out infinite}
+@keyframes v6sw{0%,100%{transform:translateX(-5px) rotate(-8deg)}50%{transform:translateX(6px) rotate(6deg)}}
+@keyframes v6tp{0%,60%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(224,112,63,.55)}25%{transform:scale(.8);box-shadow:0 0 0 8px rgba(224,112,63,0)}}
+/* Platzierungen */
+.v6-hint.v6-over{transform:translate(-50%,-100%) scale(.86)}.v6-hint.v6-over.on{transform:translate(-50%,-100%) scale(1)}
+.v6-hint.v6-low{top:auto;bottom:74px;transform:translate(-50%,0) scale(.86)}.v6-hint.v6-low.on{transform:translate(-50%,0) scale(1)}
+.v6-hint.v6-knob{top:auto;bottom:14px;transform:translate(-50%,0) scale(.86)}.v6-hint.v6-knob.on{transform:translate(-50%,0) scale(1)}
+.v6-hint.v6-corner{left:auto;right:14px;top:14px;transform:scale(.86);transform-origin:100% 0}.v6-hint.v6-corner.on{transform:none}
+.v6-hint.v6-inline{position:relative;left:auto;top:auto;margin:0 0 0 4px;align-self:center;transform:scale(.86);transform-origin:0 50%}.v6-hint.v6-inline.on{transform:none}
+.ki-ba .v6-hint{z-index:6}
+.v6-hint.v6-under{transform:translate(-100%,0) scale(.86);transform-origin:100% 0;padding:5px 13px 5px 5px;font-size:12.5px}.v6-hint.v6-under.on{transform:translate(-100%,0)}.v6-hint.v6-under>i{width:24px;height:24px}
+.v6-hint.v6-below{top:calc(100% + 26px);transform:translate(-50%,0) scale(.86)}.v6-hint.v6-below.on{transform:translate(-50%,0) scale(1)}
+.v6-hint.v6-icon{left:5%;top:6%;padding:0;gap:0;background:none;border:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;transform:scale(.6)}.v6-hint.v6-icon.on{transform:none}.v6-hint.v6-icon>i{width:34px;height:34px;box-shadow:0 6px 16px -4px rgba(0,0,0,.5)}.v6-hint.v6-icon>span{display:none}
+.vr-3d .v6-hint.v6-low{top:16px;bottom:auto}
+@media (prefers-reduced-motion:reduce){.v6-hint>i{animation:none!important}}
+
+/* ---------- Waagerechte Leisten ---------- */
+.v6-nudging{scroll-snap-type:none!important;scroll-behavior:auto!important}
+.v6-fade{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 26px,#000 calc(100% - 34px),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 26px,#000 calc(100% - 34px),transparent 100%)}
+.v6-fade.at-start{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 34px),transparent 100%);mask-image:linear-gradient(90deg,#000 calc(100% - 34px),transparent 100%)}
+.v6-fade.at-end{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 26px);mask-image:linear-gradient(90deg,transparent 0,#000 26px)}
+.v6-fade.at-start.at-end{-webkit-mask-image:none;mask-image:none}
+
+/* ---------- Details: Filter-Chips auf dem Handy umbrechen statt abschneiden ---------- */
+@media (max-width:760px){
+  .dz-chips{flex-wrap:wrap;overflow:visible;margin-inline:0;padding:0}
+  .dz-chips button{min-height:40px;padding:0 14px;font-size:13.5px}
+}
+
+/* ---------- Barbara: Zitate blenden nacheinander, nie übereinander ---------- */
+.ba-q blockquote{bottom:auto;transition:opacity .32s ease,transform .32s ease}
+.ba-q blockquote.on{transition:opacity .6s ease .36s,transform .75s var(--ease) .36s}
+
+/* ---------- BORA X BO: Ofen nie unter der Knopfleiste, Knöpfe einzeilig ---------- */
+.xb:not(.static) .xb-3d{bottom:64px}
+.xb-jump button{white-space:nowrap}
+@media (max-width:899px){.xb:not(.static) .xb-3d{bottom:56px}.xb-jump{max-width:calc(100% - 8px)}.xb-jump button{padding:0 11px}}
+
+/* ---------- Montage 3D: Hinweis mit Hand, verschwindet nach dem ersten Drehen ---------- */
+.em3-hint{display:inline-flex;align-items:center;gap:8px}
+.em3-hint::before{content:"";flex:none;width:22px;height:22px;border-radius:50%;background:var(--em3-acc,#e0703f) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8'/%3E%3Cpath d='M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-6-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.83L7 15'/%3E%3C/svg%3E") center/14px no-repeat}
+.em3--drag .em3-hint::before{animation:v6sw 1.7s var(--ease) infinite}
+.em3--swing .em3-hint{color:#fff}
+.em3--dragged .em3-hint{opacity:0!important;transition:opacity .4s}
+
+/* ---------- Galerie: Lupe ---------- */
+.v6-zoom{position:absolute;top:14px;right:14px;z-index:2;display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:rgba(255,253,249,.92);box-shadow:0 8px 20px -8px rgba(0,0,0,.45);opacity:.0;transform:scale(.7);transition:opacity .35s,transform .45s var(--ease),background .3s}
+.v6-zoom svg{width:20px;height:20px;fill:none;stroke:var(--blue);stroke-width:2.2;stroke-linecap:round}
+.g-it:hover .v6-zoom,.g-it:focus-visible .v6-zoom{opacity:1;transform:none}
+.g-it:hover .v6-zoom{background:var(--acc)}.g-it:hover .v6-zoom svg{stroke:#fff}
+@media (hover:none),(pointer:coarse){.v6-zoom{opacity:.95;transform:none;width:38px;height:38px}}
+
+/* ---------- Kochfeldabzug: Vorführung sichtbar machen ---------- */
+.abz.v6-demo [data-abzm="haube"]{box-shadow:0 0 0 3px rgba(224,112,63,.55)}
+.abz-r{position:relative;margin-top:34px}
+.v6-hint.v6-over{padding:5px 13px 5px 5px;font-size:12.5px}.v6-hint.v6-over>i{width:24px;height:24px}.v6-hint.v6-over svg{width:15px;height:15px}
+
+/* ---------- Touch: sichtbare Rückmeldung beim Antippen ---------- */
+.v6-pressed{filter:brightness(.9) saturate(1.08);transition:filter .08s}
+a,button,[role="button"]{-webkit-tap-highlight-color:rgba(224,112,63,.18)}
+
+/* ---------- Platz für Regler-Hinweise (kein Überdecken von Text) ---------- */
+.bu-range{margin-top:44px}
+.v6-hid{visibility:hidden}
+
+/* ---------- Hover-Rückmeldung, wo sie noch fehlte ---------- */
+.ul-cards button:hover{border-color:var(--acc);background:rgba(224,112,63,.1)}
+.chips button:hover,.dz-chips button:hover:not(.on),.sp-mat button:hover,.ki-chips button:hover{border-color:var(--acc)}
+.chips button,.dz-chips button{transition:border-color .2s,background .2s,color .2s}
+
+/* ---------- Weniger Leerlauf nach der waagerechten Galerie (Desktop) ---------- */
+@media (min-width:701px){.ku-pin{padding-bottom:clamp(48px,5vw,72px)}.deals{padding-top:clamp(64px,8vw,110px)}}
+
+/* ---------- Kleine Android-Breiten: Live-Pille im Hero bricht sauber um ---------- */
+@media (max-width:380px){.hc-mlive{font-size:12.5px;line-height:1.3;border-radius:14px;padding:8px 12px;max-width:100%}}
+
+/* ---------- Logo-Moment: die drei Griffe im „E“ ziehen kurz auf wie Schubladen ---------- */
+.logo .em>g:last-child rect{transform-box:fill-box;transition:transform .5s var(--ease)}
+.brand:hover .logo .em>g:last-child rect{transform:translateX(6px)}
+.brand:hover .logo .em>g:last-child rect:nth-child(2){transform:translateX(9px);transition-delay:.05s}
+.brand:hover .logo .em>g:last-child rect:nth-child(3){transition-delay:.1s}
+@keyframes v6drawer{0%,100%{transform:none}35%,55%{transform:translateX(8px)}}
+.logo.v6-wink .em>g:last-child rect{animation:v6drawer 1.1s var(--ease) both}
+.logo.v6-wink .em>g:last-child rect:nth-child(2){animation-delay:.12s}
+.logo.v6-wink .em>g:last-child rect:nth-child(3){animation-delay:.24s}
+@media (prefers-reduced-motion:reduce){.logo .em>g:last-child rect{animation:none!important;transition:none!important}}

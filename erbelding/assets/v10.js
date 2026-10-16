@@ -234,11 +234,13 @@
     }
     function onFrame(an, p) {
       var r = stageEl.getBoundingClientRect(), w = r.width, h = r.height, ck = KEYS[stepFor(p)], mob = mq('(max-width:899px)');
+      /* v6: Beschriftungen nie über die Knopfleiste unten legen */
+      var jb = $('.xb-jump', stageEl), jbH = jb ? jb.offsetHeight + 14 : 0;
       Object.keys(labels).forEach(function (k) {
         var a = an[k]; if (!a) return;
         var at = AT[KEYS.indexOf(k)], vis = (staticMode ? p > .06 : p >= at + .015) && p < .76 && (!mob || k === ck);
         var o = OFF[k] || [60, -40], s = mob ? .55 : 1, L = labels[k];
-        var lx = clamp(a.x + o[0] * s, 8, w - L.offsetWidth - 8), ly = clamp(a.y + o[1] * s, 50, h - 70);
+        var lx = clamp(a.x + o[0] * s, 8, w - L.offsetWidth - 8), ly = clamp(a.y + o[1] * s, 50, Math.max(50, h - jbH - L.offsetHeight - 6));
         L.style.transform = 'translate(' + lx.toFixed(1) + 'px,' + ly.toFixed(1) + 'px)';
         L.classList.toggle('on', vis); L.classList.toggle('cur', k === ck);
         var le = lineEls[k]; le.g.style.opacity = vis ? 1 : 0;

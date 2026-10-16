@@ -243,7 +243,7 @@
     })();
     var go = function () {
       new Promise(function (res, rej) { if (window.PelPlanner3D) return res(); var sc = document.createElement('script'); sc.src = 'js/planner3d.js'; sc.onload = res; sc.onerror = rej; document.head.appendChild(sc); })
-        .then(function () { var l = $('.pt-load', host); if (l) l.remove(); K3 = PelPlanner3D(host, {}); K3.set(st); })
+        .then(function () { var l = $('.pt-load', host); if (l) l.remove(); K3 = PelPlanner3D(host, { onInteract: function () { vr.classList.add('v6-used'); } }); K3.set(st); host.__k3 = K3; try { vr.dispatchEvent(new CustomEvent('v6:3d')); } catch (e) {} })
         .catch(function () { var l = $('.pt-load', host); if (l) l.textContent = '3D konnte nicht geladen werden.'; });
     };
     if ('IntersectionObserver' in window) { var io3 = new IntersectionObserver(function (e) { if (e[0].isIntersecting) { io3.disconnect(); go(); } }, { rootMargin: '400px' }); io3.observe(vr); } else go();
