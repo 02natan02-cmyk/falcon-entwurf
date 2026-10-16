@@ -136,14 +136,14 @@
     document.querySelectorAll('.cur,.val,.start,.spot').forEach(function(e){e.classList.add('x')});
     document.body.className='go';
     try{ AC=new (window.AudioContext||window.webkitAudioContext)(); var src=AC.createMediaElementSource(v); an=AC.createAnalyser(); an.fftSize=256; buf=new Uint8Array(an.frequencyBinCount); src.connect(an); an.connect(AC.destination); var sm=AC.createMediaElementSource(m); anM=AC.createAnalyser(); anM.fftSize=256; bufM=new Uint8Array(anM.frequencyBinCount); sm.connect(anM); anM.connect(AC.destination); }catch(e){}
-    m.volume=.0; m.play().then(function(){ fade(m,.22,2500); }).catch(function(){});
+    m.volume=.0; m.play().then(function(){ fade(m,0.7,2500); }).catch(function(){});
     setTimeout(function(){ v.volume=1; v.play().then(function(){}).catch(function(){ fallbackCaptions(); }); show(0); }, 1700);
     viz();
   }
   function fallbackCaptions(){ var t0=performance.now(); (function f(n){ var t=(n-t0)/1000, k=0; for(var j=0;j<T.length;j++) if(t>=T[j]) k=j; if(!compStarted) show(k); if(t>48.9) return comp(); requestAnimationFrame(f); })(t0); }
   v.addEventListener('ended', comp);
   // Duck: Musik unter der Stimme leise, danach episch
-  v.addEventListener('play', function(){ fade(m,.16,800); });
+  v.addEventListener('play', function(){ fade(m,0.5,800); });
   function comp(){
     if(compStarted) return; compStarted=true; document.body.classList.add('comp'); fade(m,1,1400); cap.classList.add('out'); document.querySelector('.orb').style.opacity=0; document.querySelector('.who').style.opacity=0;
     var W=[].slice.call(document.querySelectorAll('.cmp .win')), n=W.length, last=W[n-1];
