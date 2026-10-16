@@ -127,8 +127,9 @@
     const walk = n => { [...n.childNodes].forEach(c => { if (c.nodeType === 3) { const f = document.createDocumentFragment(); c.textContent.split(/(\s+)/).forEach(t => { if (!t) return; if (/^\s+$/.test(t)) f.appendChild(document.createTextNode(t)); else { const s = document.createElement('span'); s.className = 'w'; s.textContent = t; f.appendChild(s); } }); c.replaceWith(f); } else if (c.nodeType === 1) walk(c); }); };
     walk(el); const ws = $$('.w', el);
     if (RM) { ws.forEach(w => w.classList.add('on')); return; }
-    let raf = 0; const upd = () => { raf = 0; const r = el.getBoundingClientRect(), vh = innerHeight; const p = Math.max(0, Math.min(1, (vh * .88 - r.top) / (r.height + vh * .38))); const n = Math.round(p * ws.length * 1.05); ws.forEach((w, i) => w.classList.toggle('on', i < n)); };
-    addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(upd); }, { passive: true }); addEventListener('resize', upd); upd();
+    // Natan: läuft von selbst – sobald der Satz ins Bild kommt, leuchten die Wörter nacheinander auf (kein Extra-Scrollen nötig)
+    const go = () => ws.forEach((w, i) => setTimeout(() => w.classList.add('on'), 90 + i * 70));
+    if ('IntersectionObserver' in window) { const io = new IntersectionObserver(es => { if (es[0].isIntersecting) { io.disconnect(); go(); } }, { threshold: .3 }); io.observe(el); } else go();
   });
 
   /* Welten-Liste: schwebende Vorschau folgt der Maus */

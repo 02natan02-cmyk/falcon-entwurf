@@ -43,7 +43,7 @@
 }
 
 /* ---------- 3D-Modus (WebGL vorhanden) ---------- */
-.pm3--live .pm3-track{height:470vh;position:relative}
+.pm3--live .pm3-track{height:300vh;position:relative}
 .pm3--live .pm3-stage,.pm3--static .pm3-stage{display:block;padding:0;height:100vh;height:100svh;min-height:540px}
 .pm3--live .pm3-stage{position:sticky;top:0}
 .pm3--static .pm3-stage{height:min(100svh,880px)}
@@ -170,7 +170,7 @@
 
 /* ---------- Handy ---------- */
 @media (max-width:899px){
-  .pm3--live .pm3-track{height:440vh}
+  .pm3--live .pm3-track{height:280vh}
   .pm3--live .pm3-stage::before,.pm3--static .pm3-stage::before{background:linear-gradient(180deg,rgba(22,21,18,.92) 0%,rgba(22,21,18,.55) 17%,rgba(22,21,18,0) 30%)}
   .pm3--live .pm3-stage::after,.pm3--static .pm3-stage::after{height:46%;background:linear-gradient(0deg,rgba(22,21,18,.96) 0%,rgba(22,21,18,.78) 46%,rgba(22,21,18,0) 100%)}
   .pm3--live .pm3-ui,.pm3--static .pm3-ui{inset:0;width:auto;padding:max(18px,env(safe-area-inset-top)) var(--pm3-gut) calc(16px + env(safe-area-inset-bottom))}

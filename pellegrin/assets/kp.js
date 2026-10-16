@@ -864,7 +864,7 @@
     for (const w in P.rows) { const r = P.rows[w]; r.forEach((m, i) => { if (m.t !== 'kf' && m.t !== 'ko') return; const [a, b] = range(w); const L = locate(w, i); const nb = [r[i - 1], r[i + 1]]; if (nb.some(x => x && M[x.t].h === 't') || L.x0 - a < 1 && a === 0 || (i === r.length - 1 && L.x0 + L.w >= b - 1 && b === wallLen(w))) warn('Neben dem Kochfeld etwas Ablage lassen (min. 30 cm)'); }); }
     P.op.forEach(o => { const r = P.rows[o.wall]; if (!r) return; r.forEach((m, i) => { const L = locate(o.wall, i); if (!opOver(o, L.x0, L.w)) return; if (o.t === 'fenster') { if (M[m.t].h === 't' && hOf(m) > 105) warn('Ein Hochschrank steht vor dem Fenster'); } else warn(o.t === 'tuer' ? 'Vor der Tür stehen Schränke – Tür im Grundriss verschieben' : 'Vor der Balkontür stehen Schränke'); }); });
     for (const w in P.rows) upList(w).forEach(u => { const c = upConflict(w, u); if (c === 'tall') warn('Ein Hängeschrank stößt an einen Hochschrank – verschieben oder Hochschrank niedriger'); if (c === 'win') warn('Ein Hängeschrank hängt vor einem Fenster oder einer Tür'); });
-    for (const w in P.up) { let x = range(w)[0]; P.rows[w] && P.rows[w].forEach(m => { if ((m.t === 'kf' || m.t === 'ko') && !P.up[w].some(u => u.t === 'dh' && ov(u.s, u.w, x, m.w))) warn('Über dem Kochfeld fehlt die Dunstabzugshaube'); x += m.w; }); }
+    if (!isDD()) for (const w in P.up) { let x = range(w)[0]; P.rows[w] && P.rows[w].forEach(m => { if ((m.t === 'kf' || m.t === 'ko') && !P.up[w].some(u => u.t === 'dh' && ov(u.s, u.w, x, m.w))) warn('Über dem Kochfeld fehlt die Dunstabzugshaube'); x += m.w; }); }
     if (P.rows.N && (hasCornerSlot('l') || hasCornerSlot('r'))) { const N = P.rows.N; if ((hasCornerSlot('l') && M[N[0].t].corner) || (hasCornerSlot('r') && M[N[N.length - 1].t].corner)) ok('Ecke clever genutzt'); }
     if (!P.op.some(o => o.t === 'tuer' || o.t === 'balkon')) warn('Noch keine Tür – wie kommt man in die Küche?');
     if (isl && P.room.d < 380) warn('Für eine Insel sollte der Raum mind. 3,80 m tief sein');
@@ -880,7 +880,7 @@
   function toState() {
     const W = P.room.w, D = P.room.d, items = [], open = [], ah = P.ah || 90;
     const pos = (w, along, d) => ({ N: { x: along, z: d / 2, r: 0 }, S: { x: W - along, z: D - d / 2, r: 180 }, W: { x: d / 2, z: D - along, r: 90 }, E: { x: W - d / 2, z: along, r: 270 } })[w];
-    const bk = P.style.back || 'wand', withNs = bk !== 'wand' || P.style.backLed;
+    const bk = P.style.back || 'wand', withNs = true; // auch ohne Rückwand: unsichtbare Fläche zum Antippen
     for (const w in P.rows) {
       let x = range(w)[0], nx0 = null, nx1 = 0;
       P.rows[w].forEach(m => { if (M[m.t].h === 'b' && nsH(w, m, x) > 0) { if (nx0 == null) nx0 = x; nx1 = x + m.w; } x += m.w; });
@@ -995,7 +995,13 @@
     try { if (K && K.snapshot) { $$('.kp-xf', host3).forEach(x => x.remove()); const im = new Image(); im.className = 'kp-xf'; im.alt = ''; im.src = K.snapshot(); host3.appendChild(im); setTimeout(() => { im.classList.add('out'); setTimeout(() => im.remove(), 800); }, 160); } } catch (e) { }
     requestAnimationFrame(() => { if (wallsEl.animate) wallsEl.animate([{ opacity: .35, filter: 'blur(1.5px)' }, { opacity: 1, filter: 'none' }], { duration: 520, easing: 'ease-out' }); });
   }
-  sw('[data-kp-backs]', BACKS.map(([k, n]) => `<button type="button" class="kp-sw" data-back="${k}"><i class="kp-bk kp-bk-${k}"></i><span>${n}</span></button>`).join(''));
+  (function () { const bk = $('[data-kp-backs]'); if (bk) { bk.classList.remove('kp-sws'); bk.classList.add('kp-eq3'); if (!$('[data-kp-eq3]')) bk.insertAdjacentHTML('afterend', '<p class="kp-l">Spüle, Kochfeld & Haube</p><div class="kp-eq3" data-kp-eq3></div>'); } })();
+  function renderEq3() {
+    const bk = $('[data-kp-backs]'); if (bk) bk.innerHTML = eqRows('bs', null, 1);
+    const e3 = $('[data-kp-eq3]'); if (!e3) return; const q = eqData();
+    let h = ''; if (q.spuele) h += eqRows('sp', null, 1); if (Object.values(P.rows).flat().some(m => m.t === 'kf' || m.t === 'ko')) h += eqRows('kf', null, 1); if (q.dunstabzug && !isDD()) h += eqRows('dh', null, 1); if (q.inselAbzug) h += eqRows('isl', null, 1);
+    e3.innerHTML = h || '<p class="kp-p sm">Noch keine Spüle und kein Kochfeld geplant – in Schritt 2 hineinziehen.</p>';
+  }
   sw('[data-kp-wallc]', WALLC.map(([n, c]) => `<button type="button" class="kp-sw" data-wallc="${c}" style="--c:${c}"><i></i><span>${n}</span></button>`).join(''));
   sw('[data-kp-floors]', FLOORS.map(([k, n, c]) => `<button type="button" class="kp-sw" data-floor="${k}" style="--c:${c}"><i></i><span>${n}</span></button>`).join(''));
   $('[data-kp-tops]').innerHTML = TOPS.map(([k, n, c]) => `<button type="button" class="kp-sw" data-top="${k}" style="--c:${c}"><i></i><span>${n}</span></button>`).join('');
@@ -1022,7 +1028,7 @@
     $$('[data-look]').forEach(b => { const on = b.dataset.look === s.look; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
     const LK = LOOKS.find(x => x[0] === s.look);
     $$('[data-kp-lookinfo]').forEach(el => { el.innerHTML = LK ? `Ausgangsstil: <b>${LK[1]}</b> – hier alle Details anpassen. <button type="button" data-kgo="0">Stil ändern</button>` : `Tipp: In Schritt 1 einen fertigen Stil wählen – oder hier alles einzeln einstellen. <button type="button" data-kgo="0">Stile ansehen</button>`; });
-    $$('[data-back]').forEach(b => b.classList.toggle('on', b.dataset.back === (s.back || 'wand')));
+    renderEq3();
     $$('[data-wallc]').forEach(b => b.classList.toggle('on', b.dataset.wallc === (s.wall || '#f3efe9')));
     $$('[data-floor]').forEach(b => b.classList.toggle('on', b.dataset.floor === (s.floor || 'eiche')));
     $$('.kp-bk').forEach(i => { i.style.setProperty('--tc', topCol()); i.style.setProperty('--fc', s.wood ? '#2a2420' : s.front); });
@@ -1036,7 +1042,7 @@
   /* ---------------- Senden ---------------- */
   function descr(m, cs, up) {
     const c = M[m.t], hng = hasHinge(m) ? `, Tür öffnet nach ${aOf(m, cs) === 'l' ? 'links' : 'rechts'}` : '';
-    if (up) return m.t === 'dh' ? `Dunstabzug ${m.w} cm breit (ab ${Math.round(m.s)} cm)` : `${c.n} ${variant(m).replace(/ öffnet nach (links|rechts)/, '')} ${m.w} × ${hOf(m)} cm${hng} (ab ${Math.round(m.s)} cm)`;
+    if (up) return m.t === 'dh' ? `Dunstabzug ${nm(HOODS, eqv('hood', 'schraeg'))} ${m.w} cm breit (ab ${Math.round(m.s)} cm)` : `${c.n} ${variant(m).replace(/ öffnet nach (links|rechts)/, '')} ${m.w} × ${hOf(m)} cm${hng} (ab ${Math.round(m.s)} cm)`;
     if (c.h === 't') return `${c.n} (${c.s}) ${m.w} × ${hOf(m)} cm${hng}`;
     if (c.corner) return `${c.n} ${c.s} ${m.w} cm in der ${cs === 'r' ? 'rechten' : 'linken'} Ecke${hng}`;
     if (c.n === 'Unterschrank') return `Unterschrank ${variant(m).replace(/ öffnet nach (links|rechts)/, '')} ${m.w} cm${hng}`;
@@ -1051,7 +1057,7 @@
       const [a, b] = range(w); let x = a;
       o.nutzbarVon = a; o.nutzbarBis = b; o.frei = Math.round(free(w));
       o.unten = rowsW.map((m, i) => { const cs = cornerSide(w, i), c = M[m.t], tall = c.h === 't', r = { id: m.id, typ: m.t, name: c.n, variante: variant(m, cs), art: tall ? 'hoch' : 'unter', breite: m.w, hoehe: tall ? hOf(m) : ah, tiefe: 60, abWand: x, ecke: cs || null, tuerAnschlag: hasHinge(m, cs) ? (aOf(m, cs) === 'l' ? 'links' : 'rechts') : null }; x += m.w; return r; });
-      o.oben = [...upList(w)].sort((p, q) => p.s - q.s).map(u => u.t === 'dh' ? { id: u.id, typ: 'dh', name: 'Dunstabzug', variante: 'Wandhaube', art: 'haube', breite: u.w, hoehe: 108, tiefe: 50, abWand: Math.round(u.s), unterkante: 152 } : { id: u.id, typ: u.t, name: M[u.t].n, variante: variant(u), art: 'haenge', breite: u.w, hoehe: hOf(u), tiefe: 35, abWand: Math.round(u.s), unterkante: upY(u).bottom, oberkante: upY(u).bottom + hOf(u), tuerAnschlag: hasHinge(u) ? (aOf(u) === 'l' ? 'links' : 'rechts') : null, automatisch: !!u.auto });
+      o.oben = [...upList(w)].sort((p, q) => p.s - q.s).map(u => u.t === 'dh' ? { id: u.id, typ: 'dh', name: 'Dunstabzug', variante: nm(HOODS, eqv('hood', 'schraeg')), art: 'haube', breite: u.w, hoehe: 108, tiefe: 50, abWand: Math.round(u.s), unterkante: 152 } : { id: u.id, typ: u.t, name: M[u.t].n, variante: variant(u), art: 'haenge', breite: u.w, hoehe: hOf(u), tiefe: 35, abWand: Math.round(u.s), unterkante: upY(u).bottom, oberkante: upY(u).bottom + hOf(u), tuerAnschlag: hasHinge(u) ? (aOf(u) === 'l' ? 'links' : 'rechts') : null, automatisch: !!u.auto });
       return o;
     });
     const LK = LOOKS.find(x => x[0] === P.style.look);
@@ -1061,8 +1067,18 @@
       arbeitshoehe: ah, sockel: 10 + ah - 90, arbeitsplatte: 4, waende, oeffnungen: P.op.map(opOf),
       insel: P.form === 'insel' ? { breite: P.island.w, tiefe: 100, hoehe: 90, variante: P.island.v, mitteX: W / 2, mitteZ: Math.max(210, Math.min(D - 120, 225)) } : null,
       stil: { ...P.style, ausgangsstil: LK ? LK[1] : null, front: (FRONTS.find(f => P.style.wood ? f[1] === 'wood:' + P.style.wood : f[1] === P.style.front) || [P.style.front])[0], griffe: (HANDLES.find(h => h[0] === P.style.handle) || ['', ''])[1], arbeitsplatteName: (TOPS.find(t => t[0] === P.style.top) || ['', ''])[1] },
+      ausstattung: eqData(),
       zusammenfassung: summary(),
     };
+  }
+  function backName() {
+    const b = P.style.back || 'wand', cn = (BACKC.find(c => c[1] === (P.style.backC || '')) || ['eigene Farbe'])[0];
+    const t = { wand: 'keine (Wandfarbe)', glas: `Glas ${cn} glänzend`, dibond: `Dibond ${cn} matt`, holz: `Holz ${nm(BACKW, P.style.backWood || 'eiche')}`, fliese: 'Metro-Fliesen', platte: 'Stein wie Arbeitsplatte', motiv: 'Glas bedruckt mit eigenem Motiv (Foto bitte separat mitschicken)' }[b] || b;
+    return t + (P.style.backLed ? ', mit LED beleuchtet' : '');
+  }
+  function eqData() {
+    const all = Object.values(P.rows).flat(), sp = all.some(m => m.t === 'sp') || (P.form === 'insel' && P.island.v === 'spuele'), wh = all.some(m => m.t === 'kf' || m.t === 'ko'), ih = P.form === 'insel' && P.island.v === 'kochfeld';
+    return { spuele: sp ? nm(SINKS, eqv('sink', 'edel')) : null, armatur: sp ? nm(TAPS, eqv('tap', 'chrom')) : null, kochfeldBreite: wh || ih ? eqv('hobW', 80) : null, kochfeldArt: wh ? (isDD() ? 'mit Muldenlüfter' : 'normal') : null, dunstabzug: wh ? (isDD() ? 'Muldenlüfter im Kochfeld' : nm(HOODS, eqv('hood', 'schraeg'))) : null, inselAbzug: ih ? nm(IHOODS, eqv('ihood', 'mulde')) : null, rueckwand: backName(), rueckwandTyp: P.style.back || 'wand', rueckwandBeleuchtet: !!P.style.backLed, eigenesMotiv: (P.style.back === 'motiv') };
   }
   function summary() {
     const s = P.style, fr = FRONTS.find(f => s.wood ? f[1] === 'wood:' + s.wood : f[1] === s.front);
@@ -1076,7 +1092,8 @@
     if (P.op.length) L.push('Fenster & Türen: ' + P.op.map(o => `${OPN[o.t]} ${o.w} cm (${WN[o.wall]}, ab ${o.s} cm)`).join(' · '));
     L.push(`Fronten: ${fr ? fr[0] : s.front} · Griffe: ${HANDLES.find(h => h[0] === s.handle)[1]} · Arbeitsplatte: ${TOPS.find(t => t[0] === s.top)[1]} · Hängeschränke: ${Object.keys(P.up).length ? 'individuell geplant' : anyTop() ? 'automatisch' : 'keine'}`);
     const LK = LOOKS.find(x => x[0] === s.look); if (LK) L.push(`Ausgangsstil: ${LK[1]}`);
-    L.push(`Frontart: ${s.frame ? 'Rahmenfront (Landhaus)' : 'glatt'} · Oberfläche: ${(FINISHES.find(f => f[0] === (s.finish || 'matt')) || FINISHES[0])[1]} · Nischenrückwand: ${(BACKS.find(b => b[0] === (s.back || 'wand')) || BACKS[0])[1]} · Wand: ${(WALLC.find(c => c[1] === s.wall) || ['eigene Farbe'])[0]} · Boden: ${(FLOORS.find(f => f[0] === s.floor) || FLOORS[0])[1]}`);
+    { const q = eqData(), A = []; if (q.spuele) A.push(`Spüle ${q.spuele}`, `Armatur ${q.armatur}`); if (q.kochfeldBreite) A.push(`Kochfeld ${q.kochfeldBreite} cm${q.kochfeldArt === 'mit Muldenlüfter' ? ' mit Muldenlüfter' : ''}`); if (q.dunstabzug && q.kochfeldArt !== 'mit Muldenlüfter') A.push(`Dunstabzug: ${q.dunstabzug}`); if (q.inselAbzug) A.push(`Abzug an der Insel: ${q.inselAbzug}`); if (A.length) L.push('Ausstattung: ' + A.join(' · ')); }
+    L.push(`Frontart: ${s.frame ? 'Rahmenfront (Landhaus)' : 'glatt'} · Oberfläche: ${(FINISHES.find(f => f[0] === (s.finish || 'matt')) || FINISHES[0])[1]} · Küchenrückwand: ${backName()} · Wand: ${(WALLC.find(c => c[1] === s.wall) || ['eigene Farbe'])[0]} · Boden: ${(FLOORS.find(f => f[0] === s.floor) || FLOORS[0])[1]}`);
     if (attach) L.push('Raumfoto: eigenes Foto mit eingesetzter Küche angehängt (Vorher und Nachher).');
     const w = tips().filter(x => x[0] === 'warn').map(x => x[1]); if (w.length) L.push('Hinweise: ' + w.join('; '));
     return L.join('\n');
