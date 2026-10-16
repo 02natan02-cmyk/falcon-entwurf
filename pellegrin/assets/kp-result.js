@@ -407,6 +407,48 @@
     try { const n = document.createElement('canvas'); n.width = n.height = 128; const ng = n.getContext('2d'), nd = ng.createImageData(128, 128); for (let i = 0; i < nd.data.length; i += 4) { const v = 128 + (Math.random() - .5) * 60; nd.data[i] = nd.data[i + 1] = nd.data[i + 2] = v; nd.data[i + 3] = 255; } ng.putImageData(nd, 0, 0); g.save(); g.globalCompositeOperation = 'overlay'; g.globalAlpha = .05 * strength; g.fillStyle = g.createPattern(n, 'repeat'); g.fillRect(0, 0, Wd, Hd); g.restore(); } catch (e) { }
     return c;
   }
+  /* ---------- Echtoptik per Raytracing (rt/kp-rt.js, three-gpu-pathtracer) ---------- */
+  // Fotorealistisch: physikalisches Licht (Himmel, Sonne durchs Fenster, LED, Spots), echte Materialien, Deko.
+  // Ältere Geräte ohne WebGL2-Gleitkomma-Puffer bekommen die bisherige Darstellung.
+  // Freischaltung: bis zur Prüfung auf echten Grafikkarten nur mit ?rt=1 (merkt sich der Tab). RT_DEFAULT = true schaltet es für alle ein.
+  const RT_DEFAULT = false;
+  const RT_OFF = /[?&]rt=0/.test(location.search) || (!RT_DEFAULT && !(() => { try { if (/[?&]rt=1/.test(location.search)) sessionStorage.setItem('kp-rt', '1'); return sessionStorage.getItem('kp-rt') === '1'; } catch (e) { return /[?&]rt=1/.test(location.search); } })());
+  let RTp = null, RTK = null, RThost = null, rtChain = Promise.resolve();
+  function rtSupported() { if (RT_OFF) return false; try { const c = document.createElement('canvas'), gl = c.getContext('webgl2'); const ok = !!(gl && gl.getExtension('EXT_color_buffer_float')); try { gl && gl.getExtension('WEBGL_lose_context').loseContext(); } catch (e) { } return ok; } catch (e) { return false; } }
+  function loadRT() {
+    if (window.PelRT) return Promise.resolve(window.PelRT);
+    if (RTp) return RTp;
+    const v = (($$('script').find(s => /kp-result\.js/.test(s.src)) || {}).src || '').split('v=')[1] || '1';
+    return RTp = new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'rt/kp-rt.js?v=' + v; s.onload = () => window.PelRT ? res(window.PelRT) : rej(new Error('rt')); s.onerror = () => { RTp = null; rej(new Error('rt-load')); }; document.head.appendChild(s); });
+  }
+  // Fotografischer Feinschliff: neutral-warmer Weißabgleich, sanfte Kurve, Lichthof an hellen Fenstern, leichte Vignette
+  function gradeRT(src) {
+    const Wd = src.width, Hd = src.height, c = document.createElement('canvas'); c.width = Wd; c.height = Hd; const g = c.getContext('2d'); g.drawImage(src, 0, 0);
+    try {
+      const id = g.getImageData(0, 0, Wd, Hd), d = id.data, lr = new Uint8ClampedArray(256), lg = new Uint8ClampedArray(256), lb = new Uint8ClampedArray(256);
+      for (let i = 0; i < 256; i++) { const v = i / 255, sm = v * v * (3 - 2 * v), cv = v + (sm - v) * .18; lr[i] = Math.min(255, cv * 255 * 1.025 + 1); lg[i] = Math.min(255, cv * 255 * 1.0); lb[i] = Math.min(255, cv * 255 * .965); }
+      for (let i = 0; i < d.length; i += 4) { d[i] = lr[d[i]]; d[i + 1] = lg[d[i + 1]]; d[i + 2] = lb[d[i + 2]]; }
+      g.putImageData(id, 0, 0);
+    } catch (e) { }
+    const sm = document.createElement('canvas'); sm.width = Math.max(8, Math.round(Wd / 16)); sm.height = Math.max(8, Math.round(Hd / 16)); const sg = sm.getContext('2d'); sg.filter = 'brightness(0.9) contrast(2.2)'; sg.drawImage(c, 0, 0, sm.width, sm.height);
+    g.save(); g.globalCompositeOperation = 'screen'; g.globalAlpha = .12; g.imageSmoothingQuality = 'high'; g.drawImage(sm, 0, 0, Wd, Hd); g.restore();
+    g.save(); g.globalCompositeOperation = 'multiply'; const gr = g.createRadialGradient(Wd / 2, Hd * .5, Math.min(Wd, Hd) * .45, Wd / 2, Hd * .5, Math.hypot(Wd, Hd) * .62); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(214,208,200,1)'); g.fillStyle = gr; g.fillRect(0, 0, Wd, Hd); g.restore();
+    return c;
+  }
+  async function renderRT(view, mood, onProg, isLive) {
+    const K = KPo(), PRT = await loadRT();
+    // frische Instanz je Bild: keine Einfahr-Animationen, die halb im Bild landen
+    if (RTK) { try { RTK.dispose(); } catch (e) { } RTK = null; }
+    if (!RThost) { RThost = document.createElement('div'); RThost.style.cssText = 'position:fixed;left:-9999px;top:0;width:320px;height:200px;pointer-events:none'; RThost.setAttribute('aria-hidden', 'true'); document.body.appendChild(RThost); }
+    RTK = PRT.create(RThost, { acc: (K && K.acc) || '#c0673f' });
+    RTK.mood(mood, K.state3d());
+    const mob = innerWidth < 700 || matchMedia('(pointer:coarse)').matches;
+    const qs = new URLSearchParams(location.search), qw = +(qs.get('rtw') || 0);   // rtw: Testgröße
+    const Wd = qw >= 240 ? qw : mob ? 1280 : 1920, Hd = Math.round(Wd * .625);
+    const r = await PRT.render(RTK, { w: Wd, h: Hd, view, mood, plan: getPlan(), samples: mob ? 220 : 640, minSamples: mob ? 32 : 48, maxMs: mob ? 30000 : 26000, tiles: mob ? 3 : 2, envLight: 'apartment', onProgress: onProg, signal: { get aborted() { return !isLive(); } } });
+    if (!isLive()) return null;
+    return { canvas: gradeRT(r.canvas), how: 'rt', samples: r.samples };
+  }
   async function renderView(view, mood, onStep) {
     const K = KPo(); if (!K) throw new Error('kp');
     const Wd = innerWidth < 700 ? 1440 : 1920, Hd = Math.round(Wd * .625);
@@ -459,7 +501,9 @@
     <section class="kpr-p kpr-foto" id="kpr-p-foto" role="tabpanel" aria-labelledby="kpr-tab-foto" data-p="foto">
       <div class="kpr-stage" data-stage>
         <div class="kpr-r3d" data-r3d aria-hidden="true"></div>
+        <canvas class="kpr-live" data-live aria-hidden="true"></canvas>
         <img class="kpr-img" data-img alt="Ihre geplante Küche in Echtoptik">
+        <div class="kpr-rtp" data-rtp hidden><span class="kpr-rtl"><b data-rtpt>Licht wird berechnet</b><small data-rtps></small></span><span class="kpr-bar"><i data-rtpb></i></span></div>
         <div class="kpr-load" data-load><div class="kpr-pre" data-pre></div><div class="kpr-lc"><span class="kpr-spin" aria-hidden="true"></span><b>Wird in Echtoptik berechnet …</b><small data-lstep>Licht wird gesetzt</small><span class="kpr-bar"><i data-lbar></i></span></div></div>
         <p class="kpr-err" data-ferr hidden></p>
       </div>
@@ -532,18 +576,40 @@
     try { const k3 = KPo().k3d && KPo().k3d(); if (k3 && k3.snapshot && !lastFoto) pre.style.backgroundImage = `url(${k3.snapshot()})`; else if (lastFoto) pre.style.backgroundImage = `url(${lastFoto})`; } catch (e) { }
     const step = i => { if (tok !== renderTok) return; ls.textContent = STEPS[i] || STEPS[2]; bar.style.width = (i / 4 * 100) + '%'; };
     step(.4);
-    const t0 = performance.now();
+    const t0 = performance.now(), live = $('[data-live]', el), rtp = $('[data-rtp]', el), rtpb = $('[data-rtpb]', el), rtpt = $('[data-rtpt]', el), rtps = $('[data-rtps]', el);
+    live.classList.remove('on'); rtp.hidden = true;
     try {
-      const r = await renderView(view, mood, step);
+      let r = null;
+      const key = 'rt|' + view + '|' + mood + '|' + JSON.stringify(KPo().state3d ? KPo().state3d() : {});
+      if (rtSupported()) {
+        if (cache.has(key)) r = cache.get(key);
+        else {
+          const prev = rtChain; let release; rtChain = new Promise(x => release = x);
+          try {
+            await prev; if (tok !== renderTok) return;
+            ls.textContent = 'Raum, Licht und Materialien werden aufgebaut'; bar.style.width = '18%';
+            r = await renderRT(view, mood, (f, cv, spp) => {
+              if (tok !== renderTok) return;
+              if (!live.classList.contains('on')) { live.width = cv.width; live.height = cv.height; live.classList.add('on'); rtp.hidden = false; load.classList.add('out'); setTimeout(() => { if (tok === renderTok) load.hidden = true; }, 600); }
+              try { live.getContext('2d').drawImage(cv, 0, 0); } catch (e) { }
+              const pc = Math.round(f * 100); rtpb.style.width = pc + '%'; rtpt.textContent = pc < 98 ? `Licht wird berechnet · ${pc} %` : 'Feinschliff …'; rtps.textContent = `${Math.round(spp)} Lichtstrahlen je Bildpunkt`;
+            }, () => tok === renderTok);
+          } catch (e) { console.warn('Echtoptik-Raytracing nicht möglich – Standard-Darstellung', e); r = null; }
+          finally { release(); }
+          if (tok !== renderTok) return;
+          if (r) { cache.set(key, r); if (cache.size > 12) cache.delete(cache.keys().next().value); }
+        }
+      }
+      if (!r) r = await renderView(view, mood, step);
       if (tok !== renderTok) return;
       const min = RMO ? 0 : 900 - (performance.now() - t0); if (min > 0) await wait(min);
       if (tok !== renderTok) return;
       const url = r.canvas.toDataURL('image/jpeg', .92); img.src = url; lastFoto = url; el.dataset.how = r.how;
       await (img.decode ? img.decode().catch(() => { }) : Promise.resolve());
       if (tok !== renderTok) return;
-      img.classList.add('on'); load.classList.add('out'); setTimeout(() => { if (tok === renderTok) load.hidden = true; }, 700);
+      img.classList.add('on'); load.classList.add('out'); setTimeout(() => { if (tok === renderTok) { load.hidden = true; live.classList.remove('on'); } }, 700); rtp.hidden = true;
     } catch (e) {
-      if (tok !== renderTok) return; load.hidden = true; err.hidden = false; err.textContent = 'Das Bild in Echtoptik konnte auf diesem Gerät nicht berechnet werden. Der Maßplan und die Übersicht stehen trotzdem bereit.';
+      if (tok !== renderTok) return; load.hidden = true; rtp.hidden = true; live.classList.remove('on'); err.hidden = false; err.textContent = 'Das Bild in Echtoptik konnte auf diesem Gerät nicht berechnet werden. Der Maßplan und die Übersicht stehen trotzdem bereit.';
     }
   }
   async function saveFoto() {
