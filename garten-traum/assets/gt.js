@@ -211,16 +211,16 @@
     }
     function rsD() { const r = stage.getBoundingClientRect(); dust.width = r.width; dust.height = r.height; measure(); }
     rsD(); addEventListener('resize', rsD);
-    const total = () => sawSec.offsetHeight - innerHeight;
-    // Stapel: ein Klick springt zum Kapitel
+    // v6b: läuft von selbst – sobald der Abschnitt im Bild ist, sägt die Säge Scheibe für Scheibe (ca. 1,9 s pro Kapitel).
+    // Kein langer Scroll-Weg mehr; die Kapitel-Scheiben unten bleiben anklickbar und beenden den Selbstlauf.
+    const DUR = 1.9; let P = 0, playing = false, stopped = false, tgt = null, lastT = 0;
+    firstView(sawSec, () => { if (!stopped) { playing = true; lastT = performance.now(); } }, '0px 0px -35% 0px');
     prog.forEach((b, i) => b.addEventListener('click', () => {
       if (RM) { sl[i].scrollIntoView({ block: 'center' }); return; }
-      const n = sl.length, p = (i + .86) / (n * 1.04);
-      scrollTo({ top: sawSec.getBoundingClientRect().top + scrollY + p * total() + 2, behavior: 'smooth' });
+      stopped = true; playing = false; tgt = (i + .86) / (sl.length * 1.04);
     }));
-    function update() {
-      const r = sawSec.getBoundingClientRect(), T = total();
-      const p = clamp(-r.top / T, 0, 1), n = sl.length, f = p * n * 1.04;
+    function update(p) {
+      const n = sl.length, f = p * n * 1.04;
       const k = Math.min(n - 1, Math.floor(f)), u = clamp(f - k, 0, 1);
       log.style.transform = `translateX(${(k + (u > .45 ? 1 : 0)) * 3.2}%)`;
       sawing = u < .42 && p > 0 && p < 1;
@@ -262,9 +262,12 @@
         for (let i = 0; i < 5; i++) { const side = Math.random() < .7 ? -1 : 1; parts.push({ x: bx + side * rr * (.6 + Math.random() * .4), y: by, vx: side * (1.5 + Math.random() * 4.5), vy: -1.5 - Math.random() * 4, s: 1 + Math.random() * 2.6, a: 1, c: Math.random() > .5 ? '#e9c58f' : '#c99450' }); }
       }
     }
-    function loop() {
+    function loop(now) {
+      const dt = Math.min(.25, Math.max(0, (now - (lastT || now)) / 1000)); lastT = now;
       if (vis) {
-        update();
+        if (playing) { P += dt / (sl.length * 1.04 * DUR); if (P >= 1) { P = 1; playing = false; } }
+        else if (tgt !== null) { const d = tgt - P; P += Math.sign(d) * Math.min(Math.abs(d), Math.max(.004, Math.abs(d) * .12)); if (Math.abs(tgt - P) < .0008) { P = tgt; tgt = null; } }
+        update(P);
         dctx.clearRect(0, 0, dust.width, dust.height);
         parts = parts.filter(q => (q.a -= .012) > 0 && q.y < dust.height + 10);
         for (const q of parts) { q.vy += .12; q.x += q.vx; q.y += q.vy; q.vx *= .99; dctx.globalAlpha = q.a; dctx.fillStyle = q.c; dctx.fillRect(q.x, q.y, q.s, q.s); }
