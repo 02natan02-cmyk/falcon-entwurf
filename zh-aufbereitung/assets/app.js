@@ -77,8 +77,12 @@
   const intro = $('.intro');
   const heroIn = () => { if (!hasG || reduce || !$('.hero-c')) return; gsap.from('.hero-c > *', { y: 46, opacity: 0, duration: 1.2, ease: 'power3.out', stagger: .09 }); gsap.from('.hud > span', { opacity: 0, duration: 1, delay: .4, stagger: .1 }); };
   if (intro) {
-    const force = /[?&]intro/.test(location.search);
-    if (!hasG || reduce || !force) { /* Intro nur noch mit ?intro – der Kirchturm-Flug ist der erste Eindruck */ intro.classList.add('gone'); heroIn(); }
+    /* Seifenblasen-Intro kommt bei jedem Öffnen der Startseite (auch beim Neuladen) – nur nicht, wenn man innerhalb der Seite zurück auf Start klickt. ?intro erzwingt, ?nointro überspringt. */
+    const force = /[?&]intro\b/.test(location.search), skip = /[?&]nointro/.test(location.search);
+    let navType = ''; try { navType = (performance.getEntriesByType('navigation')[0] || {}).type || ''; } catch (e) {}
+    let inside = false; try { const r = new URL(document.referrer), base = location.pathname.replace(/[^/]*$/, ''); inside = r.origin === location.origin && r.pathname.startsWith(base); } catch (e) {}
+    const show = hasG && !skip && (force || (!reduce && (!inside || navType === 'reload')));
+    if (!show) { intro.classList.add('gone'); heroIn(); }
     else {
       intro.classList.remove('gone'); lenis && lenis.stop(); root.style.overflow = 'hidden';
       const cv = $('.ib', intro), ctx = cv.getContext('2d'), mark = $('.intro-mark', intro);
