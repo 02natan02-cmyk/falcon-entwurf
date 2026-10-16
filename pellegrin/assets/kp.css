@@ -466,3 +466,20 @@ html.kpf-on,html.kpf-on body{overflow:hidden}
 
 /* Handy: Bühne und Schritte beim Hinscrollen nicht unter dem klebenden Kopf (Seitenkopf + Planer-Schritte) verstecken */
 @media (max-width:999px){.kp-stage,.kp-pane{scroll-margin-top:112px}}
+
+/* v7 – Handy/Tablet, Schritt 2: Schrankleiste (und überlaufende Gruppen-Reiter) mit weichem Rand, einmaligem Anstupser und Wisch-Hinweis.
+   Klassen setzt kp.js nur unter 1000 px – Desktop unverändert. */
+@property --kp-fl{syntax:"<length>";inherits:false;initial-value:0px}
+@property --kp-fr{syntax:"<length>";inherits:false;initial-value:0px}
+@media (max-width:999px){
+  .kp[data-step="1"] [data-kpane].on{position:relative}
+  .kp[data-step="1"] .kp-pal{scroll-padding-inline:12px}
+  .kp[data-step="1"] .kp-pal.kp-ov,.kp[data-step="1"] .kp-cats.kp-ov{-webkit-mask-image:linear-gradient(90deg,transparent,#000 var(--kp-fl),#000 calc(100% - var(--kp-fr)),transparent);mask-image:linear-gradient(90deg,transparent,#000 var(--kp-fl),#000 calc(100% - var(--kp-fr)),transparent);transition:--kp-fl .3s ease,--kp-fr .3s ease}
+  .kp-pal.kp-fl{--kp-fl:16px}.kp-pal.kp-fr{--kp-fr:40px}
+  .kp-cats.kp-fl{--kp-fl:16px}.kp-cats.kp-fr{--kp-fr:30px}
+  .kp[data-step] .kp-pal.kp-nudge,.kp[data-step] .kp-cats.kp-nudge{scroll-snap-type:none}
+  .kp-palhint{position:absolute;left:50%;z-index:3;display:flex;align-items:center;gap:6px;margin-top:4px;padding:4px 11px;border-radius:999px;background:var(--ink);background:color-mix(in srgb,var(--ink) 92%,transparent);color:#fff;font:600 11.5px/1.25 var(--sans);letter-spacing:.01em;white-space:nowrap;box-shadow:0 8px 18px -8px rgba(0,0,0,.5);pointer-events:none;opacity:0;transform:translate(-50%,6px);transition:opacity .35s ease,transform .35s cubic-bezier(.2,.8,.2,1)}
+  .kp-palhint.on{opacity:1;transform:translate(-50%,0)}
+  .kp-palhint i{font-style:normal;font-weight:700;color:var(--copper);color:color-mix(in srgb,var(--copper) 45%,#fff)}
+}
+@media (max-width:999px) and (prefers-reduced-motion:reduce){.kp-palhint,.kp-palhint.on{transform:translateX(-50%);transition:opacity .2s linear}}

@@ -695,9 +695,61 @@
     if (catsEl) catsEl.innerHTML = CATS.map(([k, n]) => `<button type="button" data-cat="${k}" class="${k === cat ? 'on' : ''}" aria-pressed="${k === cat}">${n}<small>${PAL.filter(p => p.c === k).length}</small></button>`).join('');
     if (cathEl) cathEl.textContent = CATH[cat] || '';
     palEl.innerHTML = PAL.filter(p => !catsEl || p.c === cat).map(p => { const tl = tileSvg(p.t, M[p.t].w, p.o || {}); return `<button type="button" class="kp-tile" data-pal="${p.k}" title="${M[p.t].n} – ${M[p.t].s}"><svg viewBox="${tl.vb}" class="${tl.cls}" aria-hidden="true">${tl.svg}</svg><b>${p.n}</b><small>${p.s}</small></button>`; }).join('');
+    syncPalFx();
   }
   if (catsEl) catsEl.addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (!b) return; cat = b.dataset.cat; renderPal(); palEl.scrollLeft = 0; });
   palEl.addEventListener('pointerdown', e => { const b = e.target.closest('[data-pal]'); if (!b) return; disarm(); const pe = palById(b.dataset.pal); startDrag(e, 'pal', { t: pe.t, pe, o: pe.o, touch: e.pointerType !== 'mouse' }); });
+
+  /* ---------------- v7: Schrankleiste am Handy – weicher Rand, einmaliger Anstupser, Wisch-Hinweis ---------------- */
+  // Nur unter 1000 px (dort ist die Leiste in Schritt 2 ein waagrechter Streifen) – am Desktop passiert hier nichts.
+  // Streifen: weicher Rand rechts (links, sobald gescrollt); beim ersten Sehen rollt er einmal ~76 px nach rechts und zurück,
+  // dazu „← wischen · antippen zum Einsetzen →“, bis die Leiste zum ersten Mal berührt oder gescrollt wird.
+  // Gruppen-Reiter darüber: gleicher Rand + ein Anstupser – nur, wenn sie wirklich überlaufen. Reduzierte Bewegung: nur Hinweis.
+  const MOBQ = typeof matchMedia === 'function' ? matchMedia('(max-width: 999px)') : { matches: false };
+  const palFx = { seen: false, done: false, chip: null, run: null, catsDone: false };
+  const ovX = el => !!el && el.clientWidth > 0 && el.scrollWidth - el.clientWidth > 4;
+  function edgeFx(el) {
+    if (!el) return; const on = MOBQ.matches && ovX(el), max = el.scrollWidth - el.clientWidth;
+    el.classList.toggle('kp-ov', on); el.classList.toggle('kp-fl', on && el.scrollLeft > 2); el.classList.toggle('kp-fr', on && el.scrollLeft < max - 2);
+  }
+  function syncPalFx() { edgeFx(palEl); edgeFx(catsEl); if (palFx.chip) palFx.chip.classList.toggle('on', !palFx.done && MOBQ.matches && ovX(palEl)); }
+  [palEl, catsEl].forEach(el => { if (!el) return; let q = 0; el.addEventListener('scroll', () => { if (!q) q = requestAnimationFrame(() => { q = 0; edgeFx(el); }); }, { passive: true }); });
+  // Einmal kurz nach rechts und zurück – echtes Scrollen (Rasten solange aus); ein Fingertipp übernimmt sofort
+  function nudgeX(el, dist, then) {
+    const s0 = el.scrollLeft, d = Math.min(dist, el.scrollWidth - el.clientWidth - s0); if (d < 8) { if (then) then(); return null; }
+    const T1 = 560, TH = 160, T2 = 640, ez = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; let t0 = 0, raf = 0, end = false;
+    const stop = fin => { if (end) return; end = true; cancelAnimationFrame(raf); if (fin) el.scrollLeft = s0; el.classList.remove('kp-nudge'); if (then) then(fin); };
+    const f = now => { if (end) return; if (!t0) t0 = now; const t = now - t0; if (t >= T1 + TH + T2) return stop(true); el.scrollLeft = s0 + d * (t < T1 ? ez(t / T1) : t < T1 + TH ? 1 : 1 - ez((t - T1 - TH) / T2)); raf = requestAnimationFrame(f); };
+    el.classList.add('kp-nudge'); raf = requestAnimationFrame(f); return { stop: () => stop(false) };
+  }
+  function palChip() {
+    if (palFx.chip || palFx.done) return;
+    const c = document.createElement('div'); c.className = 'kp-palhint'; c.setAttribute('aria-hidden', 'true'); c.innerHTML = '<i>←</i>wischen · antippen zum Einsetzen<i>→</i>';
+    palEl.parentNode.insertBefore(c, palEl); palFx.chip = c; requestAnimationFrame(() => requestAnimationFrame(syncPalFx));
+  }
+  function catsNudge() { if (palFx.catsDone || RMO || drag || !MOBQ.matches || !ovX(catsEl)) return; palFx.catsDone = true; nudgeX(catsEl, 48); }
+  function palFirstView() {
+    if (palFx.seen || palFx.done || !MOBQ.matches || !ovX(palEl)) return; palFx.seen = true;
+    const t0 = Date.now();
+    // erst wenn die 3D-Ansicht steht (sonst ruckelt es am Handy) – spätestens ~2,6 s nach dem ersten Sehen
+    const wait = () => { if (palFx.done) return; if (document.hidden || (!K && Date.now() - t0 < 2600)) { setTimeout(wait, 200); return; } setTimeout(go2, K ? 450 : 0); };
+    const go2 = () => {
+      if (palFx.done || drag) return; palChip();
+      if (RMO || !ovX(palEl)) { setTimeout(catsNudge, 300); return; }
+      palFx.run = nudgeX(palEl, 76, fin => { palFx.run = null; setTimeout(catsNudge, fin ? 300 : 1600); });
+    };
+    setTimeout(wait, 1100);
+  }
+  // Erste echte Berührung / Scroll-Geste an der Leiste: Anstupser sofort beenden, Hinweis ausblenden – für den Rest des Besuchs
+  const palTouched = () => {
+    if (palFx.run) palFx.run.stop(); if (palFx.done) return; palFx.done = true;
+    const c = palFx.chip; if (c) { c.classList.remove('on'); setTimeout(() => { c.remove(); if (palFx.chip === c) palFx.chip = null; }, 450); }
+  };
+  ['pointerdown', 'touchstart', 'wheel', 'keydown'].forEach(ev => palEl.addEventListener(ev, palTouched, { passive: true }));
+  if (catsEl) catsEl.addEventListener('pointerdown', () => { palFx.catsDone = true; }, { passive: true });
+  if (typeof IntersectionObserver === 'function') new IntersectionObserver(es => { if (es.some(x => x.isIntersecting)) { syncPalFx(); palFirstView(); } }, { threshold: .5 }).observe(palEl);
+  { let q = 0; addEventListener('resize', () => { if (!q) q = requestAnimationFrame(() => { q = 0; syncPalFx(); const r = palEl.getBoundingClientRect(); if (r.width && r.top < innerHeight && r.bottom > 0) palFirstView(); }); }); }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncPalFx).catch(() => { });
   wallsEl.addEventListener('pointerdown', e => {
     const gu = e.target.closest('[data-u]'), g = e.target.closest('[data-m]'), wn = e.target.closest('[data-op]'), bs = e.target.closest('[data-bs]');
     const wallEl = e.target.closest('.kp-wall'), hadEq = !!eqSel; eqSel = null;
