@@ -50,8 +50,9 @@
     });
     (S.open || []).forEach(o => {
       const w = walls[o.wall]; if (!w) return;
-      if (o.t === 'tuer') w.open.push({ t: 'tuer', s: o.s, w: o.w, y0: 0, h: 205 });
-      else w.open.push({ t: (o.y != null && o.y < 20) ? 'balkon' : 'fenster', s: o.s, w: o.w, y0: o.y != null ? o.y : 105, h: o.h || 115 });
+      const x = { fl: o.fl || 1, a: o.a || (o.t === 'tuer' ? 'r' : 'l'), k: o.k || '', dir: o.dir || 'in' };
+      if (o.t === 'tuer') w.open.push({ t: 'tuer', s: o.s, w: o.w, y0: 0, h: o.h || 205, ...x });
+      else w.open.push({ t: o.t === 'balkon' || (o.y != null && o.y < 20) ? 'balkon' : 'fenster', s: o.s, w: o.w, y0: o.t === 'balkon' ? 0 : o.y != null ? o.y : 105, h: o.h || 115, ...x });
     });
     return { src: 'state3d', room: { w: W, d: D, h: ROOM_H }, form, kw, ah, walls, island };
   }
@@ -69,7 +70,7 @@
       const k = String(w0.wand || w0.key || w0.wall || '').toUpperCase(), w = walls[k]; if (!w) return;
       w.name = w0.name || w.name; w.len = num(w0.laenge, w0.len, w0.length) || w.len; w.kitchen = !!(w0.kueche || w0.kitchen);
       if (w0.nutzbarVon != null && w0.nutzbarBis != null) w.range = [+w0.nutzbarVon, +w0.nutzbarBis];
-      (w0.oeffnungen || w0.openings || []).forEach(o => { const t = /tuer|tür|door/i.test(o.typ || o.t || '') ? 'tuer' : /balkon/i.test(o.typ || o.t || '') ? 'balkon' : 'fenster'; w.open.push({ t, s: num(o.abWand, o.s) || 0, w: num(o.breite, o.w) || 90, y0: num(o.bruestung, o.y0) ?? (t === 'fenster' ? 105 : 0), h: num(o.hoehe, o.h) || (t === 'tuer' ? 205 : t === 'balkon' ? 216 : 115) }); });
+      (w0.oeffnungen || w0.openings || []).forEach(o => { const t = /tuer|tür|door/i.test(o.typ || o.t || '') ? 'tuer' : /balkon/i.test(o.typ || o.t || '') ? 'balkon' : 'fenster'; w.open.push({ t, s: num(o.abWand, o.s) || 0, w: num(o.breite, o.w) || 90, y0: num(o.bruestung, o.y0) ?? (t === 'fenster' ? 105 : 0), h: num(o.hoehe, o.h) || (t === 'tuer' ? 205 : t === 'balkon' ? 216 : 115), fl: num(o.fluegel, o.fl) || 1, a: /^l/i.test(o.anschlag || o.a || '') ? 'l' : /^r/i.test(o.anschlag || o.a || '') ? 'r' : (t === 'tuer' ? 'r' : 'l'), k: o.artKey || o.k || '', dir: /außen|aussen|out/i.test(o.oeffnet || o.dir || '') ? 'out' : 'in', desc: o.beschreibung || '' }); });
       (w0.unten || []).forEach(c0 => {
         const sp = spec[String(c0.id)] || {}, tall = /hoch/.test(c0.art || '') || sp.kind === 't';
         const c = { id: c0.id, wall: k, s: num(c0.abWand) || 0, w: num(c0.breite) || 60, name: c0.name || 'Element', sub: c0.variante || '', kind: tall ? 't' : 'b', d: num(c0.tiefe) || 60, h: tall ? num(c0.hoehe) || 216 : null, y0: 0, fr: sp.fr || null, cols: sp.cols || null, corner: sp.corner || (c0.typ === 'ek' ? { kind: 'kar', side: c0.ecke || 'l' } : null), ecke: c0.ecke || null, typ: c0.typ, hinge: c0.tuerAnschlag || null };
@@ -89,7 +90,7 @@
     kw.forEach(k => { if (walls[k]) walls[k].kitchen = true; });
     const I = pd.insel || pd.island;
     const island = I && num(I.breite, I.w) ? { w: num(I.breite, I.w), d: num(I.tiefe, I.d) || 100, x: num(I.mitteX, I.x) ?? W / 2, z: num(I.mitteZ, I.z) ?? Math.max(210, Math.min(D - 120, 225)), v: I.variante || I.v || 'frei' } : null;
-    return { src: 'planData', room: { w: W, d: D, h: num(R.hoehe, R.h) || ROOM_H }, form: pd.form || (K.form && K.form()) || 'l', formName0: pd.formName, kw, ah, sockel0: num(pd.sockel), walls, island, styleData: pd.stil || null, cx: (pd.anschluesse || []).filter(a => a && a.wand).map(a => ({ t: a.typ, wall: String(a.wand).toUpperCase(), s: num(a.abWand) || 0, h: num(a.hoehe) })) };
+    return { src: 'planData', room: { w: W, d: D, h: num(R.hoehe, R.h) || ROOM_H }, form: pd.form || (K.form && K.form()) || 'l', formName0: pd.formName, kw, ah, sockel0: num(pd.sockel), walls, island, styleData: pd.stil || null, cx: (pd.anschluesse || []).filter(a => a && a.wand).map(a => ({ t: a.typ, wall: String(a.wand).toUpperCase(), s: num(a.abWand) || 0, h: num(a.hoehe), neu: !!a.neu, n: num(a.fach) || (a.typ === 'dose' ? 2 : 0), o: /senk/i.test(a.lage || '') ? 'v' : 'h', zone: a.bereich || '', d: num(a.durchmesser) || (a.typ === 'abluft' ? 150 : 0), hw: num(a.breite), hh: num(a.koerperHoehe), y0: num(a.bodenabstand) })) };
   }
 
   function getPlan() {
@@ -148,6 +149,8 @@
     return s + '</g>';
   }
 
+  // Flügel einer Öffnung (wie im Planer): 2-flügelig = Bänder außen, Stulp in der Mitte
+  const opWingsR = o => o.fl === 2 ? [{ h: o.s, l: o.s + o.w / 2, r: o.w / 2 }, { h: o.s + o.w, l: o.s + o.w / 2, r: o.w / 2 }] : [o.a === 'l' ? { h: o.s, l: o.s + o.w, r: o.w } : { h: o.s + o.w, l: o.s, r: o.w }];
   function planSVG(pd, o) {
     const u = o.fs, W = pd.room.w, D = pd.room.d; DIMI = 0;
     const has = k => pd.walls[k].base.length || pd.walls[k].open.length;
@@ -186,13 +189,25 @@
       const a1 = op.s, a2 = op.s + op.w, P = (a, o) => wp(pd, k, a, o);
       const q = [P(a1, -.5), P(a2, -.5), P(a2, T + .5), P(a1, T + .5)];
       s += `<path d="M${q.map(p => p.map(f1).join(' ')).join('L')}Z" fill="#f7f2ea"/>`;
+      // Flügel: Band (h) → Schloss (l); innen = Raumseite (negativer Abstand), außen = hinter der Wand
+      const swing = (wg, out, col, wd, op2) => { const o0 = out ? T : 0, sg = out ? 1 : -1, [hx, hy] = P(wg.h, o0), [ex, ey] = P(wg.h, o0 + sg * wg.r), [x1, y1] = P(wg.l, o0); const sw = ((ex - hx) * (y1 - hy) - (ey - hy) * (x1 - hx)) > 0 ? 1 : 0; return `<g${op2 ? ` opacity="${op2}"` : ''}>${pline(hx, hy, ex, ey, { w: wd * u / 10, c: col })}<path d="M${f1(ex)} ${f1(ey)}A${f1(wg.r)} ${f1(wg.r)} 0 0 ${sw} ${f1(x1)} ${f1(y1)}" fill="none" stroke="${col}" stroke-width="${.45 * u / 10}" stroke-dasharray="${.5 * u} ${.35 * u}"/></g>`; };
+      const arrow = (a, b, off, col) => { const [x0, y0] = P(a, off), [x1, y1] = P(b, off), L0 = Math.hypot(x1 - x0, y1 - y0) || 1, ux = (x1 - x0) / L0, uy = (y1 - y0) / L0, hl = Math.min(6, L0 * .3); return pline(x0, y0, x1, y1, { w: .55 * u / 10, c: col }) + `<path d="M${f1(x1 - ux * hl - uy * hl * .55)} ${f1(y1 - uy * hl + ux * hl * .55)}L${f1(x1)} ${f1(y1)}L${f1(x1 - ux * hl + uy * hl * .55)} ${f1(y1 - uy * hl - ux * hl * .55)}" fill="none" stroke="${col}" stroke-width="${.55 * u / 10}"/>`; };
+      const wings = opWingsR(op), sl = op.k === 'schiebe' || op.k === 'hs', sws = !(op.k === 'fest' || op.k === 'kipp' || sl);
       if (op.t === 'tuer') {
-        const [hx, hy] = P(a2, 0), [ex, ey] = P(a2, -op.w), [x1, y1] = P(a1, 0);
-        const sw = ((ex - hx) * (y1 - hy) - (ey - hy) * (x1 - hx)) > 0 ? 1 : 0;
-        s += pline(hx, hy, ex, ey, { w: 1.4 * u / 10 }) + `<path d="M${f1(ex)} ${f1(ey)}A${op.w} ${op.w} 0 0 ${sw} ${f1(x1)} ${f1(y1)}" fill="none" stroke="${INK}" stroke-width="${.45 * u / 10}" stroke-dasharray="${.5 * u} ${.35 * u}"/>`;
-        [P(a1, 0), P(a1, T)].forEach(() => { }); s += pline(...P(a1, 0), ...P(a1, T), { w: .8 * u / 10 }) + pline(...P(a2, 0), ...P(a2, T), { w: .8 * u / 10 });
+        if (sl) {
+          // Schiebetür vor der Wand (Raumseite), Pfeil in Schieberichtung
+          const dir = op.a === 'l' ? -1 : 1; s += pline(...P(a1 - 4, -2.6), ...P(a2 + 4, -2.6), { w: 1.6 * u / 10 }) + arrow((a1 + a2) / 2 - dir * op.w * .18, (a1 + a2) / 2 + dir * op.w * .3, -7, INK);
+        } else wings.forEach(wg => { s += swing(wg, op.dir === 'out', INK, 1.4); });
+        s += pline(...P(a1, 0), ...P(a1, T), { w: .8 * u / 10 }) + pline(...P(a2, 0), ...P(a2, T), { w: .8 * u / 10 });
       } else {
-        s += pline(...P(a1, 0), ...P(a2, 0), { w: .5 * u / 10 }) + pline(...P(a1, T), ...P(a2, T), { w: .5 * u / 10 }) + pline(...P(a1, T / 2), ...P(a2, T / 2), { w: (op.t === 'balkon' ? 1.6 : 1.1) * u / 10, c: '#4f7fa8' }) + pline(...P(a1, 0), ...P(a1, T), { w: .8 * u / 10 }) + pline(...P(a2, 0), ...P(a2, T), { w: .8 * u / 10 });
+        s += pline(...P(a1, 0), ...P(a2, 0), { w: .5 * u / 10 }) + pline(...P(a1, T), ...P(a2, T), { w: .5 * u / 10 }) + pline(...P(a1, 0), ...P(a1, T), { w: .8 * u / 10 }) + pline(...P(a2, 0), ...P(a2, T), { w: .8 * u / 10 });
+        if (op.k === 'hs') { const m = (a1 + a2) / 2, dir = op.a === 'l' ? -1 : 1; s += pline(...P(a1, T * .35), ...P(m + 3, T * .35), { w: 1.1 * u / 10, c: '#4f7fa8' }) + pline(...P(m - 3, T * .65), ...P(a2, T * .65), { w: 1.1 * u / 10, c: '#4f7fa8' }) + arrow(m - dir * op.w * .12, m + dir * op.w * .22, -5, '#4f7fa8'); }
+        else {
+          s += pline(...P(a1, T / 2), ...P(a2, T / 2), { w: (op.t === 'balkon' ? 1.6 : 1.1) * u / 10, c: '#4f7fa8' });
+          if (op.fl === 2) s += pline(...P((a1 + a2) / 2, 0), ...P((a1 + a2) / 2, T), { w: .7 * u / 10, c: '#4f7fa8' });
+          // Fensterflügel schlagen in die Küche – leicht, damit Schränke lesbar bleiben
+          if (sws) wings.forEach(wg => { s += swing(wg, false, "#4f7fa8", 1, op.t === "balkon" ? 1 : .8); });
+        }
       }
       const [lx, ly] = P((a1 + a2) / 2, -(op.t === 'tuer' ? Math.min(op.w * .45, 40) : 1.2 * u) - (k === 'S' || k === 'E' ? 0 : 0)), rot = k === 'W' || k === 'E' ? -90 : 0;
       const isKitchenSide = pd.walls[k].base.length > 0;
@@ -266,8 +281,25 @@
     // Öffnungen
     w.open.forEach(op => {
       const x = op.s, ww = op.w;
-      if (op.t === 'tuer') s += `<rect x="${x}" y="${Y(op.h)}" width="${ww}" height="${op.h}" fill="#ece5da" stroke="${MUTE}" stroke-width="${.5 * u / 10}"/>` + ptxt(x + ww / 2, Y(op.h / 2), 'Tür', .7 * u, { fill: MUTE, w: 600 });
-      else s += `<rect x="${x}" y="${Y(op.y0 + op.h)}" width="${ww}" height="${op.h}" fill="#e3eef6" stroke="#4f7fa8" stroke-width="${.6 * u / 10}"/>` + (ww > 90 ? pline(x + ww / 2, Y(op.y0 + op.h), x + ww / 2, Y(op.y0), { c: '#4f7fa8', w: .5 * u / 10 }) : '') + ptxt(x + ww / 2, Y(op.y0 + op.h) + 1.2 * u, op.t === 'balkon' ? 'Balkontür' : 'Fenster', .66 * u, { fill: '#4f6b84', w: 600 });
+      const top = Y((op.y0 || 0) + op.h), bot = Y(op.y0 || 0), k2 = op.k || (op.t === 'tuer' ? 'dreh' : 'dk'), two = op.fl === 2;
+      const wings = two ? [[x, ww / 2, 'l'], [x + ww / 2, ww / 2, 'r']] : [[x, ww, op.a || (op.t === 'tuer' ? 'r' : 'l')]];
+      // DIN-Zeichen: Spitze zur Bandseite (Dreh), nach unten (Kipp)
+      const sym = (sx, sw, hg, col) => { let d = ''; const mid = (top + bot) / 2, i = .8; if (k2 === 'd' || k2 === 'dk' || k2 === 'dreh') d += hg === 'l' ? `M${f1(sx + sw - i)} ${f1(top + i)}L${f1(sx + i)} ${f1(mid)}L${f1(sx + sw - i)} ${f1(bot - i)}` : `M${f1(sx + i)} ${f1(top + i)}L${f1(sx + sw - i)} ${f1(mid)}L${f1(sx + i)} ${f1(bot - i)}`; if (k2 === 'dk' || k2 === 'kipp') d += `M${f1(sx + i)} ${f1(top + i)}L${f1(sx + sw / 2)} ${f1(bot - i)}L${f1(sx + sw - i)} ${f1(top + i)}`; return d ? `<path d="${d}" fill="none" stroke="${col}" stroke-width="${.4 * u / 10}" stroke-dasharray="${.6 * u} ${.35 * u}"/>` : ''; };
+      const harr = (cx, cy, dir, col) => `<path d="M${f1(cx - dir * 9)} ${f1(cy)}h${dir * 18}m${-dir * 5} -3.5l${dir * 5} 3.5l${-dir * 5} 3.5" fill="none" stroke="${col}" stroke-width="${.5 * u / 10}"/>`;
+      const lab = op.t === 'tuer' ? 'Tür' : op.t === 'balkon' ? 'Balkontür' : 'Fenster';
+      if (op.t === 'tuer') {
+        s += `<rect x="${x}" y="${f1(top)}" width="${ww}" height="${op.h}" fill="#ece5da" stroke="${MUTE}" stroke-width="${.5 * u / 10}"/>`;
+        if (two) s += pline(x + ww / 2, top, x + ww / 2, bot, { c: MUTE, w: .45 * u / 10 });
+        if (k2 === 'schiebe') { s += pline(x - 6, top - 3, x + ww + 6, top - 3, { c: MUTE, w: 1 * u / 10 }); wings.forEach(([sx, sw]) => { const dir = two ? (sx === x ? -1 : 1) : (op.a === 'l' ? -1 : 1); s += harr(sx + sw / 2, Y(op.h * .62), dir, MUTE); }); }
+        else wings.forEach(([sx, sw, hg]) => { s += sym(sx, sw, hg, MUTE) + `<rect x="${f1(hg === 'l' ? sx + sw - 13 : sx + 4)}" y="${Y(106)}" width="9" height="2.2" rx="1" fill="${MUTE}"/>`; });
+        s += ptxt(x + ww / 2, Y(op.h * .5) + 2.2 * u, lab + (op.dir === 'out' && k2 !== 'schiebe' ? ' · nach außen' : ''), .7 * u, { fill: MUTE, w: 600 });
+      } else {
+        s += `<rect x="${x}" y="${f1(top)}" width="${ww}" height="${op.h}" fill="#e3eef6" stroke="#4f7fa8" stroke-width="${.6 * u / 10}"/>`;
+        if (two || k2 === 'hs') s += pline(x + ww / 2, top, x + ww / 2, bot, { c: '#4f7fa8', w: .5 * u / 10 });
+        if (k2 === 'hs') s += harr(x + ww / 2, (top + bot) / 2, op.a === 'l' ? -1 : 1, '#4f7fa8');
+        else wings.forEach(([sx, sw, hg]) => { s += sym(sx, sw, hg, '#4f7fa8'); if (k2 !== 'fest') s += `<rect x="${f1(hg === 'l' ? sx + sw - 3.2 : sx + 1.6)}" y="${f1((top + bot) / 2 - 5)}" width="1.6" height="10" rx=".8" fill="#4f7fa8"/>`; });
+        s += ptxt(x + ww / 2, top + 1.2 * u, lab, .66 * u, { fill: '#4f6b84', w: 600 });
+      }
     });
     // Ecke (Platz der Eckschränke der Rückwand)
     if (w.corner) { const [a, b] = w.corner; s += `<rect x="${a}" y="${Y(ah)}" width="${b - a}" height="${ah}" fill="url(#kprHatch)" stroke="${MUTE}" stroke-width="${.4 * u / 10}"/>` + ptxt((a + b) / 2, Y(ah / 2), 'Ecke', .7 * u, { fill: MUTE, w: 600 }); }
@@ -334,7 +366,9 @@
   /* =========================================================================
      2b) Installationsplan – Anschlüsse aus der Planung abgeleitet (Richtwerte) + Bestand aus dem Planer
      ========================================================================= */
-  const ICAT = { w: ['#2f7fc1', 'Wasser'], a: ['#86705a', 'Abwasser'], s: ['#d0582a', 'Strom 230 / 400 V'], l: ['#c99a12', 'Licht'] };
+  const ICAT = { w: ['#2f7fc1', 'Wasser'], a: ['#86705a', 'Abwasser'], s: ['#d0582a', 'Strom 230 / 400 V'], l: ['#c99a12', 'Licht'], x: ['#3f8f87', 'Abluft'], h: ['#b4467e', 'Heizung'] };
+  const icatUsed = I => Object.entries(ICAT).filter(([k]) => 'wasl'.includes(k) || I.all.some(p => p.cat === k)).map(([, v]) => v);
+  const doseName = n => n === 1 ? 'Einzelsteckdose' : n === 3 ? 'Dreifachsteckdose' : n === 4 ? 'Vierfachsteckdose' : 'Doppelsteckdose';
   function instPts(pd) {
     const P0 = [], ah = pd.ah, add = o => P0.push(o), adj = (a, b) => Math.abs(a.s + a.w - b.s) < 1.5 || Math.abs(b.s + b.w - a.s) < 1.5;
     const isAx = c => c.typ === 'ax' || /^Aufsatz/.test(c.name || '');
@@ -372,10 +406,35 @@
       else add({ k: 'I', s: 0, h: 0, cat: 's', sh: 'Herd 400 V', n: 'Herdanschluss 400 V aus dem Boden', d: 'unter dem Insel-Kochfeld · 3 × 16 A' });
       add({ k: 'I', s: 0, h: 0, cat: 's', sh: 'Steckdosen', n: 'Steckdose in der Insel', d: '230 V · Bodenauslass, Steckdose seitlich in der Insel' });
     }
+    // Abzugshauben (für Abluft-Abgleich)
+    const hoods = Object.keys(pd.walls).flatMap(k => pd.walls[k].up.filter(c => c.kind === 'hood').map(c => ({ k, s: c.s + c.w / 2, w: c.w })));
+    const abTxt = (c, ex) => { const hd = hoods.find(x => x.k === c.wall); if (!hd) return hoods.length ? (ex ? 'Haube an einer anderen Wand – Rohr über die Hängeschränke führen oder verschließen' : 'Haube an einer anderen Wand – Rohr über die Hängeschränke führen') : (ex ? 'keine Wandhaube geplant – bei Umluft oder Muldenlüfter verschließen' : 'für Abluftbetrieb · Mauerkasten mit Rückstauklappe'); const dd = Math.abs(hd.s - c.s); return dd <= hd.w / 2 - 5 ? (ex ? 'passt – direkt hinter der Haube' : 'direkt hinter der Haube · Mauerkasten mit Rückstauklappe') : `${Math.round(dd)} cm neben der Haubenmitte – Rohr über den Hängeschrank führen`; };
+    // Vom Kunden als „neu geplant“ markierte Anschlüsse → Soll-Punkte (ersetzen automatisch gesetzte Steckdosen in der Nähe)
+    (pd.cx || []).filter(c => c.neu && pd.walls[c.wall]).forEach(c => {
+      const k = c.wall, h = c.h || (c.t === 'dose' ? ah + 20 : c.t === 'wasser' ? 55 : c.t === 'abluft' ? 230 : 50);
+      if (c.t === 'dose') {
+        for (let i = P0.length - 1; i >= 0; i--) { const p = P0[i]; if (p.k === k && p.sh === 'Steckdosen' && !p.user && Math.abs(p.s - c.s) < 35 && Math.abs(p.h - h) < 30) P0.splice(i, 1); }
+        add({ k, s: c.s, h, cat: 's', sh: 'Steckdosen', n: `${doseName(c.n || 2)} ${c.o === 'v' ? 'senkrecht' : 'waagerecht'} · neu`, d: `230 V · 16 A · ${c.zone && c.zone !== 'freie Höhe' ? 'Bereich ' + c.zone : 'Wunschposition'}`, user: 1 });
+      } else if (c.t === 'wasser' || c.t === 'herd') {
+        const near = P0.some(p => p.k === k && (c.t === 'wasser' ? p.cat === 'w' : /^Herd/.test(p.sh)) && Math.abs(p.s - c.s) < 40);
+        if (!near) add({ k, s: c.s, h, cat: c.t === 'wasser' ? 'w' : 's', sh: c.t === 'wasser' ? 'Wasser' : 'Herd 400 V', n: c.t === 'wasser' ? 'Wasseranschluss · neu' : 'Herdanschlussdose 400 V · neu', d: c.t === 'wasser' ? 'Kalt- und Warmwasser · Wunschposition' : '3 × 16 A · Wunschposition', user: 1 });
+      } else if (c.t === 'abluft') add({ k, s: c.s, h, cat: 'x', sh: 'Abluft', n: `Abluft-Durchbruch Ø ${c.d || 150} mm · neu`, d: abTxt(c), user: 1, dd: c.d || 150 });
+      else if (c.t === 'heiz') { const y0 = c.y0 ?? 10, hh = c.hh || 60, hw = c.hw || 100; add({ k, s: c.s, h: y0 + hh / 2, cat: 'h', sh: 'Heizung', n: `Heizkörper ${hw} × ${hh} cm · neu`, d: `Vor- und Rücklauf · Unterkante ${y0} cm über dem Boden`, user: 1, hw, hh, y0 }); }
+    });
     const order = [...pd.kw, 'I']; P0.sort((p, q) => order.indexOf(p.k) - order.indexOf(q.k) || p.s - q.s || q.h - p.h);
     P0.forEach((p, i) => { p.nr = i + 1; p.s = Math.round(p.s); });
     // Bestand (im Planer eingetragen) – mit Abgleich zum Soll
-    const ex = (pd.cx || []).filter(c => pd.walls[c.wall]).map((c, i) => {
+    const ex = (pd.cx || []).filter(c => pd.walls[c.wall] && !c.neu).map((c, i) => {
+      if (c.t === 'heiz') {
+        const y0 = c.y0 ?? 10, hh = c.hh || 60, hw = c.hw || 100, a = c.s - hw / 2, b = c.s + hw / 2, B = pd.walls[c.wall].base;
+        const tall = B.some(q => q.kind === 't' && a < q.s + q.w - 2 && b > q.s + 2), low = B.some(q => q.kind !== 't' && a < q.s + q.w - 2 && b > q.s + 2) && y0 < pd.ah;
+        const st = tall ? 'hinter einem Hochschrank – versetzen' : low ? 'hinter den Unterschränken – versetzen (z. B. unters Fenster) oder Sockelheizung' : 'bleibt frei – Luft nach oben lassen';
+        return { nr: 'B' + (i + 1), k: c.wall, s: Math.round(c.s), h: y0 + hh / 2, cat: 'h', sh: 'Heizung', n: `Heizkörper ${hw} × ${hh} cm · vorhanden`, d: st, ex: true, ok: !tall && !low, hw, hh, y0 };
+      }
+      if (c.t === 'abluft') {
+        const h = c.h || 230, st = abTxt(c, true);
+        return { nr: 'B' + (i + 1), k: c.wall, s: Math.round(c.s), h, cat: 'x', sh: 'Abluft', n: `Abluft-Durchbruch Ø ${c.d || 150} mm · vorhanden`, d: st, ex: true, ok: /^passt/.test(st), dd: c.d || 150 };
+      }
       const want = c.t === 'wasser' ? P0.filter(p => p.cat === 'w' && p.k !== 'I') : c.t === 'herd' ? P0.filter(p => /^Herd/.test(p.sh) && p.k !== 'I') : P0.filter(p => p.cat === 's' && p.k !== 'I');
       const same = want.filter(p => p.k === c.wall).sort((p, q) => Math.abs(p.s - c.s) - Math.abs(q.s - c.s)), near = same[0], dd = near ? Math.abs(near.s - c.s) : null;
       const behind = pd.walls[c.wall].base.some(b => b.kind === 't' && c.s > b.s + 2 && c.s < b.s + b.w - 2), h0 = c.h || (c.t === 'dose' ? pd.ah + 20 : c.t === 'wasser' ? 55 : 50);
@@ -387,7 +446,7 @@
       else if (!near) st = 'an einer anderen Wand – Leitung zur Küche verlegen';
       else st = dd <= 15 ? `passt zu Nr. ${near.nr}` : `${Math.round(dd)} cm zu Nr. ${near.nr} versetzen`;
       const h = c.h || (c.t === 'dose' ? pd.ah + 20 : c.t === 'wasser' ? 55 : 50);
-      return { nr: 'B' + (i + 1), k: c.wall, s: Math.round(c.s), h, cat: c.t === 'wasser' ? 'w' : 's', sh: c.t === 'wasser' ? 'Wasser' : c.t === 'herd' ? 'Herd 400 V' : 'Steckdosen', n: { wasser: 'Wasseranschluss · vorhanden', herd: 'Herdanschluss 400 V · vorhanden', dose: 'Steckdose · vorhanden' }[c.t] || 'Anschluss · vorhanden', d: st, ex: true, ok: /^passt|^kann/.test(st) };
+      return { nr: 'B' + (i + 1), k: c.wall, s: Math.round(c.s), h, cat: c.t === 'wasser' ? 'w' : 's', sh: c.t === 'wasser' ? 'Wasser' : c.t === 'herd' ? 'Herd 400 V' : 'Steckdosen', n: { wasser: 'Wasseranschluss · vorhanden', herd: 'Herdanschluss 400 V · vorhanden', dose: `${doseName(c.n || 2)}${c.o === 'v' ? ' senkrecht' : ''} · vorhanden` }[c.t] || 'Anschluss · vorhanden', d: st + (c.t === 'dose' && c.zone && c.zone !== 'freie Höhe' ? ` · Bereich ${c.zone}` : ''), ex: true, ok: /^passt|^kann/.test(st) };
     });
     return { pts: P0, ex, all: [...P0, ...ex] };
   }
@@ -403,12 +462,14 @@
     s += pline(0, by, L, by, { w: .45 * u / 10 }) + `<circle cx="0" cy="${f1(by)}" r="${f1(.16 * u)}" fill="${INK}"/>` + ptxt(.32 * u, by + .5 * u, '0', .62 * u, { anchor: 'end', rot: -90, fill: MUTE });
     const seenX = [];
     pts.forEach(p => {
-      const col = ICAT[p.cat][0];
+      const col = ICAT[p.cat][0], dsh = p.ex ? ` stroke-dasharray="${f1(.5 * u)} ${f1(.3 * u)}"` : '';
+      if (p.cat === 'h' && p.hw) { s += `<rect x="${f1(p.s - p.hw / 2)}" y="${f1(Y(p.y0 + p.hh))}" width="${f1(p.hw)}" height="${f1(p.hh)}" rx="1.5" fill="${col}" fill-opacity=".1" stroke="${col}" stroke-width="${f1(.35 * u / 10)}"${dsh}/>`; for (let x = p.s - p.hw / 2 + 5; x < p.s + p.hw / 2 - 2; x += 5) s += pline(x, Y(p.y0 + p.hh - 3), x, Y(p.y0 + 3), { c: col, w: .18 * u / 10 }); }
+      if (p.cat === 'x' && p.dd) s += `<circle cx="${f1(p.s)}" cy="${f1(Y(p.h))}" r="${f1(p.dd / 20)}" fill="${col}" fill-opacity=".1" stroke="${col}" stroke-width="${f1(.35 * u / 10)}"${dsh}/>`;
       s += pline(p.s, Y(p.h) + r, p.s, by, { c: col, w: .32 * u / 10, dash: `${f1(.35 * u)} ${f1(.25 * u)}` });
       if (!seenX.some(x => Math.abs(x - p.s) < .7 * u)) { seenX.push(p.s); s += `<circle cx="${f1(p.s)}" cy="${f1(by)}" r="${f1(.16 * u)}" fill="${INK}"/>` + ptxt(p.s + .24 * u, by + .5 * u, cm(p.s), .62 * u, { anchor: 'end', rot: -90, w: 600 }); }
     });
     pts.forEach(p => { s += isym(p, p.s, Y(p.h), r); });
-    s += ptxt(L / 2, by + 3.55 * u, 'Laufmaße ab linker Wandecke · Mitte Anschluss', .56 * u, { fill: MUTE });
+    s += ptxt(L / 2, by + 3.55 * u, 'Laufmaße ab linker Wandecke · Mitte Anschluss' + (pts.some(p => p.cat === 'h') ? ' · Heizkörper: Mitte, Höhe = Mitte Körper' : ''), .56 * u, { fill: MUTE });
     // Höhenkoten
     const hs = {}; pts.forEach(p => { const h = Math.round(p.h); (hs[h] = hs[h] || []).includes(p.sh) || hs[h].push(p.sh); });
     let kot = '', prevY = Infinity;
@@ -423,6 +484,7 @@
     let s = ''; const r = .5 * u;
     I.all.forEach(p => {
       if (p.k === 'I') return; const [x, y] = wp(pd, p.k, p.s, -9), c = ICAT[p.cat][0];
+      if (p.cat === 'h' && p.hw) { const [ax, ay] = wp(pd, p.k, p.s - p.hw / 2, -4), [bx, by2] = wp(pd, p.k, p.s + p.hw / 2, -4); s += `<line x1="${f1(ax)}" y1="${f1(ay)}" x2="${f1(bx)}" y2="${f1(by2)}" stroke="${c}" stroke-width="5" stroke-linecap="round" opacity="${p.ex ? .45 : .8}"${p.ex ? ' stroke-dasharray="6 4"' : ''}/>`; }
       s += `<circle cx="${f1(x)}" cy="${f1(y)}" r="${f1(r)}" fill="${p.ex ? '#fff' : c}" stroke="${p.ex ? c : '#fff'}" stroke-width="${f1(r * .22)}"${p.ex ? ` stroke-dasharray="${f1(r * .45)} ${f1(r * .3)}"` : ''}/>`;
     });
     const isl = I.all.filter(p => p.k === 'I');
@@ -496,6 +558,18 @@
     const out = document.createElement('canvas'); out.width = Wd; out.height = Hd; const g = out.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(raw, 0, 0, Wd, Hd);
     return { c: out, how: 'own' };
   }
+  // Handy: kein zweiter 3D-Kontext – das Bild entsteht in der schon laufenden Planer-Ansicht (Kamera, Deko, danach alles zurück)
+  async function renderMain(view, mood, Wd, Hd, onStep) {
+    const K = KPo(), k3 = K && K.k3d && K.k3d(); if (!k3 || typeof k3.renderHQ !== 'function' || typeof k3.lookAt !== 'function') throw new Error('main');
+    const ci = k3.camInfo ? k3.camInfo() : null, m0 = k3._rt ? k3._rt().mood : null;
+    onStep && onStep(1); await settle(k3, 2000);
+    if (m0 && mood !== m0) { try { k3.mood(mood); } catch (e) { } }
+    onStep && onStep(2); const c = camFor(view, getPlan()); onStep && onStep(3);
+    let out = null;
+    try { k3.lookAt(c.p, c.t, c.fov); if (k3.deko) { try { k3.deko(getPlan(), { lite: true }); } catch (e) { } } out = k3.renderHQ(Wd, Hd, { lite: true }); }
+    finally { try { k3.deko && k3.deko(null); } catch (e) { } if (m0 && mood !== m0) { try { k3.mood(m0); } catch (e) { } } if (ci) { try { k3.lookAt(ci.pos, ci.target, ci.fov); } catch (e) { } } }
+    return { c: out, how: 'main-hq' };
+  }
   // Nachbearbeitung: warmes Licht, sanfte S-Kurve, Glanz (Bloom), Vignette, feines Korn
   function grade(src, strength = 1) {
     const Wd = src.width, Hd = src.height, c = document.createElement('canvas'); c.width = Wd; c.height = Hd; const g = c.getContext('2d'); g.drawImage(src, 0, 0);
@@ -533,7 +607,9 @@
   const rtGuard = on => { try { if (on) localStorage.setItem(RT_TRY, String(Date.now())); else localStorage.removeItem(RT_TRY); } catch (e) { } };
   addEventListener('pagehide', () => rtGuard(false));
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') rtGuard(false); });
-  function rtSupported() { if (RT_OFF || rtBad) return false; try { const c = document.createElement('canvas'), gl = c.getContext('webgl2'); const ok = !!(gl && gl.getExtension('EXT_color_buffer_float')); try { gl && gl.getExtension('WEBGL_lose_context').loseContext(); } catch (e) { } return ok; } catch (e) { return false; } }
+  // Handys: kein Raytracing (Firefox/Android reißt sonst den ganzen Browser mit) – nur ausdrücklich mit ?rt=1
+  const RT_MOB_OK = /[?&]rt=1/.test(location.search);
+  function rtSupported() { if (RT_OFF || rtBad || (isMob() && !RT_MOB_OK)) return false; try { const c = document.createElement('canvas'), gl = c.getContext('webgl2'); const ok = !!(gl && gl.getExtension('EXT_color_buffer_float')); try { gl && gl.getExtension('WEBGL_lose_context').loseContext(); } catch (e) { } return ok; } catch (e) { return false; } }
   function loadRT() {
     if (window.PelRT) return Promise.resolve(window.PelRT);
     if (RTp) return RTp;
@@ -583,12 +659,13 @@
   }
   async function renderView(view, mood, onStep) {
     const K = KPo(); if (!K) throw new Error('kp');
-    const Wd = isMob() ? 1280 : 1920, Hd = Math.round(Wd * .625);
+    const mob = isMob(), Wd = mob ? 1080 : 1920, Hd = Math.round(Wd * .625);
     const key = view + '|' + mood + '|' + Wd + '|' + (view === 'hier' && hereCam ? hereCam.pos.map(v => v.toFixed(2)).join(',') : '') + '|' + JSON.stringify(K.state3d ? K.state3d() : {});
     if (cache.has(key)) return cache.get(key);
     let c = null, how = 'own';
     // 1) eigene Kamera (zweite 3D-Instanz) – nutzt renderHQ der Engine, wenn vorhanden
-    try { const r = await renderOwn(view, mood, Wd, Hd, onStep); c = r.c; how = r.how; } catch (e) { c = null; }
+    if (mob) { try { const r = await renderMain(view, mood, Wd, Hd, onStep); c = r.c; how = r.how; } catch (e) { c = null; } }
+    if (!c) { try { const r = await renderOwn(view, mood, Wd, Hd, onStep); c = r.c; how = r.how; } catch (e) { c = null; } }
     // 2) KP.renderHQ (Hauptansicht, aktuelle Kamera des Planers)
     if (!c && typeof K.renderHQ === 'function') { try { const r = await K.renderHQ(Wd, Hd, { view, mood }); c = r && r.getContext ? r : (r && (r.src || typeof r === 'string')) ? await imgToCanvas(r.src || r) : null; how = 'kp-hq'; } catch (e) { c = null; } }
     // 3) Schnappschuss der Hauptansicht
@@ -899,9 +976,9 @@
   <div><b>${cnt(p => p.cat === 's' && !/^Herd/.test(p.sh))}</b><span>Steckdosen &amp; Geräte 230 V</span></div>
   <div><b>${cnt(p => /^Herd/.test(p.sh))}</b><span>Herdanschluss 400 V</span></div>
   <div><b>${cnt(p => p.cat === 'w' || p.cat === 'a')}</b><span>Wasser &amp; Abwasser</span></div>
-  <div><b>${cnt(p => p.cat === 'l')}</b><span>Lichtauslässe</span></div>
+  <div><b>${cnt(p => p.cat === 'l' || p.cat === 'x' || p.cat === 'h')}</b><span>${I.pts.some(p => p.cat === 'x' || p.cat === 'h') ? 'Licht, Abluft &amp; Heizung' : 'Lichtauslässe'}</span></div>
 </div>
-<div class="kpr-ileg">${Object.values(ICAT).map(([c, n]) => `<span><i style="--c:${c}"></i>${n}</span>`).join('')}${I.ex.length ? '<span><i class="ex" style="--c:#6d6459"></i>vorhanden (Bestand)</span>' : ''}</div>
+<div class="kpr-ileg">${icatUsed(I).map(([c, n]) => `<span><i style="--c:${c}"></i>${n}</span>`).join('')}${I.ex.length ? '<span><i class="ex" style="--c:#6d6459"></i>vorhanden (Bestand)</span>' : ''}</div>
 <div class="kpr-grid">
   <figure class="kpr-card kpr-gr"><figcaption><b>Grundriss</b><span>Lage der Anschlüsse · Ansichten ${pd.kw.map((k, i) => LET[i]).join(', ')}</span></figcaption><div class="kpr-svgw">${plan.svg}</div></figure>
   <div class="kpr-elevs">${elevs.map(e => `<figure class="kpr-card kpr-el"><figcaption><b>Ansicht ${e.letter} · ${esc(e.name)}</b><span>${m2(e.L)} m · Blick auf die Wand</span></figcaption><div class="kpr-svgw">${e.svg}</div></figure>`).join('')}</div>
@@ -964,7 +1041,7 @@
   async function instPDF() {
     if (tab !== 'inst') setTab('inst');
     renderInst(false, true);
-    const I = instPts(pd), leg = Object.values(ICAT).map(([c, n]) => [c, n]); if (I.ex.length) leg.push(['#6d6459', 'vorhanden (Bestand)', 1]);
+    const I = instPts(pd), leg = icatUsed(I).map(([c, n]) => [c, n]); if (I.ex.length) leg.push(['#6d6459', 'vorhanden (Bestand)', 1]);
     const p1 = await sheetCanvas($('[data-isheet]', el), { title: 'Ihre Küche – Installationsplan', mode: 'alles', keepDims: true, legend: leg, foot: 'Richtwerte für Elektriker und Installateur – Ausführung nur durch Fachbetriebe. Maße in cm, Höhen ab fertigem Fußboden. Seite 1' });
     const pages = [p1, ...instTablePages(I)];
     renderInst(false);

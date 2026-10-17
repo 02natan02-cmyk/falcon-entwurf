@@ -168,6 +168,9 @@
     // Anschlüsse: „Wasser kommt links aus der Wand“, „Starkstrom an der Rückwand“
     const wc = clauses.find(c => /wasser|abfluss|abwasser/.test(c) && wallOf(c)); if (wc) b.water = { wall: wallOf(wc) };
     const hc = clauses.find(c => /starkstrom|herdanschluss|drehstrom|400 ?v(olt)?\b/.test(c) && wallOf(c)); if (hc) b.herdcx = { wall: wallOf(hc) };
+    // „Heizkörper unterm Fenster“, „Abluft (150er) an der rechten Wand“
+    const zc = clauses.find(c => /heizk(ö|oe)rper|heizung/.test(c) && !/fu(ß|ss)boden/.test(c)); if (zc) b.heat = { wall: wallOf(zc), win: /fenster/.test(zc) };
+    const vc = clauses.find(c => /abluft|mauerkasten|wanddurchbruch|mauerdurchbruch/.test(c) && !/umluft/.test(c)); if (vc) { const dm = vc.match(/\b(100|125|150|160)\b/); b.vent = { wall: wallOf(vc), d: dm ? +dm[1] : 150 }; }
     // Stil
     const st = b.style;
     if ((m = t.match(/grifflos|ohne griff\w*|griffleiste|push.?to.?open|tip.?on/))) { st.handle = 'grifflos'; blank(m); }
@@ -401,6 +404,7 @@
     // Im Raum-Schritt bestätigt: Fenster und Türen stehen genau dort
     if (Array.isArray(b.fixOps) && b.fixOps.length) plan.op = b.fixOps.filter(o => OPW[o[0]] && ['N', 'E', 'S', 'W'].includes(o[1])).map(([t, w, s0, ow]) => { const L = wlen(plan, w), mg = t === 'fenster' ? 10 : 5, wd = Math.min(ow, L - 2 * mg); return [t, w, Math.round(clamp(s0, mg, L - wd - mg) / 5) * 5, wd]; });
     if (b.water && ['N', 'E', 'S', 'W'].includes(b.water.wall)) plan.cx = [['wasser', b.water.wall, Math.round(b.water.s != null ? b.water.s : wlen(plan, b.water.wall) / 2)]];
+    { const xc = extraCx(plan, b); if (xc.length) plan.cx = (plan.cx || []).concat(xc); }
     plan.s = buildStyle(b, cur);
     // … und die Spüle rückt zum Wasser bzw. unters Fenster – nur wenn es insgesamt besser wird
     if (plan.cx) { try { sinkToWater(plan, { wall: plan.cx[0][1], s: plan.cx[0][2] }); } catch (e) { } }
@@ -503,6 +507,17 @@
       if (kind === 'fenster' && ow <= 60) break;
     }
     return null;
+  }
+  // Heizkörper (unters Fenster, Breite ≈ 80 % des Fensters) und Abluft-Durchbruch aus dem Text
+  function extraCx(plan, b) {
+    const out = [], WK = ['N', 'E', 'S', 'W'];
+    if (b.heat) {
+      let w = WK.includes(b.heat.wall) ? b.heat.wall : null, s0 = null, hw = 100;
+      if (!w || b.heat.win) { const o = (plan.op || []).find(o => o[0] === 'fenster' && (!w || o[1] === w)); if (o) { w = o[1]; s0 = o[2] + o[3] / 2; hw = Math.max(40, Math.round(o[3] * .8 / 10) * 10); } }
+      if (w) out.push(['heiz', w, Math.round(s0 != null ? s0 : wlen(plan, w) / 2), { hw }]);
+    }
+    if (b.vent && WK.includes(b.vent.wall)) out.push(['abluft', b.vent.wall, Math.round(wlen(plan, b.vent.wall) / 2), b.vent.d && b.vent.d !== 150 ? { d: b.vent.d } : undefined].filter(x => x !== undefined));
+    return out;
   }
   function placeOps(plan, b, ww, sinkWall) {
     const walls = FORMS[plan.f].walls, free = ['S', 'E', 'W', 'N'].filter(w => !walls.includes(w));
@@ -697,6 +712,7 @@
       if (rp && valid(rp.plan)) {
         if ((b.fixOps || []).length) rp.plan.op = b.fixOps.map(o => o.slice());
         if (b.water) rp.plan.cx = [['wasser', b.water.wall, b.water.s]];
+        { const xc = extraCx(rp.plan, b); if (xc.length) rp.plan.cx = (rp.plan.cx || []).filter(c => c[0] === 'wasser' || c[0] === 'herd').concat(xc); }
         if (valid(rp.plan)) return { plan: rp.plan, why: rp.why || (loc ? loc.why : ''), notes: [], got: b.got, src: 'server' };
       }
     }
@@ -955,7 +971,7 @@
     try { sessionStorage.setItem('kpai-after', JSON.stringify({ why: result.why, prev: location.hash, t: Date.now(), text: result.text || '' })); } catch (e) { }
     try { history.scrollRestoration = 'manual'; } catch (e) { }
     history.replaceState(null, '', '#k=' + b64(JSON.stringify(p)));
-    scrollTo(0, 0); location.reload();
+    scrollTo(0, 0); try { window.KPLeave && window.KPLeave.ok(); } catch (e) { } location.reload();
   }
   // Handy: zur 3D-Bühne scrollen – unter dem klebenden Kopf (Seitenkopf + Planer-Schritte)
   function toStage() {
@@ -985,7 +1001,7 @@
     const pv = d.querySelector('[data-kpai-prev]');
     if (pv) pv.onclick = () => {
       if (window.KP && typeof KP.applyPlan === 'function') { try { KP.applyPlan(unb64(info.prev.slice(3))); rm(); if (KP.toast) KP.toast('Ihr vorheriger Entwurf ist wieder da.'); return; } catch (e) { } }
-      history.replaceState(null, '', info.prev); location.reload();
+      history.replaceState(null, '', info.prev); try { window.KPLeave && window.KPLeave.ok(); } catch (e) { } location.reload();
     };
     d.querySelector('[data-kpai-again]').onclick = () => { rm(); open('', 'neu'); };
     d.querySelector('[data-kpai-edit]').onclick = () => { rm(); open('', 'edit'); };
