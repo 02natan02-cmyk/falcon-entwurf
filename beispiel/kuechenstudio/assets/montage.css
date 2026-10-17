@@ -1,0 +1,147 @@
+/* Küchenstudio Eichenhof · Küchenmontage im Bauplan-Stil (Modul em3)
+   Alle Regeln gelten nur innerhalb von .em3. Nutzt die Seitenvariablen
+   --disp, --body, --ink, --gut, --max, --ease, --r (mit Ersatzwerten). */
+.em3{
+  --em3-navy:#10264a;--em3-navy2:#17325a;--em3-sky:#a9c9ff;--em3-acc:#e0703f;--em3-cream:#f7f2ea;--em3-paper:#fffdf9;
+  --em3-txt:#c9d7f2;--em3-line:rgba(169,201,255,.18);
+  --em3-gut:var(--gut,clamp(18px,4.4vw,64px));--em3-ease:var(--ease,cubic-bezier(.2,.7,.1,1));--em3-r:var(--r,22px);
+  position:relative;background:var(--em3-navy);color:var(--em3-paper);
+  font-family:var(--body,"Figtree",system-ui,sans-serif);isolation:isolate
+}
+.em3 *,.em3 *::before,.em3 *::after{box-sizing:border-box}
+.em3 h2,.em3 h3,.em3 p,.em3 ol,.em3 figure{margin:0;padding:0}
+.em3 ol{list-style:none}
+.em3 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.em3 button:focus-visible,.em3 a:focus-visible{outline:2px solid var(--em3-acc);outline-offset:3px}
+
+/* ---------- Grundbausteine ---------- */
+.em3-kick{display:flex;margin:0 0 16px}
+.em3-kick span{display:inline-block;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.12);color:#dce8ff;font:700 12px/1.2 var(--body,"Figtree",sans-serif);letter-spacing:.12em;text-transform:uppercase}
+.em3 h2{font:800 clamp(30px,3.3vw,50px)/1.02 var(--disp,"Bricolage Grotesque",system-ui,sans-serif);letter-spacing:-.025em;color:var(--em3-paper);text-wrap:balance}
+.em3 h2 em{font-style:normal;color:var(--em3-sky)}
+.em3-t h3{font:700 clamp(20px,1.6vw,24px)/1.16 var(--disp,"Bricolage Grotesque",system-ui,sans-serif);letter-spacing:-.015em;color:var(--em3-paper);margin:0 0 8px;text-wrap:balance}
+.em3-t h3 span{display:block;color:#f5a882}
+.em3-t p{font-size:15.5px;line-height:1.55;color:var(--em3-txt)}
+.em3-t .em3-tn{font:700 11px/1.2 var(--body,"Figtree",sans-serif);letter-spacing:.14em;text-transform:uppercase;color:var(--em3-sky);margin:0 0 10px}
+.em3-cta{display:inline-flex;align-items:center;gap:8px;margin-top:14px;padding:10px 16px;border-radius:999px;background:var(--em3-acc);color:#fff;font:700 14px/1.2 var(--body,"Figtree",sans-serif);text-decoration:none;transition:background .25s,transform .25s var(--em3-ease)}
+.em3-cta:hover{background:#c4592b;transform:translateY(-1px)}
+
+/* ---------- Ohne JavaScript / ohne WebGL: Foto + Kapitel als Liste ---------- */
+.em3:not(.em3--js) .em3-stage{display:flex;flex-direction:column;gap:28px;max-width:var(--max,1320px);margin:0 auto;padding:clamp(64px,9vw,120px) var(--em3-gut)}
+.em3:not(.em3--js) .em3-ui{display:contents}
+.em3:not(.em3--js) .em3-head{order:1}
+.em3:not(.em3--js) .em3-fb{order:2}
+.em3:not(.em3--js) .em3-panel{order:3}
+.em3:not(.em3--js) .em3-nav,.em3:not(.em3--js) .em3-ctl,.em3:not(.em3--js) .em3-dims,.em3:not(.em3--js) .em3-tip,.em3:not(.em3--js) .em3-scroll{display:none}
+.em3:not(.em3--js) .em3-texts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.em3:not(.em3--js) .em3-t{padding:20px;border:1px solid var(--em3-line);border-radius:var(--em3-r);background:rgba(255,255,255,.04)}
+.em3-fb img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;border-radius:var(--em3-r)}
+.em3-fb figcaption{margin-top:10px;font-size:14px;color:var(--em3-txt)}
+
+/* ---------- 3D-Modus ---------- */
+.em3--js .em3-fb{display:none}
+.em3--js .em3-track{position:relative;height:520vh}
+.em3--js .em3-stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;
+  background-color:var(--em3-navy);
+  background-image:linear-gradient(rgba(169,201,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(169,201,255,.07) 1px,transparent 1px);
+  background-size:48px 48px;background-position:center}
+.em3-cv{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:0;transition:opacity .8s var(--em3-ease);touch-action:pan-y;outline:none}
+.em3--ready .em3-cv{opacity:1}
+.em3--drag .em3-cv{cursor:grab}
+.em3--grabbing .em3-cv{cursor:grabbing}
+
+/* Lesbarkeit links */
+.em3--js .em3-stage::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:linear-gradient(90deg,rgba(13,31,61,.82) 0%,rgba(13,31,61,.5) 26%,rgba(13,31,61,0) 44%)}
+.em3--js .em3-ui{position:absolute;z-index:3;top:0;bottom:0;left:0;width:calc(var(--em3-gut) + min(400px,34vw));
+  padding:clamp(28px,6vh,72px) 0 clamp(24px,5vh,56px) var(--em3-gut);display:flex;flex-direction:column;gap:24px;pointer-events:none}
+.em3--js .em3-head,.em3--js .em3-panel{pointer-events:auto}
+.em3--js .em3-panel{margin-top:auto;display:flex;flex-direction:column;gap:14px}
+
+/* Kapitel-Navigation */
+.em3-nav{margin-top:26px;display:grid;gap:2px;counter-reset:em3}
+.em3-nav button{position:relative;display:grid;grid-template-columns:34px 1fr;align-items:center;width:100%;padding:9px 0 10px;text-align:left;color:rgba(220,232,255,.62);transition:color .3s}
+.em3-nav button::before{content:"";position:absolute;left:34px;right:0;bottom:0;height:1px;background:var(--em3-line)}
+.em3-nav button::after{content:"";position:absolute;left:34px;right:0;bottom:0;height:2px;background:var(--em3-acc);transform-origin:left;transform:scaleX(var(--f,0));transition:transform .15s linear}
+.em3-n{font:700 12px/1 var(--body,"Figtree",sans-serif);letter-spacing:.06em;font-variant-numeric:tabular-nums;color:rgba(169,201,255,.6)}
+.em3-l{font:600 15px/1.2 var(--body,"Figtree",sans-serif)}
+.em3-nav button:hover{color:var(--em3-paper)}
+.em3-nav button.is-done{color:rgba(220,232,255,.85)}
+.em3-nav button.is-done .em3-n{color:var(--em3-sky)}
+.em3-nav button.is-done::after{background:rgba(169,201,255,.55)}
+.em3-nav button.is-on{color:var(--em3-paper)}
+.em3-nav button.is-on .em3-n{color:var(--em3-acc)}
+
+/* Kapiteltexte */
+.em3--js .em3-texts{display:grid;padding:22px 24px;border-radius:var(--em3-r);background:rgba(11,27,54,.86);border:1px solid var(--em3-line);box-shadow:0 24px 60px -28px rgba(0,0,0,.6)}
+.em3--js .em3-t{grid-area:1/1;opacity:0;transform:translateY(10px);transition:opacity .45s var(--em3-ease),transform .6s var(--em3-ease);pointer-events:none}
+.em3--js .em3-t.is-on{opacity:1;transform:none;pointer-events:auto}
+
+/* Steuerung */
+.em3-ctl{display:flex;align-items:center;flex-wrap:wrap;gap:10px 16px;min-height:42px}
+.em3-again{display:inline-flex;align-items:center;gap:8px;padding:10px 16px 10px 13px;border-radius:999px;border:1px solid rgba(169,201,255,.42)!important;background:rgba(255,255,255,.06)!important;
+  font:700 14px/1.2 var(--body,"Figtree",sans-serif)!important;color:var(--em3-paper);opacity:0;visibility:hidden;transform:translateY(6px);
+  transition:opacity .4s var(--em3-ease),transform .4s var(--em3-ease),visibility .4s,background .25s,border-color .25s}
+.em3-again svg{width:17px;height:17px}
+.em3-again:hover{background:var(--em3-acc)!important;border-color:var(--em3-acc)!important}
+.em3--done .em3-again{opacity:1;visibility:visible;transform:none}
+.em3-hint{font:600 12px/1.3 var(--body,"Figtree",sans-serif);color:rgba(169,201,255,.75);opacity:0;transition:opacity .4s}
+.em3--drag .em3-hint{opacity:1}
+.em3-hint-m{display:none}
+@media (hover:none),(pointer:coarse){.em3-hint-d{display:none}.em3-hint-m{display:inline}}
+
+/* Maße, Etiketten, Hinweis */
+.em3-dims{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}
+.em3-dim{position:absolute;left:0;top:0;display:inline-flex;align-items:baseline;gap:7px;padding:4px 9px 5px;border-radius:7px;background:rgba(9,24,49,.84);border:1px solid rgba(169,201,255,.4);
+  color:#eef4ff;font:600 12px/1.2 var(--body,"Figtree",sans-serif);white-space:nowrap;opacity:0;visibility:hidden;will-change:transform,opacity}
+.em3-dim b{font:700 13.5px/1 var(--body,"Figtree",sans-serif);font-variant-numeric:tabular-nums;color:#fff}
+.em3-dim i{font-style:normal;font-size:11.5px;color:var(--em3-sky)}
+.em3-dim--ok{border-color:rgba(224,112,63,.7)}
+.em3-dim--ok b{color:var(--em3-acc)}
+.em3-tip{position:absolute;left:0;top:0;z-index:4;display:flex;align-items:center;gap:8px;max-width:260px;padding:8px 12px;border-radius:10px;background:var(--em3-paper);color:var(--ink,#14213a);
+  font:600 13px/1.3 var(--body,"Figtree",sans-serif);box-shadow:0 12px 30px -10px rgba(0,0,0,.45);pointer-events:none;opacity:0;transition:opacity .18s}
+.em3-tip::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--em3-acc)}
+.em3--tip .em3-tip{opacity:1}
+.em3-scroll{position:absolute;z-index:3;left:50%;bottom:clamp(18px,4vh,36px);transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:10px;
+  font:700 11px/1.2 var(--body,"Figtree",sans-serif);letter-spacing:.14em;text-transform:uppercase;color:rgba(220,232,255,.8);pointer-events:none;opacity:0;transition:opacity .5s}
+.em3-scroll::after{content:"";width:1px;height:34px;background:linear-gradient(var(--em3-acc),transparent)}
+.em3--ready[data-em3-ch="0"] .em3-scroll{opacity:1}
+.em3--ready[data-em3-ch="0"] .em3-scroll::after{animation:em3-cue 1.8s var(--em3-ease) infinite}
+@keyframes em3-cue{0%{transform:scaleY(0);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}51%{transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
+
+/* Reduzierte Bewegung: fertige Küche, kein Scroll-Film */
+.em3--still .em3-track{height:auto}
+.em3--still .em3-stage{position:relative;height:min(100svh,900px);min-height:640px}
+.em3--still .em3-scroll,.em3--still .em3-again{display:none}
+.em3--still .em3-t{transition:none}
+
+/* ---------- Handy ---------- */
+@media (max-width:760px){
+  .em3--js .em3-track{height:470vh}
+  .em3--js .em3-stage::after{background:linear-gradient(180deg,rgba(13,31,61,.86) 0%,rgba(13,31,61,0) 30%,rgba(13,31,61,0) 56%,rgba(13,31,61,.9) 78%)}
+  .em3--js .em3-ui{right:0;width:auto;padding:16px var(--em3-gut) calc(14px + env(safe-area-inset-bottom,0px));gap:12px}
+  .em3-kick{margin-bottom:10px}
+  .em3-kick span{font-size:11px;padding:5px 10px}
+  .em3 h2{font-size:clamp(25px,7vw,32px)}
+  .em3-nav{margin-top:14px;grid-template-columns:repeat(5,1fr);gap:6px}
+  .em3-nav button{display:block;padding:0 0 9px}
+  .em3-nav button::before,.em3-nav button::after{left:0}
+  .em3-nav .em3-l{display:none}
+  .em3--js .em3-texts{padding:16px 18px;border-radius:18px}
+  .em3-t h3{font-size:19px}
+  .em3-t p{font-size:14.5px;line-height:1.5}
+  .em3-t .em3-tn{margin-bottom:7px}
+  .em3-cta{margin-top:10px;padding:9px 14px;font-size:13.5px}
+  .em3-ctl{min-height:0}
+  .em3:not(.em3--done):not(.em3--drag) .em3-ctl{display:none}
+  .em3-again{padding:8px 14px 8px 11px;font-size:13px!important}
+  .em3-dim{padding:3px 7px 4px;font-size:11px}
+  .em3-dim b{font-size:12px}
+  .em3-dim i{font-size:10.5px}
+  .em3-scroll{display:none}
+  .em3--still .em3-stage{min-height:700px}
+}
+@media (max-width:760px) and (max-height:700px){
+  .em3--js .em3-t p{font-size:13.5px}
+  .em3 h2{font-size:24px}
+}
