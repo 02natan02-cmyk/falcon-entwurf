@@ -125,7 +125,7 @@
     const f = FORMS[form], old = keep || {};
     const room = old.room || { w: 480, d: form === 'insel' ? 420 : form === 'zwei' ? 300 : 380 };
     if (form === 'insel' && room.d < 380) room.d = 420;
-    const p = { ah: (old && old.ah) || (P && P.ah) || 90, form, room, rows: {}, up: {}, top: {}, op: [], island: { w: 180, v: 'kochfeld' }, style: old.style || { front: '#f1eee8', wood: null, handle: 'grifflos', top: 'eiche', finish: 'matt', wall: '#f3efe9', floor: 'eiche' } };
+    const p = { ah: (old && old.ah) || (P && P.ah) || 90, form, room, rows: {}, up: {}, top: {}, op: [], cx: (old.cx || []).map(c => ({ ...c })), island: { w: 180, v: 'kochfeld' }, style: old.style || { front: '#f1eee8', wood: null, handle: 'grifflos', top: 'eiche', finish: 'matt', wall: '#f3efe9', floor: 'eiche' } };
     f.walls.forEach(w => { p.rows[w] = []; p.top[w] = w === 'N' || form === 'zwei' ? 1 : 0; });
     const seq = {
       zeile: { N: [['kue'], ['bo'], ['us'], ['kf'], ['us', 80], ['sp'], ['gs']] },
@@ -175,6 +175,21 @@
   function locate(w, i) { if (!P.rows[w] || i < 0 || i >= P.rows[w].length) return null; return { x0: xs(w)[i], w: P.rows[w][i].w }; }
   const clampOp = (o, s) => { const m = o.t === 'fenster' ? 10 : 5; return Math.round(Math.max(m, Math.min(wallLen(o.wall) - o.w - m, s)) / 5) * 5; };
   const opById = id => P.op.find(o => o.id === id);
+  /* Anschlüsse im Raum (Bestand): Wasser, Herdanschluss 400 V, Steckdose – Position = Mitte, ab linker Wandkante (Blick auf die Wand) */
+  const CXN = { wasser: 'Wasseranschluss', herd: 'Herdanschluss 400 V', dose: 'Steckdose' }, CXS = { wasser: 'Wasser', herd: 'Herd 400 V', dose: 'Steckdose' };
+  const cxH = c => c.t === 'dose' ? (P.ah || 90) + 20 : c.t === 'wasser' ? 55 : 50;
+  const cxById = id => (P.cx || []).find(c => c.id === id);
+  const clampCx = (c, s) => Math.max(8, Math.min(wallLen(c.wall) - 8, Math.round(s)));
+  let selCx = null;
+  const n2 = v => Math.round(v * 100) / 100;
+  function cxSym(c, x, y, r, on) {
+    const col = c.t === 'wasser' ? '#2f7fc1' : c.t === 'herd' ? '#d0582a' : '#6d6459';
+    let i = '';
+    if (c.t === 'wasser') i = `<path d="M${n2(x)} ${n2(y - r * .6)}c${n2(r * .36)} ${n2(r * .44)} ${n2(r * .46)} ${n2(r * .66)} ${n2(r * .46)} ${n2(r * .92)}a${n2(r * .46)} ${n2(r * .46)} 0 0 1 ${n2(-r * .92)} 0c0 ${n2(-r * .26)} ${n2(r * .1)} ${n2(-r * .48)} ${n2(r * .46)} ${n2(-r * .92)}z" fill="#fff"/>`;
+    else if (c.t === 'herd') i = `<path d="M${n2(x + r * .14)} ${n2(y - r * .64)}l${n2(-r * .52)} ${n2(r * .74)}h${n2(r * .4)}l${n2(-r * .14)} ${n2(r * .54)}l${n2(r * .52)} ${n2(-r * .74)}h${n2(-r * .4)}z" fill="#fff"/>`;
+    else i = `<circle cx="${n2(x)}" cy="${n2(y)}" r="${n2(r * .62)}" fill="none" stroke="#fff" stroke-width="${n2(r * .13)}"/><circle cx="${n2(x - r * .27)}" cy="${n2(y)}" r="${n2(r * .13)}" fill="#fff"/><circle cx="${n2(x + r * .27)}" cy="${n2(y)}" r="${n2(r * .13)}" fill="#fff"/>`;
+    return `${on ? `<circle cx="${n2(x)}" cy="${n2(y)}" r="${n2(r * 1.6)}" fill="none" stroke="${ACC}" stroke-width="${n2(r * .2)}" stroke-dasharray="${n2(r * .5)} ${n2(r * .32)}"/>` : ''}<circle cx="${n2(x)}" cy="${n2(y)}" r="${n2(r)}" fill="${col}" stroke="#fff" stroke-width="${n2(r * .16)}"/>${i}`;
+  }
   function defaultDoor() { const dw = ['E', 'S', 'W'].find(w => !P.rows[w]) || 'S'; return { id: uid++, t: 'tuer', wall: dw, w: 90, s: Math.max(20, Math.round(wallLen(dw) / 2 - 45)) }; }
   const opOver = (o, x0, w, pad = 2) => x0 + w > o.s + pad && x0 < o.s + o.w - pad;
   const ov = (s1, w1, s2, w2) => s1 + w1 > s2 + .5 && s2 + w2 > s1 + .5;
@@ -472,6 +487,8 @@
       s += `<g data-u="${u.id}" class="kp-m kp-u${sel === u.id ? ' on' : ''}${bad ? ' bad' : ''}"${opt.ghost === u.id ? ' opacity=".25"' : ''}>${upElev(u, u.s)}${bad ? `<rect x="${hx}" y="${hy}" width="${hw}" height="${hh}" fill="rgba(208,40,40,.18)" stroke="#d02828" stroke-width=".8"/>` : ''}<rect class="kp-hit" x="${hx}" y="${hy}" width="${hw}" height="${hh}" fill="transparent"/></g>`;
     });
     if (opt.prev && opt.prev.w === w) { const p = opt.prev, u = { t: p.t, s: p.s, w: p.width, h: HDEF(p.t), a: p.a }, [hx, hy, hw, hh] = upHit(u, p.s); s += `<g opacity="${p.ok ? .78 : .45}" pointer-events="none">${upElev(u, p.s)}<rect x="${hx}" y="${hy}" width="${hw}" height="${hh}" fill="none" stroke="${p.ok ? ACC : '#d02828'}" stroke-width="1.4" stroke-dasharray="4 3"/></g>`; }
+    // Anschlüsse (Bestand) – liegen hinter den Schränken, werden zum Planen obendrauf gezeigt
+    (P.cx || []).filter(c => c.wall === w).forEach(c => { const y = FL - cxH(c); s += `<g data-cx="${c.id}" class="kp-cx" style="cursor:ew-resize">${cxSym(c, c.s, y, 6.5, selCx === c.id)}<text x="${c.s}" y="${y - 10.5}" font-size="6.2" font-weight="700" text-anchor="middle" fill="#3d3832" font-family="system-ui" paint-order="stroke" stroke="#fff" stroke-width="2.2">${CXS[c.t]}</text><circle cx="${c.s}" cy="${y}" r="14" fill="transparent"/></g>`; });
     // Maßlinie
     s += `<g font-family="system-ui" font-size="7" fill="#6e655b" text-anchor="middle"><line x1="0" y1="${FL + 12}" x2="${L}" y2="${FL + 12}" stroke="#a99d8f" stroke-width=".5"/><text x="${L / 2}" y="${FL + 21}">${WN[w]} · ${L} cm</text></g>`;
     return s;
@@ -569,6 +586,8 @@
     const el = wallAt(e.clientX, e.clientY);
     if (drag.kind === 'op') { const o = opById(drag.oid); if (o && el && el.dataset.wall === o.wall) { o.s = clampOp(o, drag.ws + (sAt(el, e.clientX) - drag.s0)); renderWalls(); schedule3D(); } return; }
     if (drag.kind === 'plan') { planMove(e); return; }
+    if (drag.kind === 'cx') { const c = cxById(drag.cid); if (c && el && el.dataset.wall === c.wall) { c.s = clampCx(c, drag.cs + (sAt(el, e.clientX) - drag.s0)); renderWalls(); } return; }
+    if (drag.kind === 'cxplan') { cxPlanMove(e); return; }
     if (drag.kind === 'up') {
       const u = (P.up[drag.wall] || []).find(x => x.id === drag.uid); if (!u) return;
       if (el && el.dataset.wall === drag.wall) { trash.classList.remove('hot'); drag.raw = drag.us + (sAt(el, e.clientX) - drag.s0); const s = hoodSnap(drag.wall, u, resolveUp(drag.wall, u, drag.raw)); if (s != null) u.s = s; ghostId = null; renderWalls(); schedule3D(); }
@@ -589,8 +608,9 @@
   }
   function beginGhost() {
     pop.hidden = true;
-    if (drag.kind === 'op' || drag.kind === 'plan') { ghost.innerHTML = ''; drag.gw = drag.gh = 0; selOp = drag.oid; sel = null; return; }
-    if (drag.kind === 'up') { ghost.innerHTML = ''; drag.gw = drag.gh = 0; if (drag.auto) { const map = materialize(drag.wall); drag.uid = map[drag.uid]; } const u = P.up[drag.wall].find(x => x.id === drag.uid); if (u) drag.us = u.s; sel = drag.uid; selOp = null; trash.hidden = false; root.classList.add('dragging'); return; }
+    if (drag.kind === 'op' || drag.kind === 'plan') { ghost.innerHTML = ''; drag.gw = drag.gh = 0; selOp = drag.oid; selCx = null; sel = null; return; }
+    if (drag.kind === 'cx' || drag.kind === 'cxplan') { ghost.innerHTML = ''; drag.gw = drag.gh = 0; selCx = drag.cid; selOp = null; sel = null; return; }
+    if (drag.kind === 'up') { ghost.innerHTML = ''; drag.gw = drag.gh = 0; if (drag.auto) { const map = materialize(drag.wall); drag.uid = map[drag.uid]; } const u = P.up[drag.wall].find(x => x.id === drag.uid); if (u) drag.us = u.s; sel = drag.uid; selOp = null; selCx = null; trash.hidden = false; root.classList.add('dragging'); return; }
     const t = drag.t, tl = tileSvg(t, drag.w || M[t].w, drag.o || {}), sc = 1.35, [vx, vy, vw, vh] = tl.vb.split(' ').map(Number);
     ghost.innerHTML = `<svg viewBox="${tl.vb}" width="${vw * sc}" height="${vh * sc}">${tl.svg}</svg><span>${drag.pe ? drag.pe.n : M[t].n}</span>`;
     drag.gw = vw * sc; drag.gh = vh * sc; ghost.hidden = false; root.classList.add('dragging');
@@ -600,12 +620,13 @@
   function dragEnd(e) {
     if (!drag) return; const d = drag; drag = null; const hadPrev = !!prev; prev = null;
     ghost.hidden = true; caret.hidden = true; trash.hidden = true; trash.classList.remove('hot'); root.classList.remove('dragging'); $$('.kp-wall.hov', wallsEl).forEach(x => x.classList.remove('hov'));
+    if (d.kind === 'cx' || d.kind === 'cxplan') { if (d.on) { change(); const c = cxById(d.cid); if (c) cxFollow(c); } else { selCx = selCx === d.cid ? null : d.cid; sel = null; selOp = null; renderWalls(); } return; }
     if (d.kind === 'op' || d.kind === 'plan') { if (d.on) change(); else { selOp = selOp === d.oid ? null : d.oid; sel = null; renderWalls(); } return; }
     if (d.kind === 'up') {
       if (!d.on) {
         let id = d.uid; if (d.auto) { const map = materialize(d.wall); id = map[d.uid]; }
         if (armed) { const u = P.up[d.wall].find(x => x.id === id); if (u) { const old = { ...u }; setUpType(u, armed.t, armed.o); const s2 = resolveUp(d.wall, u, u.s, true); if (s2 == null) Object.assign(u, old); else u.s = s2; } disarm(); sel = id; change(); pulse(id, 1); return; }
-        if (d.auto) { sel = id; change(); return; } sel = sel === id ? null : id; selOp = null; renderWalls(); return; }
+        if (d.auto) { sel = id; change(); return; } sel = sel === id ? null : id; selOp = null; selCx = null; renderWalls(); return; }
       ghostId = null; const list = P.up[d.wall] || [], u = list.find(x => x.id === d.uid);
       if (u && !wallAt(e.clientX, e.clientY)) { const i = list.indexOf(u); list.splice(i, 1); sel = null; toast(`${M[u.t].n} entfernt`, undo); }
       else if (u && u.t === 'dh') {
@@ -618,7 +639,7 @@
     }
     if (!d.on) { // Tippen
       if (d.kind === 'pal') addEntry(d.pe);
-      else if (d.kind === 'mod') { disarm(); sel = sel === d.id ? null : d.id; selOp = null; renderWalls(); }
+      else if (d.kind === 'mod') { disarm(); sel = sel === d.id ? null : d.id; selOp = null; selCx = null; renderWalls(); }
       return;
     }
     ghostId = null;
@@ -761,11 +782,12 @@
     if (tr && wallEl && !gu && !g) { disarm(); const k = tr.dataset.pf ? 'pf' : 'wg', wv = tr.dataset.pf || tr.dataset.wg; openEq({ k, wall: wv, q: `[data-${k}="${wv}"]` }); e.preventDefault(); return; }
     if (bs && wallEl && !gu && !g) { disarm(); openEq({ k: 'bs', wall: bs.dataset.bs, q: `[data-bs="${bs.dataset.bs}"]` }); e.preventDefault(); return; }
     if (hadEq && !gu && !g && !wn) { renderWalls(); }
+    const cxe = e.target.closest('[data-cx]'); if (cxe && wallEl) { const c = cxById(+cxe.dataset.cx); if (c) { startDrag(e, 'cx', { cid: c.id, s0: sAt(wallEl, e.clientX), cs: c.s }); e.preventDefault(); return; } }
     if (gu && wallEl) { const w = wallEl.dataset.wall, id = gu.dataset.u, auto = id[0] === 'a', u = upList(w).find(x => String(x.id) === id); if (!u) return; startDrag(e, 'up', { wall: w, uid: auto ? id : +id, auto, s0: sAt(wallEl, e.clientX), us: u.s }); e.preventDefault(); return; }
     if (g && wallEl) { const w = wallEl.dataset.wall, id = +g.dataset.m, m = P.rows[w].find(x => x.id === id); startDrag(e, 'mod', { id, t: m.t, w: m.w, o: { h: m.h, a: m.a }, from: w, idx0: P.rows[w].indexOf(m) }); e.preventDefault(); return; }
     if (wn && wallEl) { const o = opById(+wn.dataset.op); startDrag(e, 'op', { oid: o.id, s0: sAt(wallEl, e.clientX), ws: o.s }); e.preventDefault(); return; }
     if (armed) disarm();
-    if (wallEl && (sel || selOp)) { sel = null; selOp = null; renderWalls(); }
+    if (wallEl && (sel || selOp || selCx)) { sel = null; selOp = null; selCx = null; renderWalls(); }
   });
   addEventListener('pointermove', dragMove, { passive: false });
   addEventListener('pointerup', dragEnd); addEventListener('pointercancel', () => { if (drag) { drag.target = null; drag.on = false; drag = null; prev = null; ghost.hidden = true; caret.hidden = true; trash.hidden = true; ghostId = null; root.classList.remove('dragging'); renderWalls(); } });
@@ -785,6 +807,7 @@
     if (eqSel) return renderEqPop();
     pop.classList.remove('kp-pop-eq');
     if (selOp && opById(selOp)) return renderOpPop();
+    if (selCx && cxById(selCx) && !(sel != null && findSel())) return renderCxPop();
     const f = sel != null && findSel(); if (!f) { pop.hidden = true; return; }
     const { w, i, m, up, cs } = f, c = M[m.t], ws = c.ws, n = P.rows[w].length;
     const canL = up ? true : i > 0 && !c.corner && !(i === 1 && M[P.rows[w][0].t].corner && cs !== 'r' && cornerSide(w, 0) === 'l');
@@ -805,6 +828,62 @@
     let top = r.top - ph - 10; if (top < 70) top = Math.min(innerHeight - ph - 8, r.bottom + 10); pop.style.left = left + 'px'; pop.style.top = Math.max(64, top) + 'px';
   }
   const offView = r => r.bottom < 60 || r.top > innerHeight - 8;
+  function renderCxPop() {
+    const c = cxById(selCx), L = wallLen(c.wall), has = ks => Object.values(P.rows).some(r => r.some(m => ks.includes(m.t)));
+    const go = c.t === 'wasser' && has(['sp']) ? 'Spüle hierher' : c.t === 'herd' && has(['kf', 'ko']) ? 'Kochfeld hierher' : '';
+    pop.innerHTML = `<div class="kp-pt"><b>${CXN[c.t]} <small>${WN[c.wall]}</small></b><button type="button" class="kp-px" data-c="x" aria-label="Auswahl schließen">×</button></div><div class="kp-prow"><span class="kp-pl">Ab links</span><div class="kp-step"><button type="button" data-c="l"${c.s <= 8 ? ' disabled' : ''} aria-label="5 cm nach links">−</button><span>${c.s} cm</span><button type="button" data-c="r"${c.s >= L - 8 ? ' disabled' : ''} aria-label="5 cm nach rechts">+</button></div></div><p class="kp-cxh">${c.t === 'wasser' ? 'Mitte der Eckventile' : c.t === 'herd' ? 'Mitte der Anschlussdose' : 'Mitte der Steckdose'}, gemessen von der linken Wandecke. Anfassen und an jede Wand ziehen.</p><div class="kp-pb">${go ? `<button type="button" data-c="go">${go}</button>` : ''}<button type="button" data-c="del" class="kp-del">Entfernen</button></div>`;
+    pop.hidden = false;
+    const cands = [$(`[data-cxp="${c.id}"]`), $(`[data-cx="${c.id}"]`, wallsEl)].filter(el => el && el.getBoundingClientRect().width > 0);
+    const r = cands.length ? cands[0].getBoundingClientRect() : null; if (!r || offView(r)) { pop.hidden = true; return; }
+    const pw = pop.offsetWidth; let left = r.left + r.width / 2 - pw / 2; left = Math.max(8, Math.min(innerWidth - pw - 8, left));
+    pop.style.left = left + 'px'; pop.style.top = (r.top - pop.offsetHeight - 10 < 70 ? r.bottom + 10 : r.top - pop.offsetHeight - 10) + 'px';
+  }
+  // Gerät (Spüle samt Spülmaschine daneben, bzw. Kochfeld) so nah wie möglich an einen Anschluss rücken – nur wenn dabei kein neuer Konflikt entsteht
+  function moveApp(kinds, c) {
+    const nm = kinds.includes('sp') ? 'Spüle' : 'Kochfeld'; let fw = null, fi = -1;
+    for (const w in P.rows) { const i = P.rows[w].findIndex(m => kinds.includes(m.t)); if (i >= 0) { fw = w; fi = i; break; } }
+    if (fw == null) return { ok: false, msg: P.form === 'insel' && P.island.v === (kinds.includes('sp') ? 'spuele' : 'kochfeld') ? `Die ${nm} sitzt in der Insel – der Anschluss kommt dort aus dem Boden.` : `Noch keine ${nm} im Plan.` };
+    if (!P.rows[c.wall]) return { ok: false, msg: `An dieser Wand steht keine Küche – die ${nm} bleibt, wo sie ist. Die Leitung wird dann zur ${nm} verlegt.` };
+    const cur = locate(fw, fi); if (fw === c.wall && Math.abs(cur.x0 + cur.w / 2 - c.s) <= 15) return { ok: true, same: true };
+    const W0 = () => tips().filter(x => x[0] === 'warn').length, warn0 = W0(), snap = JSON.stringify({ rows: P.rows, up: P.up });
+    const restore = st => { const o = JSON.parse(st); P.rows = o.rows; P.up = o.up; };
+    const r0 = P.rows[fw], m = r0[fi]; let grp = [m];
+    if (kinds.includes('sp')) { if (r0[fi + 1] && r0[fi + 1].t === 'gs') grp = [m, r0[fi + 1]]; else if (r0[fi - 1] && r0[fi - 1].t === 'gs') grp = [r0[fi - 1], m]; }
+    const ids = grp.map(x => x.id); let best = null;
+    const n = P.rows[c.wall].length - (fw === c.wall ? grp.length : 0);
+    for (let k = 0; k <= n; k++) for (const flip of grp.length > 1 ? [false, true] : [false]) {
+      try {
+        restore(snap); const R = P.rows, g0 = R[fw].filter(x => ids.includes(x.id)); R[fw] = R[fw].filter(x => !ids.includes(x.id)); const tg = R[c.wall];
+        if ((k === 0 && tg[0] && M[tg[0].t].corner) || (k === tg.length && tg.length && M[tg[tg.length - 1].t].corner)) continue;
+        tg.splice(k, 0, ...(flip ? [...g0].reverse() : g0));
+        if (fw !== c.wall) { makeRoomQuiet(c.wall); makeRoomQuiet(fw); if (free(fw) >= 30) fillRest(fw); }
+        try { followHoods(); } catch (e) { }
+        const i = P.rows[c.wall].findIndex(x => kinds.includes(x.t)), L = i < 0 ? null : locate(c.wall, i); if (!L) continue;
+        const dist = Math.abs(L.x0 + L.w / 2 - c.s), wn = W0(), score = dist + Math.max(0, wn - warn0) * 1000 + (flip ? .5 : 0) + (k === (fw === c.wall ? fi : -1) ? 0 : .1);
+        if (!best || score < best.score) best = { score, dist, wn, st: JSON.stringify({ rows: P.rows, up: P.up }) };
+      } catch (e) { /* Kandidat verwerfen */ }
+    }
+    restore(snap);
+    if (!best || best.wn > warn0) return { ok: false, msg: `Die ${nm} passt dort nicht ohne Konflikt hin – bitte von Hand verschieben.` };
+    const cur2 = Math.abs(cur.x0 + cur.w / 2 - c.s) + (fw === c.wall ? 0 : 999); if (best.dist >= cur2 - 1) return { ok: true, same: true };
+    restore(best.st); return { ok: true, dist: best.dist };
+  }
+  function cxFollow(c) {
+    if (c.t === 'wasser') { const r = moveApp(['sp'], c); if (r.same) return; if (r.ok) { change(); toast(r.dist > 40 ? `Die Spüle ist zum Wasseranschluss gerückt – so nah, wie es passt (${Math.round(r.dist)} cm daneben).` : 'Die Spüle sitzt jetzt am Wasseranschluss – kurze Wege für Wasser und Abfluss.', undo); } else toast(r.msg); }
+    else if (c.t === 'herd') { const has = Object.values(P.rows).some(r => r.some(m => m.t === 'kf' || m.t === 'ko')); if (!has) return; for (const w in P.rows) { const i = P.rows[w].findIndex(m => m.t === 'kf' || m.t === 'ko'); if (i >= 0 && w === c.wall) { const L = locate(w, i); if (Math.abs(L.x0 + L.w / 2 - c.s) <= 30) return; } }
+      ask('Das Kochfeld zum Herdanschluss rücken?', 'Ja, rücken', () => { const r = moveApp(['kf', 'ko'], c); if (r.ok && !r.same) { change(); toast('Das Kochfeld sitzt jetzt am Herdanschluss.', undo); } else if (!r.ok) toast(r.msg); }); }
+  }
+  function addCx(t) {
+    if ((P.cx || []).length >= 12) { toast('Mehr als 12 Anschlüsse passen nicht in den Plan.'); return; }
+    // Start: Wasser an der Spüle, Herdanschluss am Kochfeld, Steckdose mittig an der ersten Küchenwand – danach an die echte Stelle ziehen
+    let wall = FORMS[P.form].walls.includes('N') ? 'N' : FORMS[P.form].walls[0], s = wallLen(wall) / 2 + (P.cx || []).filter(c => c.t === t).length * 30;
+    const app = t === 'wasser' ? ['sp'] : t === 'herd' ? ['kf', 'ko'] : null;
+    if (app) for (const w in P.rows) { const i = P.rows[w].findIndex(m => app.includes(m.t)); if (i >= 0) { const L = locate(w, i); wall = w; s = L.x0 + L.w / 2; break; } }
+    const c = { id: uid++, t, wall, s: 0 }; c.s = clampCx(c, s);
+    (P.cx = P.cx || []).push(c); selCx = c.id; sel = null; selOp = null; change();
+    toast(t === 'wasser' ? 'Wasseranschluss eingesetzt – an die echte Stelle ziehen, die Spüle rückt mit.' : t === 'herd' ? 'Herdanschluss eingesetzt – an die echte Stelle ziehen.' : 'Steckdose eingesetzt – an die echte Stelle ziehen.');
+  }
+  $$('[data-addcx]').forEach(b => b.addEventListener('click', () => addCx(b.dataset.addcx)));
   function renderOpPop() {
     const o = opById(selOp), ws = OPW[o.t];
     pop.innerHTML = `<div class="kp-pt"><b>${OPN[o.t]} <small>${WN[o.wall]}</small></b><button type="button" class="kp-px" data-o="x" aria-label="Auswahl schließen">×</button></div><div class="kp-step"><button type="button" data-o="w-"${o.w <= ws[0] ? ' disabled' : ''} aria-label="schmaler">−</button><span>${o.w} cm</span><button type="button" data-o="w+"${o.w >= ws[ws.length - 1] ? ' disabled' : ''} aria-label="breiter">+</button></div><div class="kp-pb"><button type="button" data-o="l" aria-label="nach links">←</button><button type="button" data-o="r" aria-label="nach rechts">→</button><button type="button" data-o="del" class="kp-del">Entfernen</button></div>`;
@@ -867,7 +946,7 @@
     const pw = pop.offsetWidth, ph = pop.offsetHeight; let left = r.left + r.width / 2 - pw / 2; left = Math.max(8, Math.min(innerWidth - pw - 8, left));
     let top = r.top - ph - 10; if (top < 70) top = Math.min(innerHeight - ph - 8, r.bottom + 10); pop.style.left = left + 'px'; pop.style.top = Math.max(64, top) + 'px';
   }
-  function openEq(o) { eqSel = o; sel = null; selOp = null; renderWalls(); }
+  function openEq(o) { eqSel = o; sel = null; selOp = null; selCx = null; renderWalls(); }
   const motifIn = Object.assign(document.createElement('input'), { type: 'file', accept: 'image/*', hidden: true }); document.body.appendChild(motifIn);
   motifIn.addEventListener('change', () => {
     const f = motifIn.files && motifIn.files[0]; motifIn.value = ''; if (!f) return;
@@ -898,12 +977,19 @@
   root.addEventListener('click', e => { const b = e.target.closest('[data-e]'); if (!b) return; e.preventDefault(); setEq(b.dataset.e, b.dataset.v); });
 
   pop.addEventListener('click', e => {
+    const cb = e.target.closest('[data-c]');
+    if (cb) { const c = cxById(selCx); if (!c) return; const k = cb.dataset.c;
+      if (k === 'x') { selCx = null; renderWalls(); return; }
+      if (k === 'l' || k === 'r') { c.s = clampCx(c, c.s + (k === 'r' ? 5 : -5)); change(); return; }
+      if (k === 'del') { P.cx = P.cx.filter(x => x !== c); selCx = null; change(); toast(`${CXN[c.t]} entfernt`, undo); return; }
+      if (k === 'go') { const r = moveApp(c.t === 'wasser' ? ['sp'] : ['kf', 'ko'], c); if (r.same) toast(c.t === 'wasser' ? 'Die Spüle sitzt schon am Wasseranschluss.' : 'Das Kochfeld sitzt schon am Herdanschluss.'); else if (r.ok) { change(); toast(c.t === 'wasser' ? 'Die Spüle sitzt jetzt am Wasseranschluss.' : 'Das Kochfeld sitzt jetzt am Herdanschluss.', undo); } else toast(r.msg); return; }
+      return; }
     const ob = e.target.closest('[data-o]');
     if (ob) { const o = opById(selOp); if (!o) return; const k = ob.dataset.o, ws = OPW[o.t];
-      if (k === 'x') { selOp = null; renderWalls(); return; }
+      if (k === 'x') { selOp = null; selCx = null; renderWalls(); return; }
       if (k === 'w-' || k === 'w+') { let i = ws.indexOf(o.w); if (i < 0) i = ws.findIndex(v => v >= o.w); const c = o.s + o.w / 2; o.w = ws[Math.max(0, Math.min(ws.length - 1, i + (k === 'w+' ? 1 : -1)))]; o.s = clampOp(o, c - o.w / 2); }
       if (k === 'l') o.s = clampOp(o, o.s - 10); if (k === 'r') o.s = clampOp(o, o.s + 10);
-      if (k === 'del') { const i = P.op.indexOf(o); P.op.splice(i, 1); selOp = null; toast(`${OPN[o.t]} entfernt`, undo); }
+      if (k === 'del') { const i = P.op.indexOf(o); P.op.splice(i, 1); selOp = null; selCx = null; toast(`${OPN[o.t]} entfernt`, undo); }
       change(); return; }
     const b = e.target.closest('[data-p]'); if (!b) return; const f = findSel(); if (!f) return; const { w, i, m, up } = f, c = M[m.t];
     const k = b.dataset.p, v = b.dataset.v;
@@ -935,9 +1021,10 @@
   addEventListener('scroll', () => { if (!pop.hidden || sel != null || selOp != null || eqSel) renderPop(); }, { passive: true });
   addEventListener('keydown', e => {
     if (/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) || document.querySelector('.kpf:not([hidden])')) return;
-    if ((e.key === 'Delete' || e.key === 'Backspace') && selOp) { P.op = P.op.filter(o => o.id !== selOp); selOp = null; change(); e.preventDefault(); return; }
+    if ((e.key === 'Delete' || e.key === 'Backspace') && selCx && !selOp && sel == null) { P.cx = P.cx.filter(c => c.id !== selCx); selCx = null; change(); e.preventDefault(); return; }
+    if ((e.key === 'Delete' || e.key === 'Backspace') && selOp) { P.op = P.op.filter(o => o.id !== selOp); selOp = null; selCx = null; change(); e.preventDefault(); return; }
     if ((e.key === 'Delete' || e.key === 'Backspace') && sel != null) { const f = findSel(); if (f) { (f.up ? P.up[f.w] : P.rows[f.w]).splice(f.i, 1); sel = null; change(); } e.preventDefault(); }
-    if (e.key === 'Escape') { sel = null; selOp = null; renderWalls(); }
+    if (e.key === 'Escape') { sel = null; selOp = null; selCx = null; renderWalls(); }
     if ((e.ctrlKey || e.metaKey) && e.key === 'z') { undo(); e.preventDefault(); }
   });
 
@@ -963,6 +1050,7 @@
       const hx0 = Math.min(x1, x2) - 14 + (nx ? -8 : 0), hy0 = Math.min(y1, y2) - 14 + (ny ? -8 : 0), hw = Math.abs(x2 - x1) + 28 + (nx ? 40 : 0), hh = Math.abs(y2 - y1) + 28 + (ny ? 40 : 0);
       s += `<g data-pop="${o.id}" class="kp-pop-op${on ? ' on' : ''}">${g}<rect x="${nx < 0 ? hx0 - 32 : hx0}" y="${ny < 0 ? hy0 - 32 : hy0}" width="${hw}" height="${hh}" fill="transparent"/></g>`;
     });
+    (P.cx || []).forEach(c => { const [x1, y1] = seg(c.wall, c.s, 0), [nx, ny] = INW[c.wall], x = x1 + nx * 17, y = y1 + ny * 17; s += `<g data-cxp="${c.id}" class="kp-pop-op kp-cxp${selCx === c.id ? ' on' : ''}" style="cursor:grab">${cxSym(c, x, y, 11, selCx === c.id)}<circle cx="${x}" cy="${y}" r="26" fill="transparent"/></g>`; });
     s += `<g font-family="system-ui" font-size="15" fill="#8a7f72" text-anchor="middle"><text x="${W / 2}" y="${-22}">${(W / 100).toFixed(2).replace('.', ',')} m</text><text transform="translate(${-22} ${D / 2}) rotate(-90)">${(D / 100).toFixed(2).replace('.', ',')} m</text></g>`;
     planEl.innerHTML = `<svg viewBox="-44 -44 ${W + 88} ${D + 80}" xmlns="http://www.w3.org/2000/svg" aria-label="Grundriss mit Fenstern und Türen">${s}</svg>`;
   }
@@ -974,7 +1062,13 @@
     if (o.wall !== wall) { o.wall = wall; if (o.w > wallLen(wall) - 20) o.w = OPW[o.t].filter(v => v <= wallLen(wall) - 20).pop() || o.w; }
     o.s = clampOp(o, along - o.w / 2); renderWalls(); renderTips(); schedule3D();
   }
-  if (planEl) planEl.addEventListener('pointerdown', e => { const g = e.target.closest('[data-pop]'); if (!g) { if (selOp) { selOp = null; renderWalls(); } return; } startDrag(e, 'plan', { oid: +g.dataset.pop }); e.preventDefault(); });
+  function cxPlanMove(e) {
+    const c = cxById(drag.cid); if (!c) return; const W = P.room.w, D = P.room.d, p = planPt(e);
+    const d = { N: Math.abs(p.y), S: Math.abs(p.y - D), W: Math.abs(p.x), E: Math.abs(p.x - W) };
+    const wall = Object.keys(d).sort((a, b) => d[a] - d[b])[0], along = { N: p.x, S: W - p.x, W: D - p.y, E: p.y }[wall];
+    c.wall = wall; c.s = clampCx(c, along); renderWalls();
+  }
+  if (planEl) planEl.addEventListener('pointerdown', e => { const gc = e.target.closest('[data-cxp]'); if (gc) { startDrag(e, 'cxplan', { cid: +gc.dataset.cxp }); e.preventDefault(); return; } const g = e.target.closest('[data-pop]'); if (!g) { if (selOp || selCx) { selOp = null; selCx = null; renderWalls(); } return; } startDrag(e, 'plan', { oid: +g.dataset.pop }); e.preventDefault(); });
   function addOp(t) {
     if (P.op.length >= 8) { toast('Mehr als 8 Fenster und Türen passen nicht in den Plan.'); return; }
     const w0 = t === 'tuer' ? 90 : t === 'balkon' ? 120 : 100, kitchen = Object.keys(P.rows), others = ['N', 'E', 'S', 'W'].filter(w => !kitchen.includes(w));
@@ -1024,6 +1118,11 @@
     if (!isDD()) for (const w in P.up) { const X = xs(w); P.rows[w] && P.rows[w].forEach((m, i) => { if ((m.t === 'kf' || m.t === 'ko') && !P.up[w].some(u => u.t === 'dh' && ov(u.s, u.w, X[i], m.w))) warn('Über dem Kochfeld fehlt die Dunstabzugshaube'); }); }
     if (P.rows.N && (hasCornerSlot('l') || hasCornerSlot('r'))) { const N = P.rows.N; if ((hasCornerSlot('l') && M[N[0].t].corner) || (hasCornerSlot('r') && M[N[N.length - 1].t].corner)) ok('Ecke clever genutzt'); }
     if (!P.op.some(o => o.t === 'tuer' || o.t === 'balkon')) warn('Noch keine Tür – wie kommt man in die Küche?');
+    [['wasser', ['sp'], 'Die Spüle', 'Wasseranschluss', isl && P.island.v === 'spuele'], ['herd', ['kf', 'ko'], 'Das Kochfeld', 'Herdanschluss', isl && P.island.v === 'kochfeld']].forEach(([t, ks, nm, an, inIsl]) => {
+      const cs = (P.cx || []).filter(c => c.t === t); if (!cs.length || inIsl) return; let best = null;
+      for (const w in P.rows) P.rows[w].forEach((m, i) => { if (!ks.includes(m.t)) return; const L = locate(w, i); cs.forEach(c => { const d = c.wall === w ? Math.abs(L.x0 + L.w / 2 - c.s) : 1e4; if (best == null || d < best) best = d; }); });
+      if (best == null) return; if (best >= 1e4) warn(`${nm} steht nicht an der Wand mit dem ${an} – Leitung muss verlegt werden`); else if (best > 60) warn(`${nm} steht ${(best / 100).toFixed(1).replace('.', ',')} m neben dem ${an}`); else ok(`${nm} am ${an}`);
+    });
     if (isl && P.room.d < 380) warn('Für eine Insel sollte der Raum mind. 3,80 m tief sein');
     return out;
   }
@@ -1086,14 +1185,15 @@
   /* ---------------- Verlauf / Link ---------------- */
   const hist = [];
   const opt = m => { const o = {}; if (m.h && M[m.t].hs && m.h !== HDEF(m.t)) o.h = m.h; if (m.a) o.a = m.a; if (m.ax) o.ax = m.ax; return Object.keys(o).length ? o : null; };
-  const ser = () => { const o = { f: P.form, r: P.room, rw: Object.fromEntries(Object.entries(P.rows).map(([k, v]) => [k, v.map(m => { const q = opt(m); return q ? [m.t, m.w, q] : [m.t, m.w]; })])), tp: P.top, op: P.op.map(o2 => [o2.t, o2.wall, o2.s, o2.w]), is: P.island, s: P.style, ah: P.ah || 90 }; const up = Object.entries(P.up || {}); if (up.length) o.up = Object.fromEntries(up.map(([k, v]) => [k, v.map(u => { const q = opt(u); return q ? [u.t, u.s, u.w, q] : [u.t, u.s, u.w]; })])); return JSON.stringify(o); };
+  const ser = () => { const o = { f: P.form, r: P.room, rw: Object.fromEntries(Object.entries(P.rows).map(([k, v]) => [k, v.map(m => { const q = opt(m); return q ? [m.t, m.w, q] : [m.t, m.w]; })])), tp: P.top, op: P.op.map(o2 => [o2.t, o2.wall, o2.s, o2.w]), is: P.island, s: P.style, ah: P.ah || 90 }; const up = Object.entries(P.up || {}); if (up.length) o.up = Object.fromEntries(up.map(([k, v]) => [k, v.map(u => { const q = opt(u); return q ? [u.t, u.s, u.w, q] : [u.t, u.s, u.w]; })])); if ((P.cx || []).length) o.cx = P.cx.map(c => [c.t, c.wall, c.s]); return JSON.stringify(o); };
   function des(j) {
     const o = JSON.parse(j); P = { form: FORMS[o.f] ? o.f : 'l', room: o.r, rows: {}, up: {}, top: o.tp || {}, op: [], island: o.is || { w: 180, v: 'kochfeld' }, style: o.s, ah: o.ah || 90 };
     for (const k in o.rw) P.rows[k] = o.rw[k].filter(([t]) => M[t]).map(([t, w, q]) => mk(t, w, q));
     if (o.up) for (const k in o.up) if (P.rows[k]) P.up[k] = o.up[k].filter(([t]) => M[t] && isUp(t)).map(([t, s, w, q]) => { const u = mk(t, w, q); u.s = s; return u; });
-    sel = null; selOp = null;
+    sel = null; selOp = null; selCx = null;
     if (o.op) P.op = o.op.map(([t, wall, s, w]) => ({ id: uid++, t, wall, s, w }));
     else { if (o.wi) P.op.push({ id: uid++, t: 'fenster', wall: o.wi.wall, s: o.wi.s, w: o.wi.w }); P.op.push(defaultDoor()); } // ältere Links
+    P.cx = Array.isArray(o.cx) ? o.cx.filter(q => Array.isArray(q) && CXN[q[0]] && WN[q[1]]).map(([t, wall, s]) => ({ id: uid++, t, wall, s: Math.round(+s) || 0 })) : [];
   }
   const b64 = s => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   const unb64 = s => decodeURIComponent(escape(atob(s.replace(/-/g, '+').replace(/_/g, '/'))));
@@ -1120,14 +1220,14 @@
 
   /* ---------------- Schritte & Bedienfelder ---------------- */
   const steps = $$('[data-kstep]'), panes = $$('[data-kpane]');
-  function go(i) { steps.forEach((b, j) => { b.classList.toggle('on', j === i); b.classList.toggle('done', j < i); }); panes.forEach((p, j) => p.classList.toggle('on', j === i)); root.dataset.step = i; if (innerWidth < 1000) { const t = i === 3 ? $('[data-kpane].on') : $('.kp-stage'); if (t && i !== 1) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } renderPop(); }
+  function go(i) { if (selCx) { selCx = null; try { renderWalls(); } catch (e) { } } steps.forEach((b, j) => { b.classList.toggle('on', j === i); b.classList.toggle('done', j < i); }); panes.forEach((p, j) => p.classList.toggle('on', j === i)); root.dataset.step = i; if (innerWidth < 1000) { const t = i === 3 ? $('[data-kpane].on') : $('.kp-stage'); if (t && i !== 1) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } renderPop(); }
   steps.forEach((b, i) => b.addEventListener('click', () => go(i)));
   $$('[data-kgo]').forEach(b => b.addEventListener('click', () => go(+b.dataset.kgo)));
   root.addEventListener('click', e => { const b = e.target.closest('[data-kp-lookinfo] [data-kgo]'); if (b) go(+b.dataset.kgo); });
   $('[data-kp-forms]').innerHTML = Object.entries(FORMS).map(([k, f]) => `<button type="button" data-form="${k}"><svg viewBox="0 0 64 46" aria-hidden="true"><rect x="2" y="2" width="60" height="42" rx="3" fill="none" stroke="currentColor" stroke-opacity=".25"/><path d="${f.p}"/></svg><b>${f.n}</b><small>${f.d}</small></button>`).join('');
-  $('[data-kp-forms]').addEventListener('click', e => { const b = e.target.closest('[data-form]'); if (!b) return; const st = P.style, room = { ...P.room }; fresh(b.dataset.form, { style: st, room }); sel = null; change(); K && K.view('perspektive'); });
+  $('[data-kp-forms]').addEventListener('click', e => { const b = e.target.closest('[data-form]'); if (!b) return; const st = P.style, room = { ...P.room }; fresh(b.dataset.form, { style: st, room, cx: P.cx }); sel = null; const wq = P.cx.find(c => c.t === 'wasser'); if (wq) moveApp(['sp'], wq); change(); K && K.view('perspektive'); });
   const rw = $('[data-kp-rw]'), rd = $('[data-kp-rd]');
-  function roomIn() { P.room.w = +rw.value; P.room.d = +rd.value; for (const w in P.rows) makeRoomQuiet(w); for (const w in P.up) { const L = wallLen(w); P.up[w] = P.up[w].filter(u => u.w <= L); P.up[w].forEach(u => { u.s = Math.max(0, Math.min(L - u.w, u.s)); }); } P.op.forEach(o => { if (o.w > wallLen(o.wall) - 20) o.w = OPW[o.t].filter(v => v <= wallLen(o.wall) - 20).pop() || o.w; o.s = clampOp(o, o.s); }); followHoods(); syncRoomOut(); renderWalls(); renderTips(); schedule3D(); }
+  function roomIn() { P.room.w = +rw.value; P.room.d = +rd.value; for (const w in P.rows) makeRoomQuiet(w); for (const w in P.up) { const L = wallLen(w); P.up[w] = P.up[w].filter(u => u.w <= L); P.up[w].forEach(u => { u.s = Math.max(0, Math.min(L - u.w, u.s)); }); } P.op.forEach(o => { if (o.w > wallLen(o.wall) - 20) o.w = OPW[o.t].filter(v => v <= wallLen(o.wall) - 20).pop() || o.w; o.s = clampOp(o, o.s); }); (P.cx || []).forEach(c => { c.s = clampCx(c, c.s); }); followHoods(); syncRoomOut(); renderWalls(); renderTips(); schedule3D(); }
   function makeRoomQuiet(w) { let over = -free(w); if (over <= 0) { fillGap(w); return; } const R = [...P.rows[w]].reverse().filter(x => x.t === 'us'); for (const x of R) { if (over <= 0.5) break; const fit = M.us.ws.filter(v => v <= x.w - over).pop(); if (fit) { over -= x.w - fit; x.w = fit; } else { over -= x.w; P.rows[w] = P.rows[w].filter(y => y !== x); } } }
   function fillGap(w) { const f = free(w); if (f >= 30) { const last = [...P.rows[w]].reverse().find(x => x.t === 'us'); const grow = last && M.us.ws.filter(v => v <= last.w + f).pop(); if (last && grow > last.w) last.w = grow; else fillRest(w); } }
   [rw, rd].forEach(el => { el.addEventListener('input', roomIn); el.addEventListener('change', () => change()); });
@@ -1231,6 +1331,7 @@
       einheit: 'cm', hinweis: 'abWand = Abstand von der linken Wandkante, Blick von innen auf die Wand. Wände: N = Rückwand, W = links, E = rechts, S = gegenüber.',
       form: P.form, formName: FORMS[P.form].n, raum: { breite: W, tiefe: D, hoehe: H },
       arbeitshoehe: ah, sockel: 10 + ah - 90, arbeitsplatte: 4, waende, oeffnungen: P.op.map(opOf),
+      anschluesse: (P.cx || []).map(c => ({ typ: c.t, name: CXN[c.t], wand: c.wall, abWand: c.s, hoehe: cxH(c), bestand: true })),
       insel: P.form === 'insel' ? { breite: P.island.w, tiefe: 100, hoehe: 90, variante: P.island.v, mitteX: W / 2, mitteZ: Math.max(210, Math.min(D - 120, 225)) } : null,
       stil: { ...P.style, ausgangsstil: LK ? LK[1] : null, front: (FRONTS.find(f => P.style.wood ? f[1] === 'wood:' + P.style.wood : f[1] === P.style.front) || [P.style.front])[0], griffe: (HANDLES.find(h => h[0] === P.style.handle) || ['', ''])[1], arbeitsplatteName: (TOPS.find(t => t[0] === P.style.top) || ['', ''])[1] },
       ausstattung: eqData(),
@@ -1257,6 +1358,7 @@
     if (P.form === 'insel') L.push(`Insel: ${P.island.w} cm, ${({ kochfeld: 'mit Kochfeld', spuele: 'mit Spüle', frei: 'freie Arbeitsfläche' })[P.island.v]}`);
     L.push(`Arbeitshöhe: ${P.ah || 90} cm`);
     if (P.op.length) L.push('Fenster & Türen: ' + P.op.map(o => `${OPN[o.t]} ${o.w} cm (${WN[o.wall]}, ab ${o.s} cm)`).join(' · '));
+    if ((P.cx || []).length) L.push('Anschlüsse im Raum (Bestand): ' + P.cx.map(c => `${CXN[c.t]} (${WN[c.wall]}, ${c.s} cm von links)`).join(' · '));
     L.push(`Fronten: ${fr ? fr[0] : s.front} · Griffe: ${HANDLES.find(h => h[0] === s.handle)[1]} · Arbeitsplatte: ${TOPS.find(t => t[0] === s.top)[1]} · Hängeschränke: ${Object.keys(P.up).length ? 'individuell geplant' : anyTop() ? 'automatisch' : 'keine'}`);
     const LK = LOOKS.find(x => x[0] === s.look); if (LK) L.push(`Ausgangsstil: ${LK[1]}`);
     { const q = eqData(), A = []; if (q.spuele) A.push(`Spüle ${q.spuele}`, `Armatur ${q.armatur}`); if (q.kochfeldBreite) A.push(`Kochfeld ${q.kochfeldBreite} cm${q.kochfeldArt === 'mit Muldenlüfter' ? ' mit Muldenlüfter' : ''}`); if (q.dunstabzug && q.kochfeldArt !== 'mit Muldenlüfter') A.push(`Dunstabzug: ${q.dunstabzug}`); if (q.inselAbzug) A.push(`Abzug an der Insel: ${q.inselAbzug}`); if (A.length) L.push('Ausstattung: ' + A.join(' · ')); }
@@ -1333,7 +1435,7 @@
     setAttach: a => { attach = a; syncAttach(); }, getAttach: () => attach,
     toSend: () => { go(3); setTimeout(() => { const c = $('[data-kpf-card]'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 120); },
     // Fertigen Plan (Hash-Format) übernehmen – ohne Neuladen, mit Rückgängig; bei Fehler bleibt der alte Entwurf
-    applyPlan: j => { const keep = P; try { des(typeof j === 'string' ? j : JSON.stringify(j)); if (!P || !P.room || !FORMS[P.form]) throw new Error('Plan ungültig'); } catch (e) { P = keep; throw e; } sel = null; selOp = null; eqSel = null; disarm(); pop.hidden = true; openNow.clear(); xfade(); change(); renderPal(); if (K && K.view) { K.view('perspektive'); $$('[data-cam]').forEach(x => x.classList.toggle('on', x.dataset.cam === 'perspektive')); } return lastHash; },
+    applyPlan: j => { const keep = P; try { des(typeof j === 'string' ? j : JSON.stringify(j)); if (!P || !P.room || !FORMS[P.form]) throw new Error('Plan ungültig'); } catch (e) { P = keep; throw e; } if (!P.cx.length && keep && keep.cx && keep.cx.length) { P.cx = keep.cx.map(c => ({ ...c })); P.cx.forEach(c => { c.s = clampCx(c, c.s); }); } { const wq = P.cx.find(c => c.t === 'wasser'); if (wq) try { moveApp(['sp'], wq); } catch (e) { } } sel = null; selOp = null; selCx = null; eqSel = null; disarm(); pop.hidden = true; openNow.clear(); xfade(); change(); renderPal(); if (K && K.view) { K.view('perspektive'); $$('[data-cam]').forEach(x => x.classList.toggle('on', x.dataset.cam === 'perspektive')); } return lastHash; },
     hash: () => lastHash,
   };
   document.addEventListener('click', e => { const b = e.target.closest('[data-kpf-open]'); if (!b) return; e.preventDefault(); openFoto({ sample: b.hasAttribute('data-kpf-sample') }); });

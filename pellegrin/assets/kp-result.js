@@ -89,7 +89,7 @@
     kw.forEach(k => { if (walls[k]) walls[k].kitchen = true; });
     const I = pd.insel || pd.island;
     const island = I && num(I.breite, I.w) ? { w: num(I.breite, I.w), d: num(I.tiefe, I.d) || 100, x: num(I.mitteX, I.x) ?? W / 2, z: num(I.mitteZ, I.z) ?? Math.max(210, Math.min(D - 120, 225)), v: I.variante || I.v || 'frei' } : null;
-    return { src: 'planData', room: { w: W, d: D, h: num(R.hoehe, R.h) || ROOM_H }, form: pd.form || (K.form && K.form()) || 'l', formName0: pd.formName, kw, ah, sockel0: num(pd.sockel), walls, island, styleData: pd.stil || null };
+    return { src: 'planData', room: { w: W, d: D, h: num(R.hoehe, R.h) || ROOM_H }, form: pd.form || (K.form && K.form()) || 'l', formName0: pd.formName, kw, ah, sockel0: num(pd.sockel), walls, island, styleData: pd.stil || null, cx: (pd.anschluesse || []).filter(a => a && a.wand).map(a => ({ t: a.typ, wall: String(a.wand).toUpperCase(), s: num(a.abWand) || 0, h: num(a.hoehe) })) };
   }
 
   function getPlan() {
@@ -180,7 +180,7 @@
       });
     }
     if (pd.island) { const I = pd.island, x = I.x - I.w / 2, y = I.z - I.d / 2; cabs += `<rect x="${f1(x)}" y="${f1(y)}" width="${I.w}" height="${I.d}" rx="2" fill="#f1e9dc" stroke="${INK}" stroke-width="${.7 * u / 10}"/>`; if (I.v === 'kochfeld') [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => sym += `<circle cx="${f1(I.x + a * 13)}" cy="${f1(I.z + b * 12)}" r="8" fill="none" stroke="${INK}" stroke-width="${.6 * u / 10}"/>`); if (I.v === 'spuele') sym += `<rect x="${f1(I.x - 20)}" y="${f1(I.z - 15)}" width="40" height="30" rx="6" fill="#fff" stroke="${INK}" stroke-width=".6"/>`; nums += `<g class="kpr-pos"><circle cx="${f1(x + I.w - .9 * u)}" cy="${f1(y + .9 * u)}" r="${f1(.62 * u)}" fill="${PAPER}" stroke="${INK}" stroke-width="${.45 * u / 10}"/>${ptxt(x + I.w - .9 * u, y + .9 * u + .62 * u * .36, I.pos, .65 * u, { w: 700 })}</g>` + ptxt(I.x, y + I.d + 1.3 * u, 'Insel', .8 * u, { fill: MUTE, w: 600 }); }
-    s += cabs + ups + sym;
+    s += o.inst ? `<g opacity=".45">${cabs + ups + sym}</g>` : cabs + ups + sym;
     // Öffnungen
     for (const k in pd.walls) pd.walls[k].open.forEach(op => {
       const a1 = op.s, a2 = op.s + op.w, P = (a, o) => wp(pd, k, a, o);
@@ -198,7 +198,7 @@
       const isKitchenSide = pd.walls[k].base.length > 0;
       if (!isKitchenSide || op.t === 'tuer') s += ptxt(lx, ly + (rot ? 0 : .3 * u), op.t === 'tuer' ? 'Tür' : op.t === 'balkon' ? 'Balkontür' : 'Fenster', .72 * u, { fill: '#4f6b84', w: 600, rot });
     });
-    s += nums;
+    if (o.inst) s += instPlan(pd, o.inst, u); else s += nums;
     // Maßketten
     let dims = '';
     ['N', 'W', 'E', 'S'].forEach(k => {
@@ -252,11 +252,11 @@
   function elevSVG(pd, k, o) {
     const u = o.fs, w = pd.walls[k], L = w.len, ah = pd.ah, so = pd.sockel; DIMI = o.dimBase || 0;
     const Y = h => -h; // Höhe → SVG-y
-    const upC = w.up.filter(c => c.kind !== 'hood'), hasUp = upC.length > 0;
+    const isAx = c => c.typ === 'ax' || /^Aufsatz/.test(c.name || ''), upC = w.up.filter(c => c.kind !== 'hood' && !isAx(c)), hasUp = upC.length > 0, axC = w.up.filter(isAx);
     const tallH = Math.max(0, ...w.base.filter(c => c.kind === 't').map(c => c.h));
     const lvl = [{ h: 0, t: 'OK Fußboden' }, { h: so, t: 'Sockel' }, { h: ah, t: 'Arbeitshöhe' }];
     let uk = null, okU = null; if (hasUp) { uk = Math.min(...upC.map(c => c.y0)); okU = Math.max(...upC.map(c => c.y0 + c.h)); lvl.push({ h: uk, t: 'UK Hängeschrank' }, { h: okU, t: 'OK Hängeschrank' }); }
-    if (tallH) lvl.push({ h: tallH, t: 'OK Hochschrank' });
+    if (tallH) lvl.push({ h: tallH, t: 'OK Hochschrank' }); if (axC.length) lvl.push({ h: Math.max(...axC.map(c => c.y0 + c.h)), t: 'OK Aufsatzschrank' });
     const kotW = 10.5 * u, mL = 5.4 * u, mR = kotW + 1.2 * u, top = ROOM_H + (hasUp || w.up.length ? 3.6 * u : 1.4 * u), bot = 5.8 * u;
     let s = '';
     // Wandfläche, Decke, Boden
@@ -303,6 +303,11 @@
     });
     // Boden
     s += `<rect x="${-1.2 * u}" y="0" width="${L + 2.4 * u}" height="${.5 * u}" fill="url(#kprGround)"/>` + pline(-1.2 * u, 0, L + 1.2 * u, 0, { w: 1.3 * u / 10 });
+    if (o.inst) {
+      const defs0 = `<defs><pattern id="kprHatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#efe9df"/><line x1="0" y1="0" x2="0" y2="6" stroke="#cfc5b8" stroke-width="1.6"/></pattern><pattern id="kprGround" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><rect width="5" height="5" fill="#fff"/><line x1="0" y1="0" x2="0" y2="5" stroke="#9b9187" stroke-width="1"/></pattern></defs>`;
+      const ov = instElev(pd, k, o.inst, u, L), vx = -mL, vy = -top, vw = L + mL + mR + 2 * u, vh = top + bot + 1.6 * u;
+      return { svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${f1(vx)} ${f1(vy)} ${f1(vw)} ${f1(vh)}" class="kpr-svg" role="img" aria-label="Installationsplan ${esc(w.name)}">${defs0}<g opacity=".34">${s}</g>${ov}</svg>`, vw, vh, dimEnd: DIMI };
+    }
     s += nums;
     // Maßketten unten (Unterschränke + Gesamt), oben (Hängeschränke), links (Höhen)
     let dims = '';
@@ -324,6 +329,105 @@
     const defs = `<defs><pattern id="kprHatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#efe9df"/><line x1="0" y1="0" x2="0" y2="6" stroke="#cfc5b8" stroke-width="1.6"/></pattern><pattern id="kprGround" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><rect width="5" height="5" fill="#fff"/><line x1="0" y1="0" x2="0" y2="5" stroke="#9b9187" stroke-width="1"/></pattern></defs>`;
     const vx = -mL, vy = -top, vw = L + mL + mR, vh = top + bot;
     return { svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${f1(vx)} ${f1(vy)} ${f1(vw)} ${f1(vh)}" class="kpr-svg" role="img" aria-label="Ansicht ${esc(w.name)} mit Höhen">${defs}${s}</svg>`, vw, vh, dimEnd: DIMI };
+  }
+
+  /* =========================================================================
+     2b) Installationsplan – Anschlüsse aus der Planung abgeleitet (Richtwerte) + Bestand aus dem Planer
+     ========================================================================= */
+  const ICAT = { w: ['#2f7fc1', 'Wasser'], a: ['#86705a', 'Abwasser'], s: ['#d0582a', 'Strom 230 / 400 V'], l: ['#c99a12', 'Licht'] };
+  function instPts(pd) {
+    const P0 = [], ah = pd.ah, add = o => P0.push(o), adj = (a, b) => Math.abs(a.s + a.w - b.s) < 1.5 || Math.abs(b.s + b.w - a.s) < 1.5;
+    const isAx = c => c.typ === 'ax' || /^Aufsatz/.test(c.name || '');
+    pd.kw.forEach(k => {
+      const w = pd.walls[k]; if (!w) return; const base = w.base, upC = w.up.filter(c => c.kind === 'u' && !isAx(c));
+      base.forEach(c => {
+        const mx = c.s + c.w / 2;
+        if (c.app === 'sp') {
+          const dx = Math.max(7, Math.min(12, c.w / 2 - 9)), gs = base.find(b => b.app === 'gs' && adj(b, c));
+          add({ k, s: mx - dx, h: 55, cat: 'w', sh: 'Wasser', n: 'Warmwasser · Eckventil ½″', d: 'unter der Spüle, links' });
+          add({ k, s: mx + dx, h: 55, cat: 'w', sh: 'Wasser', n: gs ? 'Kaltwasser · Kombi-Eckventil ½″ × ¾″' : 'Kaltwasser · Eckventil ½″', d: gs ? 'mit Geräteanschluss für die Spülmaschine' : 'unter der Spüle, rechts' });
+          add({ k, s: mx, h: 42, cat: 'a', sh: 'Abwasser', n: 'Abwasser DN 50', d: gs ? 'Siphon mit Geräteanschluss für die Spülmaschine' : 'mittig unter der Spüle' });
+          if (gs) { const r = gs.s > c.s; add({ k, s: r ? c.s + c.w - 9 : c.s + 9, h: 35, cat: 's', sh: 'Spülmaschine', n: 'Steckdose Spülmaschine', d: '230 V · eigener Stromkreis 16 A · im Spülenschrank, gut erreichbar' }); }
+        }
+        if (c.app === 'gs' && !base.some(b => b.app === 'sp' && adj(b, c))) { const nb = base.find(b => b !== c && b.kind === 'b' && adj(b, c)); add({ k, s: nb ? (nb.s > c.s ? nb.s + 9 : nb.s + nb.w - 9) : mx, h: 35, cat: 's', sh: 'Spülmaschine', n: 'Steckdose Spülmaschine', d: '230 V · eigener Stromkreis 16 A' + (nb ? ' · im Nachbarschrank' : '') }); }
+        if (c.app === 'kf' || c.app === 'ko') add({ k, s: mx, h: 50, cat: 's', sh: 'Herd 400 V', n: 'Herdanschlussdose 400 V', d: (c.app === 'ko' ? 'Kochfeld + Backofen' : 'Kochfeld') + ' · 3 × 16 A, eigener Stromkreis' });
+        if (c.app === 'bo' || c.app === 'bm') add({ k, s: mx, h: 45, cat: 's', sh: 'Backofen', n: 'Geräteanschluss Backofen', d: '230 V · eigener Stromkreis 16 A · hinter dem Schubkasten unter dem Backofen' });
+        if (c.app === 'bm') add({ k, s: mx, h: Math.max(150, Math.min(ROOM_H - 30, (c.h || 216) - 22)), cat: 's', sh: 'Mikrowelle', n: 'Steckdose Mikrowelle', d: '230 V · oberhalb der Mikrowellen-Nische' });
+        if (c.app === 'kue') add({ k, s: mx, h: Math.max(100, (c.h || 216) - 22), cat: 's', sh: 'Kühlschrank', n: 'Steckdose Kühlschrank', d: '230 V · oberhalb der Geräte-Nische, im Fach darüber' });
+      });
+      w.up.filter(c => c.kind === 'hood').forEach(c => add({ k, s: c.s + c.w / 2, h: Math.min(ROOM_H - 30, 225), cat: 's', sh: 'Haube', n: 'Steckdose Dunstabzug', d: '230 V · über der Haube, im Kamin verdeckt' }));
+      // Doppelsteckdosen über der Arbeitsplatte – nicht über Spüle und Kochfeld, nicht im Fenster, nicht hinter Hochschränken
+      const uk = upC.length ? Math.min(...upC.map(c => c.y0)) : null, hs = uk && uk - ah < 46 ? Math.round(ah + (uk - ah) / 2) : ah + 20;
+      const iv = base.filter(c => c.kind === 'b').map(c => [c.s, c.s + c.w]); if (w.corner) iv.push([w.corner[0], w.corner[1]]);
+      iv.sort((a, b) => a[0] - b[0]); const mg = []; iv.forEach(x => { const l = mg[mg.length - 1]; if (l && x[0] <= l[1] + 1.5) l[1] = Math.max(l[1], x[1]); else mg.push([...x]); });
+      const blk = [];
+      base.forEach(c => { if (c.kind === 't') blk.push([c.s - 3, c.s + c.w + 3]); if (c.app === 'sp') blk.push([c.s - 8, c.s + c.w + 8]); if (c.app === 'kf' || c.app === 'ko') blk.push([c.s - 15, c.s + c.w + 15]); });
+      w.open.forEach(o2 => { if (o2.t !== 'fenster' || (o2.y0 || 0) < hs + 10) blk.push([o2.s - 10, o2.s + o2.w + 10]); });
+      let segs = mg; blk.forEach(([a, b]) => { segs = segs.flatMap(([x, y]) => b <= x || a >= y ? [[x, y]] : [[x, Math.min(y, a)], [Math.max(x, b), y]].filter(([p, q]) => q - p > .5)); });
+      segs.forEach(([a, b]) => { const L = b - a; if (L < 30) return; const n = Math.max(1, Math.min(3, Math.round(L / 110))); for (let j = 0; j < n; j++) add({ k, s: a + L * (j + .5) / n, h: hs, cat: 's', sh: 'Steckdosen', n: 'Doppelsteckdose Arbeitsplatte', d: '230 V · 16 A · ' + (uk ? 'zwischen Arbeitsplatte und Hängeschrank' : 'über der Arbeitsplatte') }); });
+      if (upC.length) { const a = Math.min(...upC.map(c => c.s)), tp = Math.max(...upC.map(c => c.y0 + c.h)); add({ k, s: a + 15, h: Math.min(ROOM_H - 12, tp + 8), cat: 'l', sh: 'Licht', n: 'Lichtauslass Unterbauleuchten', d: '230 V · geschaltet · Netzteil liegt auf dem Hängeschrank' }); }
+    });
+    if (pd.island && pd.island.v && pd.island.v !== 'frei') {
+      if (pd.island.v === 'spuele') { add({ k: 'I', s: 0, h: 0, cat: 'w', sh: 'Wasser', n: 'Kalt- und Warmwasser aus dem Boden', d: 'unter der Insel-Spüle · Leitungen im Estrich' }); add({ k: 'I', s: 0, h: 0, cat: 'a', sh: 'Abwasser', n: 'Abwasser DN 50 aus dem Boden', d: 'unter der Insel-Spüle · mit Gefälle im Estrich' }); }
+      else add({ k: 'I', s: 0, h: 0, cat: 's', sh: 'Herd 400 V', n: 'Herdanschluss 400 V aus dem Boden', d: 'unter dem Insel-Kochfeld · 3 × 16 A' });
+      add({ k: 'I', s: 0, h: 0, cat: 's', sh: 'Steckdosen', n: 'Steckdose in der Insel', d: '230 V · Bodenauslass, Steckdose seitlich in der Insel' });
+    }
+    const order = [...pd.kw, 'I']; P0.sort((p, q) => order.indexOf(p.k) - order.indexOf(q.k) || p.s - q.s || q.h - p.h);
+    P0.forEach((p, i) => { p.nr = i + 1; p.s = Math.round(p.s); });
+    // Bestand (im Planer eingetragen) – mit Abgleich zum Soll
+    const ex = (pd.cx || []).filter(c => pd.walls[c.wall]).map((c, i) => {
+      const want = c.t === 'wasser' ? P0.filter(p => p.cat === 'w' && p.k !== 'I') : c.t === 'herd' ? P0.filter(p => /^Herd/.test(p.sh) && p.k !== 'I') : P0.filter(p => p.cat === 's' && p.k !== 'I');
+      const same = want.filter(p => p.k === c.wall).sort((p, q) => Math.abs(p.s - c.s) - Math.abs(q.s - c.s)), near = same[0], dd = near ? Math.abs(near.s - c.s) : null;
+      const behind = pd.walls[c.wall].base.some(b => b.kind === 't' && c.s > b.s + 2 && c.s < b.s + b.w - 2), h0 = c.h || (c.t === 'dose' ? pd.ah + 20 : c.t === 'wasser' ? 55 : 50);
+      const inWin = pd.walls[c.wall].open.some(o2 => c.s > o2.s - 4 && c.s < o2.s + o2.w + 4 && h0 > (o2.y0 || 0) - 4 && h0 < (o2.y0 || 0) + (o2.h || 0) + 4);
+      let st;
+      if (inWin) st = c.t === 'dose' ? 'liegt im Fenster- bzw. Türbereich – versetzen' : 'liegt im Fenster- bzw. Türbereich – Leitung versetzen';
+      else if (c.t === 'dose') st = near && dd <= 25 ? `passt zu Nr. ${near.nr}` : behind ? 'hinter einem Hochschrank – versetzen oder stilllegen' : 'kann bleiben';
+      else if (!want.length) st = 'wird für diese Küche nicht gebraucht';
+      else if (!near) st = 'an einer anderen Wand – Leitung zur Küche verlegen';
+      else st = dd <= 15 ? `passt zu Nr. ${near.nr}` : `${Math.round(dd)} cm zu Nr. ${near.nr} versetzen`;
+      const h = c.h || (c.t === 'dose' ? pd.ah + 20 : c.t === 'wasser' ? 55 : 50);
+      return { nr: 'B' + (i + 1), k: c.wall, s: Math.round(c.s), h, cat: c.t === 'wasser' ? 'w' : 's', sh: c.t === 'wasser' ? 'Wasser' : c.t === 'herd' ? 'Herd 400 V' : 'Steckdosen', n: { wasser: 'Wasseranschluss · vorhanden', herd: 'Herdanschluss 400 V · vorhanden', dose: 'Steckdose · vorhanden' }[c.t] || 'Anschluss · vorhanden', d: st, ex: true, ok: /^passt|^kann/.test(st) };
+    });
+    return { pts: P0, ex, all: [...P0, ...ex] };
+  }
+  function isym(p, x, y, r) {
+    const c = ICAT[p.cat][0], lab = String(p.nr);
+    return `<g class="kpr-ip" style="--i:${typeof p.nr === 'number' ? p.nr : 40}"><circle cx="${f1(x)}" cy="${f1(y)}" r="${f1(r)}" fill="${p.ex ? '#fff' : c}" stroke="${p.ex ? c : '#fff'}" stroke-width="${f1(r * (p.ex ? .2 : .14))}"${p.ex ? ` stroke-dasharray="${f1(r * .42)} ${f1(r * .28)}"` : ''}/>${ptxt(x, y + r * .36, lab, r * (lab.length > 2 ? .78 : lab.length > 1 ? .92 : 1.05), { w: 700, fill: p.ex ? c : '#fff' })}</g>`;
+  }
+  // Ansicht: Symbole mit Nummern, Laufmaße ab linker Wandecke (unten) und Höhenkoten (rechts)
+  function instElev(pd, k, I, u, L) {
+    const pts = I.all.filter(p => p.k === k), Y = h => -h, r = .62 * u; let s = '';
+    s += pline(-1.2 * u, 0, L + 1.2 * u, 0, { w: 1.3 * u / 10 }) + pline(0, Y(ROOM_H), 0, 0, { w: 1.1 * u / 10 }) + pline(L, Y(ROOM_H), L, 0, { w: 1.1 * u / 10 });
+    const by = 2.2 * u;
+    s += pline(0, by, L, by, { w: .45 * u / 10 }) + `<circle cx="0" cy="${f1(by)}" r="${f1(.16 * u)}" fill="${INK}"/>` + ptxt(.32 * u, by + .5 * u, '0', .62 * u, { anchor: 'end', rot: -90, fill: MUTE });
+    const seenX = [];
+    pts.forEach(p => {
+      const col = ICAT[p.cat][0];
+      s += pline(p.s, Y(p.h) + r, p.s, by, { c: col, w: .32 * u / 10, dash: `${f1(.35 * u)} ${f1(.25 * u)}` });
+      if (!seenX.some(x => Math.abs(x - p.s) < .7 * u)) { seenX.push(p.s); s += `<circle cx="${f1(p.s)}" cy="${f1(by)}" r="${f1(.16 * u)}" fill="${INK}"/>` + ptxt(p.s + .24 * u, by + .5 * u, cm(p.s), .62 * u, { anchor: 'end', rot: -90, w: 600 }); }
+    });
+    pts.forEach(p => { s += isym(p, p.s, Y(p.h), r); });
+    s += ptxt(L / 2, by + 3.55 * u, 'Laufmaße ab linker Wandecke · Mitte Anschluss', .56 * u, { fill: MUTE });
+    // Höhenkoten
+    const hs = {}; pts.forEach(p => { const h = Math.round(p.h); (hs[h] = hs[h] || []).includes(p.sh) || hs[h].push(p.sh); });
+    let kot = '', prevY = Infinity;
+    Object.keys(hs).map(Number).sort((a, b) => a - b).forEach(h => {
+      const y = Math.min(Y(h), prevY - 1.1 * u); prevY = y;
+      const x0 = L + .6 * u; kot += `<g>${pline(L, Y(h), x0 + .3 * u, y, { c: MUTE, w: .35 * u / 10 })}<path d="M${f1(x0 + .3 * u)} ${f1(y)}l${f1(.5 * u)} ${f1(-.55 * u)}h${f1(-1 * u)}z" fill="${INK}" transform="translate(${f1(.5 * u)} 0)"/>${ptxt(x0 + 1.6 * u, y + .1 * u, `${h}  ${hs[h].slice(0, 2).join(' · ')}`, .7 * u, { anchor: 'start', w: 600 })}</g>`;
+    });
+    return s + `<g class="kpr-kots">${kot}</g>` + ptxt(L + .6 * u, Y(ROOM_H) + 1.05 * u, 'Höhe ab Fußboden', .58 * u, { anchor: 'start', fill: MUTE });
+  }
+  // Grundriss: farbige Punkte an der Wand (Bestand gestrichelt), Insel-Anschlüsse aus dem Boden
+  function instPlan(pd, I, u) {
+    let s = ''; const r = .5 * u;
+    I.all.forEach(p => {
+      if (p.k === 'I') return; const [x, y] = wp(pd, p.k, p.s, -9), c = ICAT[p.cat][0];
+      s += `<circle cx="${f1(x)}" cy="${f1(y)}" r="${f1(r)}" fill="${p.ex ? '#fff' : c}" stroke="${p.ex ? c : '#fff'}" stroke-width="${f1(r * .22)}"${p.ex ? ` stroke-dasharray="${f1(r * .45)} ${f1(r * .3)}"` : ''}/>`;
+    });
+    const isl = I.all.filter(p => p.k === 'I');
+    if (isl.length && pd.island) { const X = pd.island.x, Z = pd.island.z; isl.forEach((p, i) => { s += isym(p, X - (isl.length - 1) * .75 * u + i * 1.5 * u, Z, .62 * u); }); }
+    return s;
   }
 
   function islandSVG(pd, o) {
@@ -483,6 +587,7 @@
     plan: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 3.5h14v13H3z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3 7.5h6v9M12 3.5v5h5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5 1.2v1.6M15 1.2v1.6M5 2h10" stroke="currentColor" stroke-width="1.1"/></svg>',
     liste: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 5h10M7 10h10M7 15h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="3.6" cy="5" r="1.2" fill="currentColor"/><circle cx="3.6" cy="10" r="1.2" fill="currentColor"/><circle cx="3.6" cy="15" r="1.2" fill="currentColor"/></svg>',
     dl: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9.5M6 9l4 4 4-4M4 16.5h12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    inst: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.2 2.5v3.6M12.8 2.5v3.6M5 6.1h10v3.2a5 5 0 0 1-10 0zM10 14.3v3.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     pr: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 7.5V3h9v4.5M5.5 14H3.5V8h13v6h-2M5.5 11.5h9V17h-9z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
     send: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 10l14-6.5-4.5 14-2.8-5.2zM9.7 12.3L17 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
     moon: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15.5 12.5A6.5 6.5 0 0 1 7.5 4.5a6.5 6.5 0 1 0 8 8z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
@@ -499,6 +604,7 @@
   <nav class="kpr-tabs" role="tablist" aria-label="Ergebnis">
     <button type="button" role="tab" data-tab="foto" id="kpr-tab-foto" aria-controls="kpr-p-foto">${ICO.foto}<span>Echtoptik</span></button>
     <button type="button" role="tab" data-tab="plan" id="kpr-tab-plan" aria-controls="kpr-p-plan">${ICO.plan}<span>Maßplan</span></button>
+    <button type="button" role="tab" data-tab="inst" id="kpr-tab-inst" aria-controls="kpr-p-inst">${ICO.inst}<span>Installation</span></button>
     <button type="button" role="tab" data-tab="liste" id="kpr-tab-liste" aria-controls="kpr-p-liste">${ICO.liste}<span>Übersicht</span></button>
     <i class="kpr-ink" aria-hidden="true"></i>
   </nav>
@@ -524,10 +630,20 @@
         <label class="kpr-sw"><input type="checkbox" data-dims checked><i aria-hidden="true"></i><span>Maße anzeigen</span></label>
         <div class="kpr-seg" role="group" aria-label="Ansicht">${[['grundriss', 'Nur Grundriss'], ['ansichten', 'Nur Ansichten'], ['alles', 'Alles']].map(([k, n]) => `<button type="button" data-mode="${k}">${n}</button>`).join('')}</div>
         <span class="kpr-sp"></span>
-        <button type="button" class="kpr-btn kpr-ghost" data-print>${ICO.pr}<span>Drucken / PDF</span></button>
-        <button type="button" class="kpr-btn kpr-ghost" data-save-plan>${ICO.dl}<span>Als Bild speichern</span></button>
+        <button type="button" class="kpr-btn kpr-ghost" data-print>${ICO.pr}<span>Drucken</span></button>
+        <button type="button" class="kpr-btn kpr-ghost" data-save-plan>${ICO.dl}<span>Als Bild</span></button>
+        <button type="button" class="kpr-btn kpr-pri" data-pdf-plan>${ICO.dl}<span>PDF herunterladen</span></button>
       </div>
       <div class="kpr-sheet" data-sheet></div>
+    </section>
+    <section class="kpr-p kpr-plan kpr-inst" id="kpr-p-inst" role="tabpanel" aria-labelledby="kpr-tab-inst" data-p="inst" hidden>
+      <div class="kpr-pbar">
+        <p class="kpr-ihint"><b>Für Elektriker &amp; Installateur</b><span>Wo Steckdosen, Herdanschluss, Wasser und Abfluss hinkommen – passend zu dieser Küche.</span></p>
+        <span class="kpr-sp"></span>
+        <button type="button" class="kpr-btn kpr-ghost" data-print-inst>${ICO.pr}<span>Drucken</span></button>
+        <button type="button" class="kpr-btn kpr-pri" data-pdf-inst>${ICO.dl}<span>PDF herunterladen</span></button>
+      </div>
+      <div class="kpr-sheet" data-isheet></div>
     </section>
     <section class="kpr-p kpr-liste" id="kpr-p-liste" role="tabpanel" aria-labelledby="kpr-tab-liste" data-p="liste" hidden>
       <div data-liste></div>
@@ -545,6 +661,9 @@
       if (e.target.closest('[data-save-foto]')) return saveFoto();
       if (e.target.closest('[data-save-plan]')) return savePlan();
       if (e.target.closest('[data-print]')) return printPlan();
+      if (e.target.closest('[data-pdf-plan]')) return savePlan('pdf');
+      if (e.target.closest('[data-print-inst]')) return printInst();
+      if (e.target.closest('[data-pdf-inst]')) return instPDF();
       if (e.target.closest('[data-send]')) return toSend();
       const g = e.target.closest('[data-goto]'); if (g) return setTab(g.dataset.goto);
     });
@@ -552,10 +671,10 @@
     el.addEventListener('keydown', e => {
       if (e.key === 'Escape') { e.preventDefault(); close(); }
       if (e.key === 'Tab') trap(e);
-      if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && e.target.closest('[role="tab"]')) { const order = ['foto', 'plan', 'liste'], i = order.indexOf(tab); setTab(order[(i + (e.key === 'ArrowRight' ? 1 : 2)) % 3], true); }
+      if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && e.target.closest('[role="tab"]')) { const order = ['foto', 'plan', 'inst', 'liste'], i = order.indexOf(tab); setTab(order[(i + (e.key === 'ArrowRight' ? 1 : order.length - 1)) % order.length], true); }
     });
-    addEventListener('resize', () => { if (!el || el.hidden) return; clearTimeout(rzT); rzT = setTimeout(() => { moveInk(); if (tab === 'plan') renderSheet(false); }, 160); });
-    addEventListener('afterprint', () => { document.documentElement.classList.remove('kpr-print'); if (el && !el.hidden) renderSheet(false); });
+    addEventListener('resize', () => { if (!el || el.hidden) return; clearTimeout(rzT); rzT = setTimeout(() => { moveInk(); if (tab === 'plan') renderSheet(false); if (tab === 'inst') renderInst(false); }, 160); });
+    addEventListener('afterprint', () => { document.documentElement.classList.remove('kpr-print', 'kpr-pi'); if (el && !el.hidden) { if (tab === 'inst') renderInst(false); else renderSheet(false); } });
   }
   function trap(e) { const f = $$('button:not([disabled]), input, [tabindex="0"]', el).filter(x => x.offsetParent !== null && !x.closest('[hidden]')); if (!f.length) return; const a = f[0], z = f[f.length - 1]; if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); } else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); } }
   function syncChips() {
@@ -569,7 +688,7 @@
     $$('[data-tab]', el).forEach(b => { const on = b.dataset.tab === t; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; if (on && focus) b.focus(); });
     $$('[data-p]', el).forEach(p => { const on = p.dataset.p === t; if (on) { p.hidden = false; if (!RMO && prev !== t) { p.classList.remove('kpr-in'); void p.offsetWidth; p.classList.add('kpr-in'); } } else p.hidden = true; });
     moveInk(); $('.kpr-body', el).scrollTop = 0;
-    if (t === 'foto') showFoto(); if (t === 'plan') renderSheet(true); if (t === 'liste') renderList();
+    if (t === 'foto') showFoto(); if (t === 'plan') renderSheet(true); if (t === 'inst') renderInst(true); if (t === 'liste') renderList();
   }
   function subLine() { return `${pd.formName} · Raum ${m2(pd.room.w)} × ${m2(pd.room.d)} m · Arbeitshöhe ${pd.ah} cm`; }
 
@@ -669,37 +788,164 @@
     renderSheet(false, true); document.documentElement.classList.add('kpr-print');
     setTimeout(() => { try { window.print(); } finally { setTimeout(() => { document.documentElement.classList.remove('kpr-print'); renderSheet(false); }, 400); } }, 60);
   }
-  function svgImg(svgEl) {
+  function svgImg(svgEl, keep) {
+    const on = keep != null ? keep : dimsOn;
     return new Promise(res => {
-      const c = svgEl.cloneNode(true); if (!dimsOn) $$('.kpr-dim', c).forEach(n => n.remove()); $$('.kpr-wlab', c).forEach(n => { if (!dimsOn) n.remove(); });
+      const c = svgEl.cloneNode(true); if (!on) $$('.kpr-dim', c).forEach(n => n.remove()); $$('.kpr-wlab', c).forEach(n => { if (!on) n.remove(); });
       $$('[class]', c).forEach(n => n.removeAttribute('style'));
       const vb = c.getAttribute('viewBox').split(/\s+/).map(Number); c.setAttribute('width', vb[2] * 3); c.setAttribute('height', vb[3] * 3);
       const s = new XMLSerializer().serializeToString(c), i = new Image(); i.onload = () => res({ img: i, vb }); i.onerror = () => res(null); i.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s);
     });
   }
-  async function savePlan() {
-    renderSheet(false, true);
-    const sh = $('[data-sheet]', el), K = KPo(), Wd = 3508, Hd = 2480, M = 110, c = document.createElement('canvas'); c.width = Wd; c.height = Hd; const g = c.getContext('2d');
+  // Blatt als Bild (A4 quer, 300 dpi): Kopf, Zeichnungen aus den SVGs, Fuß
+  async function sheetCanvas(sh, o) {
+    const K = KPo(), Wd = 3508, Hd = 2480, M = 110, c = document.createElement('canvas'); c.width = Wd; c.height = Hd; const g = c.getContext('2d');
     g.fillStyle = '#fffdf9'; g.fillRect(0, 0, Wd, Hd); g.strokeStyle = INK; g.lineWidth = 4; g.strokeRect(M / 2, M / 2, Wd - M, Hd - M);
-    const serif = cssFont('--serif', 'Georgia, serif');
-    // Kopf
-    const hh = 230; g.fillStyle = INK; g.font = `600 64px ${serif}`; g.textBaseline = 'alphabetic'; g.fillText('Ihre Küche – Maßplan', M + 20, M + 100);
+    const serif = cssFont('--serif', 'Georgia, serif'), hh = sheetHead(g, o.title, Wd, M, serif);
+    const md = o.mode || 'alles', showPlan = md !== 'ansichten', showEl = md !== 'grundriss';
+    const svgs = $$('.kpr-card', sh).filter(f => $('svg', f)).map(f => ({ svg: $('svg', f), title: $('figcaption b', f).textContent, sub: $('figcaption span', f).textContent, plan: f.classList.contains('kpr-gr') }));
+    const box = { x: M + 20, y: M + hh, w: Wd - 2 * M - 40, h: Hd - 2 * M - hh - 150 };
+    const draw = async (it, x, y, w, h) => { if (!it) return; const r = await svgImg(it.svg, o.keepDims); if (!r) return; g.fillStyle = INK; g.font = `600 40px ${serif}`; g.textAlign = 'left'; g.fillText(it.title, x, y + 40); g.fillStyle = MUTE; g.font = `28px ${FONT}`; g.fillText(it.sub, x, y + 80); const sc = Math.min(w / r.vb[2], (h - 100) / r.vb[3]); g.drawImage(r.img, x + (w - r.vb[2] * sc) / 2, y + 100, r.vb[2] * sc, r.vb[3] * sc); };
+    const P0 = svgs.find(x => x.plan), E = svgs.filter(x => !x.plan);
+    if (showPlan && showEl) { const pw = box.w * .5; await draw(P0, box.x, box.y, pw - 40, box.h); const eh = box.h / Math.max(1, E.length); for (let i = 0; i < E.length; i++) await draw(E[i], box.x + pw + 20, box.y + i * eh, box.w - pw - 20, eh - 20); }
+    else if (showPlan) await draw(P0, box.x, box.y, box.w, box.h);
+    else { const cols = E.length > 2 ? 2 : 1, rows = Math.ceil(E.length / cols), cw = box.w / cols, rh = box.h / rows; for (let i = 0; i < E.length; i++) await draw(E[i], box.x + (i % cols) * cw, box.y + Math.floor(i / cols) * rh, cw - 30, rh - 20); }
+    if (o.legend) { let x = M + 20; const y = Hd - M - 100; g.font = `600 28px ${FONT}`; g.textBaseline = 'middle'; o.legend.forEach(([col, n, ex]) => { g.beginPath(); g.arc(x + 16, y, 16, 0, Math.PI * 2); if (ex) { g.fillStyle = '#fff'; g.fill(); g.setLineDash([8, 6]); g.lineWidth = 5; g.strokeStyle = col; g.stroke(); g.setLineDash([]); } else { g.fillStyle = col; g.fill(); } g.fillStyle = INK; g.fillText(n, x + 44, y + 2); x += 44 + g.measureText(n).width + 50; }); g.textBaseline = 'alphabetic'; }
+    g.fillStyle = MUTE; g.font = `30px ${FONT}`; g.textAlign = 'left'; g.fillText(o.foot, M + 20, Hd - M - 40);
+    return c;
+  }
+  function sheetHead(g, title, Wd, M, serif) {
+    const K = KPo(), hh = 230; g.fillStyle = INK; g.font = `600 64px ${serif}`; g.textBaseline = 'alphabetic'; g.textAlign = 'left'; g.fillText(title, M + 20, M + 100);
     g.font = `34px ${FONT}`; g.fillStyle = MUTE; g.fillText(`${pd.studio} · ${subLine()} · ${new Date().toLocaleDateString('de-DE')}`, M + 20, M + 160);
     g.fillStyle = (K && K.acc) || '#c0673f'; g.fillRect(M + 20, M + 190, 120, 8);
     if (K && K.logo && K.logo.naturalWidth) { const lh = 120, lw = lh * K.logo.naturalWidth / K.logo.naturalHeight; const t = document.createElement('canvas'); t.width = lw; t.height = lh; const tg = t.getContext('2d'); tg.drawImage(K.logo, 0, 0, lw, lh); tg.globalCompositeOperation = 'source-in'; tg.fillStyle = INK; tg.fillRect(0, 0, lw, lh); g.drawImage(t, Wd - M - 20 - lw, M + 50); }
     else { g.textAlign = 'right'; g.fillStyle = INK; g.font = `600 48px ${serif}`; g.fillText(pd.studio, Wd - M - 20, M + 110); g.textAlign = 'left'; }
-    const showPlan = mode !== 'ansichten', showEl = mode !== 'grundriss';
-    const svgs = $$('.kpr-card', sh).map(f => ({ svg: $('svg', f), title: $('figcaption b', f).textContent, sub: $('figcaption span', f).textContent, plan: f.classList.contains('kpr-gr') }));
-    const box = { x: M + 20, y: M + hh, w: Wd - 2 * M - 40, h: Hd - 2 * M - hh - 150 };
-    const draw = async (it, x, y, w, h) => { const r = await svgImg(it.svg); if (!r) return; g.fillStyle = INK; g.font = `600 40px ${serif}`; g.fillText(it.title, x, y + 40); g.fillStyle = MUTE; g.font = `28px ${FONT}`; g.fillText(it.sub, x, y + 80); const s = Math.min(w / r.vb[2], (h - 100) / r.vb[3]); g.drawImage(r.img, x + (w - r.vb[2] * s) / 2, y + 100, r.vb[2] * s, r.vb[3] * s); };
-    const P0 = svgs.find(s => s.plan), E = svgs.filter(s => !s.plan);
-    if (showPlan && showEl) { const pw = box.w * .5; await draw(P0, box.x, box.y, pw - 40, box.h); const eh = box.h / Math.max(1, E.length); for (let i = 0; i < E.length; i++) await draw(E[i], box.x + pw + 20, box.y + i * eh, box.w - pw - 20, eh - 20); }
-    else if (showPlan) await draw(P0, box.x, box.y, box.w, box.h);
-    else { const cols = E.length > 2 ? 2 : 1, rows = Math.ceil(E.length / cols), cw = box.w / cols, rh = box.h / rows; for (let i = 0; i < E.length; i++) await draw(E[i], box.x + (i % cols) * cw, box.y + Math.floor(i / cols) * rh, cw - 30, rh - 20); }
-    // Fuß
-    g.fillStyle = MUTE; g.font = `30px ${FONT}`; g.fillText('Planungsentwurf – Maße bitte beim Aufmaß bestätigen. Alle Maße in cm. Raumhöhe angenommen 260 cm.', M + 20, Hd - M - 50);
+    return hh;
+  }
+  async function savePlan(fmt) {
+    renderSheet(false, true);
+    const c = await sheetCanvas($('[data-sheet]', el), { title: 'Ihre Küche – Maßplan', mode, keepDims: dimsOn, foot: 'Planungsentwurf – Maße bitte beim Aufmaß bestätigen. Alle Maße in cm. Raumhöhe angenommen 260 cm.' });
     renderSheet(false);
+    if (fmt === 'pdf') return pdfSave([c], 'Küchenplan – Maßplan', 'kuechenplan-masse.pdf');
     download(c.toDataURL('image/png'), 'kuechenplan-masse.png');
+  }
+  // Mehrseitiges PDF (A4 quer) aus Canvas-Seiten – ohne Bibliothek: je Seite ein JPEG, seitenfüllend
+  function pdfBlob(pages, title) {
+    const enc = str => { const a = new Uint8Array(str.length); for (let i = 0; i < str.length; i++) a[i] = str.charCodeAt(i) & 255; return a; };
+    const parts = [], offs = []; let len = 0; const push = u8 => { parts.push(u8); len += u8.length; };
+    const obj = (n, body, stream) => { offs[n] = len; push(enc(`${n} 0 obj\n${body}\n`)); if (stream) { push(enc('stream\n')); push(stream); push(enc('\nendstream\n')); } push(enc('endobj\n')); };
+    push(enc('%PDF-1.4\n%\xe2\xe3\xcf\xd3\n'));
+    const W = 842, H = 595, n = pages.length, d = new Date(), pz = v => String(v).padStart(2, '0');
+    obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+    obj(2, `<< /Type /Pages /Kids [${pages.map((_, i) => `${4 + i * 3} 0 R`).join(' ')}] /Count ${n} >>`);
+    const u16 = t => '<FEFF' + [...String(t)].map(ch => { const c = ch.codePointAt(0); return c > 0xffff ? '003F' : c.toString(16).padStart(4, '0'); }).join('').toUpperCase() + '>';
+    obj(3, `<< /Title ${u16(title)} /Creator ${u16(pd.studio || 'Küchenplaner')} /CreationDate (D:${d.getFullYear()}${pz(d.getMonth() + 1)}${pz(d.getDate())}${pz(d.getHours())}${pz(d.getMinutes())}) >>`);
+    pages.forEach((cv, i) => {
+      const p = 4 + i * 3, jpg = enc(atob(cv.toDataURL('image/jpeg', .9).split(',')[1])), cs = enc(`q ${W} 0 0 ${H} 0 0 cm /Im${i} Do Q`);
+      obj(p, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /XObject << /Im${i} ${p + 1} 0 R >> >> /Contents ${p + 2} 0 R >>`);
+      obj(p + 1, `<< /Type /XObject /Subtype /Image /Width ${cv.width} /Height ${cv.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpg.length} >>`, jpg);
+      obj(p + 2, `<< /Length ${cs.length} >>`, cs);
+    });
+    const N = 4 + n * 3, xref = len; let x = `xref\n0 ${N}\n0000000000 65535 f \n`; for (let i = 1; i < N; i++) x += String(offs[i]).padStart(10, '0') + ' 00000 n \n';
+    push(enc(x + `trailer\n<< /Size ${N} /Root 1 0 R /Info 3 0 R >>\nstartxref\n${xref}\n%%EOF\n`));
+    return new Blob(parts, { type: 'application/pdf' });
+  }
+  function pdfSave(pages, title, name) { const url = URL.createObjectURL(pdfBlob(pages, title)); download(url, name); setTimeout(() => URL.revokeObjectURL(url), 60000); }
+
+  /* ---------- Installationsplan ---------- */
+  function renderInst(anim, forPrint) {
+    const sh = $('[data-isheet]', el); if (!sh) return;
+    pd = getPlan(); if (!pd) { sh.innerHTML = '<p class="kpr-err">Der Plan konnte nicht gelesen werden.</p>'; return; }
+    const I = instPts(pd), date = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const wide = forPrint || innerWidth >= 1000, sw = forPrint ? 1100 : Math.min(sh.clientWidth || innerWidth - 32, 1400);
+    const planPx = wide ? sw * .54 : sw, elevPx = wide ? sw * .44 : sw, LET = 'ABCDEFG';
+    const plan = planSVG(pd, { fs: fsFor(pd.room.w + 2 * (T + 9 * 10), planPx, forPrint ? 9.5 : 11), inst: I });
+    const elevs = pd.kw.map((k, i) => { const L = pd.walls[k].len, eu = fsFor(L + 19 * 10, elevPx, forPrint ? 8.5 : 10.5); return { k, letter: LET[i], name: pd.walls[k].name, L, ...elevSVG(pd, k, { fs: eu, dimBase: 100 + i * 40, inst: I }) }; });
+    const cnt = f => I.pts.filter(f).length, kwI = k => pd.kw.indexOf(k);
+    const wallOf = p => p.k === 'I' ? 'Kochinsel' : kwI(p.k) >= 0 ? `Ansicht ${LET[kwI(p.k)]} · ${pd.walls[p.k].name}` : (pd.walls[p.k] ? pd.walls[p.k].name : p.k);
+    const row = p => `<tr class="${p.ex ? 'kpr-ex' + (p.ok ? ' ok' : '') : ''}"><td><i class="kpr-ipn${p.ex ? ' ex' : ''}" style="--c:${ICAT[p.cat][0]}">${p.nr}</i></td><td><b>${esc(p.n)}</b><small>${esc(p.d)}</small></td><td class="kpr-hide-s">${esc(wallOf(p))}</td><td class="kpr-num">${p.k === 'I' ? '–' : p.s}</td><td class="kpr-num">${p.k === 'I' ? 'Boden' : p.h}</td></tr>`;
+    const groups = [...pd.kw, 'I'].map(k => ({ k, list: I.pts.filter(p => p.k === k) })).filter(g => g.list.length);
+    sh.className = 'kpr-sheet kpr-isheet';
+    sh.innerHTML = `
+<div class="kpr-tb">
+  <div class="kpr-tb-l"><span class="kpr-ov">Installationsplan</span><b>${esc(pd.studio)}</b></div>
+  <dl class="kpr-tb-r"><div><dt>Küche</dt><dd>${esc(pd.formName)}</dd></div><div><dt>Raum</dt><dd>${m2(pd.room.w)} × ${m2(pd.room.d)} m</dd></div><div><dt>Arbeitshöhe</dt><dd>${pd.ah} cm</dd></div><div><dt>Datum</dt><dd>${date}</dd></div></dl>
+  <p class="kpr-note">Richtwerte zur Abstimmung mit Elektriker und Installateur – Ausführung nur durch Fachbetriebe. Maße in cm, Höhen ab fertigem Fußboden.</p>
+</div>
+<div class="kpr-stats kpr-istats">
+  <div><b>${cnt(p => p.cat === 's' && !/^Herd/.test(p.sh))}</b><span>Steckdosen &amp; Geräte 230 V</span></div>
+  <div><b>${cnt(p => /^Herd/.test(p.sh))}</b><span>Herdanschluss 400 V</span></div>
+  <div><b>${cnt(p => p.cat === 'w' || p.cat === 'a')}</b><span>Wasser &amp; Abwasser</span></div>
+  <div><b>${cnt(p => p.cat === 'l')}</b><span>Lichtauslässe</span></div>
+</div>
+<div class="kpr-ileg">${Object.values(ICAT).map(([c, n]) => `<span><i style="--c:${c}"></i>${n}</span>`).join('')}${I.ex.length ? '<span><i class="ex" style="--c:#6d6459"></i>vorhanden (Bestand)</span>' : ''}</div>
+<div class="kpr-grid">
+  <figure class="kpr-card kpr-gr"><figcaption><b>Grundriss</b><span>Lage der Anschlüsse · Ansichten ${pd.kw.map((k, i) => LET[i]).join(', ')}</span></figcaption><div class="kpr-svgw">${plan.svg}</div></figure>
+  <div class="kpr-elevs">${elevs.map(e => `<figure class="kpr-card kpr-el"><figcaption><b>Ansicht ${e.letter} · ${esc(e.name)}</b><span>${m2(e.L)} m · Blick auf die Wand</span></figcaption><div class="kpr-svgw">${e.svg}</div></figure>`).join('')}</div>
+</div>
+<section class="kpr-card kpr-wl kpr-itab"><header><b>Anschlussliste</b><span>${I.pts.length} Anschlüsse · Abstand = Mitte ab linker Wandecke (Blick auf die Wand)</span></header>
+  <table><thead><tr><th>Nr.</th><th>Anschluss</th><th class="kpr-hide-s">Wand</th><th class="kpr-num">ab links</th><th class="kpr-num">Höhe</th></tr></thead>
+  <tbody>${groups.map(g => `<tr class="kpr-sub"><td colspan="5">${esc(g.k === 'I' ? 'Kochinsel – aus dem Boden' : wallOf({ k: g.k }))}</td></tr>${g.list.map(row).join('')}`).join('')}
+  ${I.ex.length ? `<tr class="kpr-sub"><td colspan="5">Vorhanden im Raum – Abgleich</td></tr>${I.ex.map(row).join('')}` : ''}</tbody></table>
+  ${I.ex.length ? '' : '<p class="kpr-itip">Tipp: Im Planer unter „Form &amp; Raum“ lassen sich die vorhandenen Anschlüsse eintragen – dann zeigt der Plan, was passt und was versetzt werden muss.</p>'}
+</section>
+<section class="kpr-card kpr-inote"><header><b>Hinweise für die Ausführung</b></header><ul>
+  <li>Geräte, Herdanschluss und Spülmaschine jeweils auf eigenem Stromkreis absichern; Ausführung nach VDE 0100 durch einen Elektrofachbetrieb.</li>
+  <li>Anschlusswerte und Nischenmaße der gewählten Geräte vor dem Verlegen mit den Datenblättern abgleichen.</li>
+  <li>Wasser- und Abwasseranschlüsse hinter dem Spülenschrank; die Spülmaschine schließt an Eckventil und Siphon der Spüle an.</li>
+  <li>Steckdosen hinter Schränken müssen erreichbar bleiben – die Positionen liegen deshalb in Fächern bzw. Nachbarschränken.</li>
+  <li>Bei Dunstabzug mit Abluft zusätzlich Mauerdurchbruch mit Mauerkasten einplanen.</li>
+</ul></section>`;
+    if (anim && !RMO) { sh.classList.remove('kpr-in'); void sh.offsetWidth; sh.classList.add('kpr-in'); }
+  }
+  function printInst() {
+    if (tab !== 'inst') setTab('inst');
+    renderInst(false, true); document.documentElement.classList.add('kpr-print', 'kpr-pi');
+    setTimeout(() => { try { window.print(); } finally { setTimeout(() => { document.documentElement.classList.remove('kpr-print', 'kpr-pi'); renderInst(false); }, 400); } }, 60);
+  }
+  // Anschlussliste als eigene PDF-Seite(n)
+  function instTablePages(I) {
+    const rows = []; const LET = 'ABCDEFG';
+    [...pd.kw, 'I'].forEach(k => { const l = I.pts.filter(p => p.k === k); if (!l.length) return; rows.push({ sub: k === 'I' ? 'Kochinsel – aus dem Boden' : `Ansicht ${LET[pd.kw.indexOf(k)]} · ${pd.walls[k].name}` }); l.forEach(p => rows.push(p)); });
+    if (I.ex.length) { rows.push({ sub: 'Vorhanden im Raum – Abgleich' }); I.ex.forEach(p => rows.push(p)); }
+    const Wd = 3508, Hd = 2480, M = 110, serif = cssFont('--serif', 'Georgia, serif'), RH = 82, top0 = M + 230 + 60, maxY = Hd - M - 330;
+    const pages = []; let i = 0;
+    while (i < rows.length) {
+      const c = document.createElement('canvas'); c.width = Wd; c.height = Hd; const g = c.getContext('2d');
+      g.fillStyle = '#fffdf9'; g.fillRect(0, 0, Wd, Hd); g.strokeStyle = INK; g.lineWidth = 4; g.strokeRect(M / 2, M / 2, Wd - M, Hd - M);
+      sheetHead(g, 'Installationsplan – Anschlussliste' + (pages.length ? ' (Fortsetzung)' : ''), Wd, M, serif);
+      const X = [M + 20, M + 150, M + 1700, Wd - M - 560, Wd - M - 300], Xr = Wd - M - 20;
+      g.font = `700 26px ${FONT}`; g.fillStyle = MUTE; g.textAlign = 'left'; ['NR.', 'ANSCHLUSS', 'WAND'].forEach((t, j) => g.fillText(t, X[j], top0)); g.textAlign = 'right'; g.fillText('AB LINKS (CM)', X[4] - 40, top0); g.fillText('HÖHE (CM)', Xr, top0); g.textAlign = 'left';
+      g.fillStyle = INK; g.fillRect(M + 20, top0 + 18, Wd - 2 * M - 40, 3);
+      let y = top0 + 30;
+      while (i < rows.length && y + RH <= maxY) {
+        const r = rows[i++];
+        if (r.sub) { g.fillStyle = (KPo() && KPo().acc) || '#c0673f'; g.font = `700 28px ${FONT}`; g.fillText(r.sub.toUpperCase(), M + 20, y + 58); y += 72; continue; }
+        const col = ICAT[r.cat][0]; g.beginPath(); g.arc(X[0] + 34, y + RH / 2, 28, 0, Math.PI * 2);
+        if (r.ex) { g.fillStyle = '#fff'; g.fill(); g.setLineDash([9, 6]); g.lineWidth = 5; g.strokeStyle = col; g.stroke(); g.setLineDash([]); } else { g.fillStyle = col; g.fill(); }
+        g.fillStyle = r.ex ? col : '#fff'; g.font = `700 ${String(r.nr).length > 2 ? 22 : 26}px ${FONT}`; g.textAlign = 'center'; g.fillText(String(r.nr), X[0] + 34, y + RH / 2 + 9); g.textAlign = 'left';
+        g.fillStyle = INK; g.font = `600 34px ${FONT}`; g.fillText(r.n, X[1], y + 36); g.fillStyle = MUTE; g.font = `27px ${FONT}`; g.fillText(r.d, X[1], y + 70);
+        g.fillStyle = INK; g.font = `30px ${FONT}`; g.fillText(r.k === 'I' ? 'Kochinsel' : (pd.walls[r.k] ? pd.walls[r.k].name : r.k), X[2], y + 50);
+        g.font = `600 36px ${FONT}`; g.textAlign = 'right'; g.fillText(r.k === 'I' ? '–' : String(r.s), X[4] - 40, y + 52); g.fillText(r.k === 'I' ? 'Boden' : String(r.h), Xr, y + 52); g.textAlign = 'left';
+        g.fillStyle = 'rgba(28,26,23,.1)'; g.fillRect(M + 20, y + RH + 4, Wd - 2 * M - 40, 2); y += RH + 8;
+      }
+      if (i >= rows.length) {
+        const notes = ['Richtwerte zur Abstimmung – Ausführung nur durch Fachbetriebe (Elektro nach VDE 0100, Sanitär nach DIN 1988 / DIN EN 806).', 'Abstand = Mitte des Anschlusses ab linker Wandecke beim Blick auf die Wand; Höhe ab fertigem Fußboden.', 'Herdanschluss, Backofen und Spülmaschine je auf eigenem Stromkreis. Anschlusswerte mit den Gerätedatenblättern abgleichen.'];
+        g.fillStyle = MUTE; g.font = `28px ${FONT}`; notes.forEach((t, j) => g.fillText('·  ' + t, M + 20, Hd - M - 220 + j * 46));
+      }
+      g.fillStyle = MUTE; g.font = `30px ${FONT}`; g.fillText(`Seite ${pages.length + 2}`, Wd - M - 170, Hd - M - 40);
+      pages.push(c);
+    }
+    return pages;
+  }
+  async function instPDF() {
+    if (tab !== 'inst') setTab('inst');
+    renderInst(false, true);
+    const I = instPts(pd), leg = Object.values(ICAT).map(([c, n]) => [c, n]); if (I.ex.length) leg.push(['#6d6459', 'vorhanden (Bestand)', 1]);
+    const p1 = await sheetCanvas($('[data-isheet]', el), { title: 'Ihre Küche – Installationsplan', mode: 'alles', keepDims: true, legend: leg, foot: 'Richtwerte für Elektriker und Installateur – Ausführung nur durch Fachbetriebe. Maße in cm, Höhen ab fertigem Fußboden. Seite 1' });
+    const pages = [p1, ...instTablePages(I)];
+    renderInst(false);
+    pdfSave(pages, 'Küche – Installationsplan', 'kuechenplan-installation.pdf');
   }
 
   /* ---------- Übersicht ---------- */
@@ -764,7 +1010,7 @@
     try { window.__lenis && window.__lenis.stop(); } catch (e) { }
     try { K.pause3d && K.pause3d(true); } catch (e) { }
     if (!RMO) { el.classList.remove('kpr-open'); void el.offsetWidth; } el.classList.add('kpr-open');
-    const t = { foto: 'foto', echt: 'foto', echtoptik: 'foto', plan: 'plan', mass: 'plan', masse: 'plan', liste: 'liste', uebersicht: 'liste' }[String(o.tab || 'foto').toLowerCase()] || 'foto';
+    const t = { foto: 'foto', echt: 'foto', echtoptik: 'foto', plan: 'plan', mass: 'plan', masse: 'plan', inst: 'inst', installation: 'inst', elektro: 'inst', anschluesse: 'inst', liste: 'liste', uebersicht: 'liste' }[String(o.tab || 'foto').toLowerCase()] || 'foto';
     tab = ''; setTab(t);
     requestAnimationFrame(() => { moveInk(); const x = $('.kpr-x', el); x && x.focus({ preventScroll: true }); });
     return window.KPResult;

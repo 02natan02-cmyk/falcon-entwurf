@@ -483,3 +483,11 @@ html.kpf-on,html.kpf-on body{overflow:hidden}
   .kp-palhint i{font-style:normal;font-weight:700;color:var(--copper);color:color-mix(in srgb,var(--copper) 45%,#fff)}
 }
 @media (max-width:999px) and (prefers-reduced-motion:reduce){.kp-palhint,.kp-palhint.on{transform:translateX(-50%);transition:opacity .2s linear}}
+
+/* Anschlüsse (Wasser / Herd / Steckdose) */
+.kp-l .kp-opt{font:500 11.5px var(--sans);letter-spacing:0;text-transform:none;color:var(--muted,#8a7f72);margin-left:6px}
+.kp-cxadd .kp-cxi{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--c);color:#fff;font-size:11px;line-height:1}
+.kp-cxadd button:hover{border-color:var(--c,var(--copper))}
+.kp-cxh{margin:2px 0 10px;font:500 12px/1.45 var(--sans);color:var(--muted,#7d7468);max-width:270px}
+.kp-cx,.kp-cxp{transition:opacity .2s}
+.kp-cx:hover circle:first-child,.kp-cxp:hover circle:first-child{filter:brightness(1.08)}
