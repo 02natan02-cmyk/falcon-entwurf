@@ -488,8 +488,10 @@
     const c = camFor(view, getPlan());
     onStep && onStep(3);
     K2.lookAt(c.p, c.t, c.fov);
+    const mob = isMob();
+    if (K2.deko) { try { K2.deko(getPlan(), { lite: mob }); await settle(K2, 300); } catch (e) { } }
     // Engine-eigenes Hochqualitäts-Bild (Überabtastung + feine Schatten), sonst selbst überabtasten
-    if (typeof K2.renderHQ === 'function') return { c: K2.renderHQ(Wd, Hd), how: 'hq' };
+    if (typeof K2.renderHQ === 'function') return { c: K2.renderHQ(Wd, Hd, { lite: mob }), how: 'hq' };
     const ss = innerWidth < 700 ? 1.3 : 1.7, raw = K2.capture(Math.round(Wd * ss), Math.round(Hd * ss));
     const out = document.createElement('canvas'); out.width = Wd; out.height = Hd; const g = out.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(raw, 0, 0, Wd, Hd);
     return { c: out, how: 'own' };
@@ -522,7 +524,16 @@
   const RT_DEFAULT = true;
   const RT_OFF = /[?&]rt=0/.test(location.search) || (!RT_DEFAULT && !(() => { try { if (/[?&]rt=1/.test(location.search)) sessionStorage.setItem('kp-rt', '1'); return sessionStorage.getItem('kp-rt') === '1'; } catch (e) { return /[?&]rt=1/.test(location.search); } })());
   let RTp = null, RTK = null, RThost = null, rtChain = Promise.resolve();
-  function rtSupported() { if (RT_OFF) return false; try { const c = document.createElement('canvas'), gl = c.getContext('webgl2'); const ok = !!(gl && gl.getExtension('EXT_color_buffer_float')); try { gl && gl.getExtension('WEBGL_lose_context').loseContext(); } catch (e) { } return ok; } catch (e) { return false; } }
+  // Handy/Tablet: wenig Grafikspeicher → leichtes Raytracing, danach alles freigeben
+  const isMob = () => innerWidth < 700 || (typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches) || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  // Absturz-Schutz: Läuft beim Neuladen noch ein Raytracing-Versuch (Tab ist abgestürzt), bleibt das Gerät bei der Schnellansicht.
+  const RT_TRY = 'kp-rt-try', RT_BAD = 'kp-rt-bad';
+  let rtBad = false;
+  try { const t = +localStorage.getItem(RT_TRY) || 0; if (t && Date.now() - t < 864e5 * 60) localStorage.setItem(RT_BAD, String(Date.now())); localStorage.removeItem(RT_TRY); if (/[?&]rt=1/.test(location.search)) localStorage.removeItem(RT_BAD); rtBad = !!localStorage.getItem(RT_BAD); } catch (e) { }
+  const rtGuard = on => { try { if (on) localStorage.setItem(RT_TRY, String(Date.now())); else localStorage.removeItem(RT_TRY); } catch (e) { } };
+  addEventListener('pagehide', () => rtGuard(false));
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') rtGuard(false); });
+  function rtSupported() { if (RT_OFF || rtBad) return false; try { const c = document.createElement('canvas'), gl = c.getContext('webgl2'); const ok = !!(gl && gl.getExtension('EXT_color_buffer_float')); try { gl && gl.getExtension('WEBGL_lose_context').loseContext(); } catch (e) { } return ok; } catch (e) { return false; } }
   function loadRT() {
     if (window.PelRT) return Promise.resolve(window.PelRT);
     if (RTp) return RTp;
@@ -548,12 +559,21 @@
     // frische Instanz je Bild: keine Einfahr-Animationen, die halb im Bild landen
     if (RTK) { try { RTK.dispose(); } catch (e) { } RTK = null; }
     if (!RThost) { RThost = document.createElement('div'); RThost.style.cssText = 'position:fixed;left:-9999px;top:0;width:320px;height:200px;pointer-events:none'; RThost.setAttribute('aria-hidden', 'true'); document.body.appendChild(RThost); }
+    const mob = isMob();
+    // Handy: zweite Schnellansicht-Instanz vorher schließen – jeder 3D-Kontext kostet Grafikspeicher
+    if (mob && K2) { try { K2.dispose(); } catch (e) { } K2 = null; K2key = ''; }
     RTK = PRT.create(RThost, { acc: (K && K.acc) || '#c0673f' });
     RTK.mood(mood, K.state3d());
-    const mob = innerWidth < 700 || matchMedia('(pointer:coarse)').matches;
     const qs = new URLSearchParams(location.search), qw = +(qs.get('rtw') || 0);   // rtw: Testgröße
-    const Wd = qw >= 240 ? qw : mob ? 1280 : 1920, Hd = Math.round(Wd * .625);
-    const r = await PRT.render(RTK, { w: Wd, h: Hd, view, camera: view === 'hier' ? hereCam : null, mood, plan: getPlan(), samples: mob ? 220 : 640, minSamples: mob ? 32 : 48, maxMs: mob ? 30000 : 26000, tiles: mob ? 3 : 2, texSize: mob ? 512 : 1024, envLight: 'apartment', onProgress: onProg, signal: { get aborted() { return !isLive(); } } });
+    const Wd = qw >= 240 ? qw : mob ? 960 : 1920, Hd = Math.round(Wd * .625);
+    let r;
+    rtGuard(mob);
+    try {
+      r = await PRT.render(RTK, { w: Wd, h: Hd, view, camera: view === 'hier' ? hereCam : null, mood, plan: getPlan(), samples: mob ? 160 : 640, minSamples: mob ? 24 : 48, maxMs: mob ? 24000 : 26000, tiles: mob ? 4 : 2, texSize: mob ? 256 : 1024, bounces: mob ? 3 : 5, tBounces: mob ? 3 : 6, lite: mob, envLight: 'apartment', onProgress: onProg, signal: { get aborted() { return !isLive(); } } });
+    } finally {
+      rtGuard(false);
+      if (mob) { try { RTK.dispose(); } catch (e) { } RTK = null; try { PRT.release && PRT.release(); } catch (e) { } }
+    }
     if (!isLive()) return null;
     // Plausibilität: schwarzes, leeres oder einfarbiges Bild (z. B. Treiberfehler) → klassische Darstellung
     { const t = document.createElement('canvas'); t.width = 48; t.height = 30; const g = t.getContext('2d'); g.drawImage(r.canvas, 0, 0, 48, 30); const d = g.getImageData(0, 0, 48, 30).data; let s = 0, s2 = 0, n = 0;
@@ -563,7 +583,7 @@
   }
   async function renderView(view, mood, onStep) {
     const K = KPo(); if (!K) throw new Error('kp');
-    const Wd = innerWidth < 700 ? 1440 : 1920, Hd = Math.round(Wd * .625);
+    const Wd = isMob() ? 1280 : 1920, Hd = Math.round(Wd * .625);
     const key = view + '|' + mood + '|' + Wd + '|' + (view === 'hier' && hereCam ? hereCam.pos.map(v => v.toFixed(2)).join(',') : '') + '|' + JSON.stringify(K.state3d ? K.state3d() : {});
     if (cache.has(key)) return cache.get(key);
     let c = null, how = 'own';

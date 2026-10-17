@@ -175,27 +175,97 @@
   function locate(w, i) { if (!P.rows[w] || i < 0 || i >= P.rows[w].length) return null; return { x0: xs(w)[i], w: P.rows[w][i].w }; }
   const clampOp = (o, s) => { const m = o.t === 'fenster' ? 10 : 5; return Math.round(Math.max(m, Math.min(wallLen(o.wall) - o.w - m, s)) / 5) * 5; };
   const opById = id => P.op.find(o => o.id === id);
-  /* Anschlüsse im Raum (Bestand): Wasser, Herdanschluss 400 V, Steckdose – Position = Mitte, ab linker Wandkante (Blick auf die Wand) */
-  const CXN = { wasser: 'Wasseranschluss', herd: 'Herdanschluss 400 V', dose: 'Steckdose' }, CXS = { wasser: 'Wasser', herd: 'Herd 400 V', dose: 'Steckdose' };
-  const cxH = c => c.t === 'dose' ? (P.ah || 90) + 20 : c.t === 'wasser' ? 55 : 50;
+  /* Fenster & Türen im Detail: Art, Flügel, Anschlag (Seite der Bänder, Blick von innen), Öffnungsrichtung, Brüstung/Höhe */
+  const OPK = { fenster: [['dk', 'Dreh-Kipp'], ['d', 'Dreh'], ['kipp', 'Nur Kipp'], ['fest', 'Fest verglast']], balkon: [['dk', 'Dreh-Kipp'], ['d', 'Dreh'], ['hs', 'Hebe-Schiebe']], tuer: [['dreh', 'Drehtür'], ['schiebe', 'Schiebetür']] };
+  const opFl = o => o.fl || (o.t === 'tuer' ? 1 : o.w > 90 ? 2 : 1);
+  const opA = o => o.a || (o.t === 'tuer' ? 'r' : 'l');
+  const opK = o => o.k || (o.t === 'tuer' ? 'dreh' : 'dk');
+  const opDir = o => o.t === 'tuer' && opK(o) === 'dreh' ? (o.dir || 'in') : 'in';
+  const opY = o => o.t === 'fenster' ? (o.y0 != null ? o.y0 : 105) : o.t === 'balkon' ? 2 : 0;
+  const opHH = o => o.t === 'fenster' ? (o.hh || 115) : o.t === 'balkon' ? 216 : 205;
+  const opSlide = o => opK(o) === 'schiebe' || opK(o) === 'hs';
+  const opSwings = o => !(opK(o) === 'fest' || opK(o) === 'kipp' || opSlide(o));
+  // Flügel entlang der Wand: h = Bandseite, l = Schlossseite, r = Flügelbreite
+  const opWings = o => opFl(o) === 2 ? [{ h: o.s, l: o.s + o.w / 2, r: o.w / 2 }, { h: o.s + o.w, l: o.s + o.w / 2, r: o.w / 2 }] : [opA(o) === 'l' ? { h: o.s, l: o.s + o.w, r: o.w } : { h: o.s + o.w, l: o.s, r: o.w }];
+  const opDesc = o => { const k = (OPK[o.t].find(x => x[0] === opK(o)) || OPK[o.t][0])[1], fl = opFl(o); let d = `${fl === 2 ? '2-flügelig' : '1-flügelig'} ${k}`; if (fl === 1 && !(opK(o) === 'fest' || opK(o) === 'kipp')) d += opSlide(o) ? `, schiebt nach ${opA(o) === 'l' ? 'links' : 'rechts'}` : `, Anschlag ${opA(o) === 'l' ? 'links' : 'rechts'}`; if (o.t === 'tuer' && !opSlide(o)) d += opDir(o) === 'out' ? ', öffnet nach außen' : ', öffnet in die Küche'; if (o.t === 'fenster') d += `, Brüstung ${opY(o)} cm, Höhe ${opHH(o)} cm`; return d; };
+  /* Anschlüsse im Raum: Wasser, Herd 400 V, Steckdose (1-/2-/3-fach, waagerecht/senkrecht), Abluft (Ø), Heizkörper.
+     Position = Mitte, ab linker Wandkante (Blick auf die Wand) · Höhe = Mitte über Fußboden (Heizkörper: Bodenabstand + Höhe) */
+  const CXN = { wasser: 'Wasseranschluss', herd: 'Herdanschluss 400 V', dose: 'Steckdose', abluft: 'Abluft-Durchbruch', heiz: 'Heizkörper' }, CXS = { wasser: 'Wasser', herd: 'Herd 400 V', dose: 'Steckdose', abluft: 'Abluft', heiz: 'Heizung' };
+  const CXC = { wasser: '#2f7fc1', herd: '#d0582a', dose: '#6d6459', abluft: '#3f8f87', heiz: '#b4467e' };
+  // Steckdosen-Bereiche wie beim Elektriker (Mitte über Fußboden); „Arbeitsplatte“ folgt der Arbeitshöhe
+  const DZ = [['sockel', 'Sockel', 15, 'hinter der Sockelblende'], ['unter', 'Unterschrank', 35, 'hinter dem Unterschrank – Spülmaschine, Geräte'], ['ap', 'Arbeitsplatte', null, 'über der Arbeitsplatte'], ['hoch', 'Hochschrank', 195, 'im Hochschrank über Kühlschrank oder Mikrowelle'], ['haube', 'Haube', 220, 'hinter der Haube, im Kamin verdeckt'], ['haenge', 'Über Hängeschrank', 230, 'über den Hängeschränken – fürs Licht']];
+  const AZ = [['haube', 'Über der Haube', 230], ['decke', 'Unter der Decke', 245], ['sockel', 'Im Sockel', 12]];
+  const ADS = [100, 125, 150, 160];
+  const CXLIM = { dose: [8, 250], wasser: [20, 120], herd: [20, 150], abluft: [8, 252] };
+  const zH = z => { const d = DZ.find(x => x[0] === z); return !d ? null : d[2] == null ? (P.ah || 90) + 20 : d[2]; };
+  const hzY = c => c.y0 != null ? c.y0 : 10, hzH = c => c.hh || 60, hzW = c => c.hw || 100;
+  const cxN = c => c.n || 2, cxO = c => c.o || 'h', cxD = c => c.d || 150;
+  const cxDefH = c => c.t === 'dose' ? zH(c.z || 'ap') : c.t === 'wasser' ? 55 : c.t === 'herd' ? 50 : c.t === 'abluft' ? (AZ.find(x => x[0] === (c.z || 'haube')) || AZ[0])[2] : 50;
+  const cxH = c => c.t === 'heiz' ? hzY(c) + hzH(c) / 2 : (c.h != null ? c.h : cxDefH(c));
+  const cxZone = c => c.t === 'dose' ? (c.h == null ? (DZ.find(x => x[0] === (c.z || 'ap')) || DZ[2])[1] : 'freie Höhe') : c.t === 'abluft' ? (c.h == null ? (AZ.find(x => x[0] === (c.z || 'haube')) || AZ[0])[1] : 'freie Höhe') : '';
+  const cxSpec = c => c.t === 'dose' ? `${cxN(c)}-fach ${cxO(c) === 'v' ? 'senkrecht' : 'waagerecht'}` : c.t === 'abluft' ? `Ø ${cxD(c)} mm` : c.t === 'heiz' ? `${hzW(c)} × ${hzH(c)} cm, ${hzY(c)} cm über dem Boden` : '';
   const cxById = id => (P.cx || []).find(c => c.id === id);
-  const clampCx = (c, s) => Math.max(8, Math.min(wallLen(c.wall) - 8, Math.round(s)));
+  const clampCx = (c, s) => { const m = c.t === 'heiz' ? Math.ceil(hzW(c) / 2) + 2 : 8; return Math.max(m, Math.min(wallLen(c.wall) - m, Math.round(s))); };
+  // Höhe setzen (Heizkörper: Bodenabstand) – in der Nähe eines Bereichs rastet sie dort ein
+  function setCxH(c, v, snap) {
+    if (c.t === 'heiz') { c.y0 = Math.max(0, Math.min(200 - hzH(c), Math.round(v / 5) * 5)); return; }
+    const [lo, hi] = CXLIM[c.t]; v = Math.max(lo, Math.min(hi, Math.round(v / 5) * 5));
+    if (snap) { const Z = c.t === 'dose' ? DZ.map(z => [z[0], zH(z[0])]) : c.t === 'abluft' ? AZ.map(z => [z[0], z[2]]) : []; const hit = Z.find(([, h]) => Math.abs(h - v) <= 4); if (hit) { c.z = hit[0]; delete c.h; return; } }
+    c.h = v; if (c.t === 'dose' || c.t === 'abluft') delete c.z;
+  }
   let selCx = null;
   const n2 = v => Math.round(v * 100) / 100;
   function cxSym(c, x, y, r, on) {
-    const col = c.t === 'wasser' ? '#2f7fc1' : c.t === 'herd' ? '#d0582a' : '#6d6459';
+    const col = CXC[c.t] || '#6d6459';
     let i = '';
     if (c.t === 'wasser') i = `<path d="M${n2(x)} ${n2(y - r * .6)}c${n2(r * .36)} ${n2(r * .44)} ${n2(r * .46)} ${n2(r * .66)} ${n2(r * .46)} ${n2(r * .92)}a${n2(r * .46)} ${n2(r * .46)} 0 0 1 ${n2(-r * .92)} 0c0 ${n2(-r * .26)} ${n2(r * .1)} ${n2(-r * .48)} ${n2(r * .46)} ${n2(-r * .92)}z" fill="#fff"/>`;
     else if (c.t === 'herd') i = `<path d="M${n2(x + r * .14)} ${n2(y - r * .64)}l${n2(-r * .52)} ${n2(r * .74)}h${n2(r * .4)}l${n2(-r * .14)} ${n2(r * .54)}l${n2(r * .52)} ${n2(-r * .74)}h${n2(-r * .4)}z" fill="#fff"/>`;
-    else i = `<circle cx="${n2(x)}" cy="${n2(y)}" r="${n2(r * .62)}" fill="none" stroke="#fff" stroke-width="${n2(r * .13)}"/><circle cx="${n2(x - r * .27)}" cy="${n2(y)}" r="${n2(r * .13)}" fill="#fff"/><circle cx="${n2(x + r * .27)}" cy="${n2(y)}" r="${n2(r * .13)}" fill="#fff"/>`;
-    return `${on ? `<circle cx="${n2(x)}" cy="${n2(y)}" r="${n2(r * 1.6)}" fill="none" stroke="${ACC}" stroke-width="${n2(r * .2)}" stroke-dasharray="${n2(r * .5)} ${n2(r * .32)}"/>` : ''}<circle cx="${n2(x)}" cy="${n2(y)}" r="${n2(r)}" fill="${col}" stroke="#fff" stroke-width="${n2(r * .16)}"/>${i}`;
+    else if (c.t === 'abluft') i = [-.38, 0, .38].map(k => `<path d="M${n2(x - r * .55)} ${n2(y + k * r)}q${n2(r * .28)} ${n2(-r * .22)} ${n2(r * .55)} 0t${n2(r * .55)} 0" fill="none" stroke="#fff" stroke-width="${n2(r * .13)}" stroke-linecap="round"/>`).join('');
+    else if (c.t === 'heiz') i = [-.36, 0, .36].map(k => `<rect x="${n2(x + k * r - r * .1)}" y="${n2(y - r * .5)}" width="${n2(r * .2)}" height="${n2(r)}" rx="${n2(r * .08)}" fill="#fff"/>`).join('');
+    else i = `<circle cx="${n2(x)}" cy="${n2(y)}" r="${n2(r * .62)}" fill="none" stroke="#fff" stroke-width="${n2(r * .13)}"/><circle cx="${n2(x - r * .27)}" cy="${n2(y)}" r="${n2(r * .13)}" fill="#fff"/><circle cx="${n2(x + r * .27)}" cy="${n2(y)}" r="${n2(r * .13)}" fill="#fff"/>${cxN(c) > 1 ? `<circle cx="${n2(x + r * .78)}" cy="${n2(y - r * .78)}" r="${n2(r * .46)}" fill="#fff" stroke="${col}" stroke-width="${n2(r * .1)}"/><text x="${n2(x + r * .78)}" y="${n2(y - r * .78 + r * .2)}" font-size="${n2(r * .6)}" font-weight="800" text-anchor="middle" fill="${col}" font-family="system-ui">${cxN(c)}</text>` : ''}`;
+    return `${on ? `<circle cx="${n2(x)}" cy="${n2(y)}" r="${n2(r * 1.6)}" fill="none" stroke="${ACC}" stroke-width="${n2(r * .2)}" stroke-dasharray="${n2(r * .5)} ${n2(r * .32)}"/>` : ''}<circle cx="${n2(x)}" cy="${n2(y)}" r="${n2(r)}" fill="${col}" stroke="#fff" stroke-width="${n2(r * .16)}"${c.neu ? ` stroke-dasharray="${n2(r * .4)} ${n2(r * .22)}"` : ''}/>${i}`;
+  }
+  // Wandansicht: Steckdosen maßstäblich (8 × 8 cm je Dose, Raster 7,1 cm), Abluft mit echtem Durchmesser, Heizkörper in echter Größe
+  function cxWall(c, on) {
+    const x = c.s, y = FL - cxH(c), col = CXC[c.t]; let g = '', lab = CXS[c.t], top = y - 10.5, hit = `<circle cx="${x}" cy="${n2(y)}" r="14" fill="transparent"/>`;
+    const ring = (x0, y0, w, h) => on ? `<rect x="${n2(x0 - 3)}" y="${n2(y0 - 3)}" width="${n2(w + 6)}" height="${n2(h + 6)}" rx="2" fill="none" stroke="${ACC}" stroke-width="1" stroke-dasharray="2.4 1.6"/>` : '';
+    if (c.t === 'dose') {
+      const n = cxN(c), v = cxO(c) === 'v', u = 7.1, W = v ? 8 : 8 + u * (n - 1), Hh = v ? 8 + u * (n - 1) : 8, x0 = x - W / 2, y0 = y - Hh / 2;
+      g += ring(x0, y0, W, Hh) + `<rect x="${n2(x0)}" y="${n2(y0)}" width="${n2(W)}" height="${n2(Hh)}" rx="1.2" fill="#fbfaf7" stroke="${col}" stroke-width=".7"${c.neu ? ' stroke-dasharray="1.6 1"' : ''}/>`;
+      for (let i = 0; i < n; i++) { const px = v ? x : x0 + 4 + i * u, py = v ? y0 + 4 + i * u : y; g += `<circle cx="${n2(px)}" cy="${n2(py)}" r="2.6" fill="#efebe4" stroke="${col}" stroke-width=".45"/><circle cx="${n2(px - .9)}" cy="${n2(py)}" r=".45" fill="${col}"/><circle cx="${n2(px + .9)}" cy="${n2(py)}" r=".45" fill="${col}"/>`; }
+      lab = n > 1 ? `${n}× Steckdose` : 'Steckdose'; top = y0 - 3.5; hit = `<rect x="${n2(x0 - 8)}" y="${n2(y0 - 8)}" width="${n2(W + 16)}" height="${n2(Hh + 16)}" fill="transparent"/>`;
+    } else if (c.t === 'abluft') {
+      const r = cxD(c) / 20; g += ring(x - r, y - r, 2 * r, 2 * r) + `<circle cx="${x}" cy="${n2(y)}" r="${n2(r)}" fill="#e6efed" stroke="${col}" stroke-width=".9"${c.neu ? ' stroke-dasharray="2 1.2"' : ''}/>` + [-.5, 0, .5].map(k => `<line x1="${n2(x - r * .8)}" y1="${n2(y + k * r)}" x2="${n2(x + r * .8)}" y2="${n2(y + k * r)}" stroke="${col}" stroke-width=".55"/>`).join('');
+      lab = `Abluft Ø ${cxD(c)}`; top = y - r - 3.5; hit = `<circle cx="${x}" cy="${n2(y)}" r="${n2(Math.max(14, r + 6))}" fill="transparent"/>`;
+    } else if (c.t === 'heiz') {
+      const w = hzW(c), h = hzH(c), x0 = x - w / 2, y0 = FL - hzY(c) - h;
+      g += ring(x0, y0, w, h) + `<rect x="${n2(x0)}" y="${n2(y0)}" width="${w}" height="${h}" rx="1.5" fill="#f4f2f0" stroke="${col}" stroke-width=".8"${c.neu ? ' stroke-dasharray="2.4 1.4"' : ''}/>`;
+      for (let k = x0 + 4; k < x0 + w - 2; k += 4) g += `<line x1="${n2(k)}" y1="${n2(y0 + 2)}" x2="${n2(k)}" y2="${n2(y0 + h - 2)}" stroke="#ddd6cf" stroke-width=".8"/>`;
+      g += `<rect x="${n2(x0 + w - 5)}" y="${n2(y0 - 3.5)}" width="3" height="3.5" rx=".6" fill="#bdb7b0"/>`; lab = `Heizkörper ${w} × ${h}`; top = y0 - 5; hit = `<rect x="${n2(x0)}" y="${n2(y0)}" width="${w}" height="${h}" fill="transparent"/>`;
+    } else g = cxSym(c, x, y, 6.5, on);
+    const ht = on ? `<text x="${x}" y="${n2(c.t === 'heiz' ? FL - hzY(c) + 8 : y + (c.t === 'abluft' ? cxD(c) / 20 : 6.5) + 9)}" font-size="5.6" font-weight="700" text-anchor="middle" fill="${ACC}" font-family="system-ui" paint-order="stroke" stroke="#fff" stroke-width="2">${c.t === 'heiz' ? `${hzY(c)} cm über Boden` : `${Math.round(cxH(c))} cm hoch`}</text>` : '';
+    return `<g data-cx="${c.id}" class="kp-cx" style="cursor:move">${g}<text x="${x}" y="${n2(top)}" font-size="6.2" font-weight="700" text-anchor="middle" fill="#3d3832" font-family="system-ui" paint-order="stroke" stroke="#fff" stroke-width="2.2">${lab}${c.neu ? ' · neu' : ''}</text>${ht}${hit}</g>`;
   }
   function defaultDoor() { const dw = ['E', 'S', 'W'].find(w => !P.rows[w]) || 'S'; return { id: uid++, t: 'tuer', wall: dw, w: 90, s: Math.max(20, Math.round(wallLen(dw) / 2 - 45)) }; }
   const opOver = (o, x0, w, pad = 2) => x0 + w > o.s + pad && x0 < o.s + o.w - pad;
   const ov = (s1, w1, s2, w2) => s1 + w1 > s2 + .5 && s2 + w2 > s1 + .5;
   // Ecke: auf welcher Seite sitzt das Modul in der Ecke? (nur Rückwand bei L/U)
   function cornerSide(w, i) { if (w !== 'N' || !P.rows.N) return null; const n = P.rows.N.length; if (i === 0 && hasCornerSlot('l')) return 'l'; if (i === n - 1 && hasCornerSlot('r')) return 'r'; return null; }
-  const aOf = (m, cs) => m.a || M[m.t].a || (M[m.t].corner ? (cs === 'r' ? 'l' : 'r') : 'l');
+  const aOf = (m, cs) => m.a || m._aa || M[m.t].a || (M[m.t].corner ? (cs === 'r' ? 'l' : 'r') : 'l');
+  // Türanschlag automatisch sinnvoll, solange er nicht von Hand gewählt ist: Hochschränke und Kühlschrank öffnen weg von der
+  // Arbeitsfläche (man stellt direkt daneben ab), Unterschränke zur Wand bzw. zum Hochschrank hin – die offene Tür steht nie im Weg.
+  function autoHinges() {
+    for (const w in P.rows) {
+      const r = P.rows[w], n = r.length, LY = layout(w), [a, b] = range(w), tall = x => !!x && M[x.t].h === 't', base = x => !!x && M[x.t].h === 'b';
+      r.forEach((m, i) => {
+        delete m._aa; if (m.a || !M[m.t].hinge || M[m.t].corner) return;
+        const x0 = LY.X.get(m), atL = i === 0 && x0 - a < 1, atR = i === n - 1 && x0 + m.w > b - 1;
+        if (M[m.t].h === 't') { const lw = r.slice(0, i).some(base), rw = r.slice(i + 1).some(base); m._aa = lw && !rw ? 'r' : rw && !lw ? 'l' : atL && !atR ? 'l' : atR && !atL ? 'r' : undefined; }
+        else m._aa = tall(r[i - 1]) || (atL && !tall(r[i + 1])) ? 'l' : tall(r[i + 1]) || atR ? 'r' : undefined;
+        if (!m._aa) delete m._aa;
+      });
+    }
+  }
   // Eckschränke bleiben in der Ecke
   function normCorners() {
     const N = P.rows.N; if (!N) return [];
@@ -234,7 +304,7 @@
   }
   function autoUp(w) {
     const out = [], X = xs(w);
-    const L = wallLen(w); P.rows[w].forEach((m, i) => { const x = X[i]; const k = x + m.w > L + .5 ? null : overKind(w, m, x); if (k === 'hood' && isDD()) { /* Muldenlüfter: keine Haube */ } else if (k === 'hood') { const hw = eqv('hood') === 'flach' ? m.w : Math.min(90, Math.max(60, m.w)); out.push({ id: 'a' + m.id, t: 'dh', s: x + m.w / 2 - hw / 2, w: hw, auto: 1 }); } else if (k === 'cab') out.push({ id: 'a' + m.id, t: m.w > 60 ? 'h2' : 'h1', s: x, w: m.w, auto: 1 }); });
+    const L = wallLen(w); P.rows[w].forEach((m, i) => { const x = X[i]; const k = x + m.w > L + .5 ? null : overKind(w, m, x); if (k === 'hood' && isDD()) { /* Muldenlüfter: keine Haube */ } else if (k === 'hood') { const hw = eqv('hood') === 'flach' ? m.w : Math.min(90, Math.max(60, m.w)); out.push({ id: 'a' + m.id, t: 'dh', s: x + m.w / 2 - hw / 2, w: hw, auto: 1 }); } else if (k === 'cab') { const u = { id: 'a' + m.id, t: m.w > 60 ? 'h2' : 'h1', s: x, w: m.w, auto: 1 }, r = P.rows[w], nb = j => r[j] && M[r[j].t].h === 't'; if (u.t === 'h1') { const ua = nb(i - 1) || x <= 1 ? 'l' : nb(i + 1) || x + m.w >= L - 1 ? 'r' : (m.a || m._aa); if (ua) u.a = ua; } out.push(u); } });
     return out;
   }
   const upList = w => P.up[w] || (P.rows[w] ? autoUp(w) : []);
@@ -1201,7 +1271,7 @@
   function change(noHist) {
     const dropped = normCorners(); if (dropped.length) toast('Eckschränke passen nur in die Ecken einer L- oder U-Küche.');
     const filled = fillCorners(); if (filled.length && !dropped.length) toast('Die Ecke bleibt nicht offen: Blindeckschrank eingesetzt – in „Ecke“ können Sie Karussell oder Le-Mans wählen.');
-    const goneUp = followHoods(); linkHoods(); if (goneUp) toast(`Die Haube ist mit dem Kochfeld mitgewandert – ${goneUp > 1 ? goneUp + ' Hängeschränke hatten' : 'ein Hängeschrank hatte'} daneben keinen Platz mehr.`, undo);
+    const goneUp = followHoods(); linkHoods(); try { autoHinges(); } catch (e) { } if (goneUp) toast(`Die Haube ist mit dem Kochfeld mitgewandert – ${goneUp > 1 ? goneUp + ' Hängeschränke hatten' : 'ein Hängeschrank hatte'} daneben keinen Platz mehr.`, undo);
     const j = ser(); if (!noHist && hist[hist.length - 1] !== j) { hist.push(j); if (hist.length > 60) hist.shift(); }
     lastHash = '#k=' + b64(j); history.replaceState(null, '', lastHash);
     renderWalls(); renderTips(); syncUI(); schedule3D(); $$('[data-undo]').forEach(b => b.disabled = hist.length < 2);
