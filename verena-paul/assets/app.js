@@ -294,16 +294,16 @@
       },
       len: k => CUE[k] ? CUE[k][1] : 0,
       say(k) { if (!on || !ac || !buf || !CUE[k]) return; const s = ac.createBufferSource(), f = chain(); s.buffer = buf; s.connect(f); s.start(ac.currentTime + .05, CUE[k][0], CUE[k][1]); track(s, f); },
-      breath(kind, sec) {   /* Atemgeräusch: gefiltertes Rauschen, Einatmen hell und anschwellend, Ausatmen tief und weich auslaufend */
+      breath(kind, sec) {   /* Atemgeräusch: leise im Hintergrund (Natan 17.10.: Rauschen um mehr als die Hälfte leiser, Höhen weich abgeschnitten) */
         if (!on || !ac) return; const t = ac.currentTime + .05;
         if (!noise) { const n = ac.sampleRate * 2, nb = ac.createBuffer(1, n, ac.sampleRate), d = nb.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; noise = nb; }
         const s = ac.createBufferSource(); s.buffer = noise; s.loop = true; s.playbackRate.value = .92 + Math.random() * .16;
-        const hp = ac.createBiquadFilter(), bp = ac.createBiquadFilter(), g = ac.createGain(); hp.type = 'highpass'; bp.type = 'bandpass'; g.gain.setValueAtTime(0, t);
-        if (kind === 'in') { hp.frequency.value = 520; bp.Q.value = 1.1; bp.frequency.setValueAtTime(950, t); bp.frequency.linearRampToValueAtTime(1750, t + sec * .9);
-          g.gain.linearRampToValueAtTime(.2, t + sec * .3); g.gain.linearRampToValueAtTime(.3, t + sec * .82); g.gain.linearRampToValueAtTime(0, t + sec * .97); }
-        else { hp.frequency.value = 200; bp.Q.value = .75; bp.frequency.setValueAtTime(720, t); bp.frequency.exponentialRampToValueAtTime(360, t + sec * .95);
-          g.gain.linearRampToValueAtTime(.5, t + .45); g.gain.setTargetAtTime(0, t + .8, sec / 3.4); }
-        const f = chain(); s.connect(hp); hp.connect(bp); bp.connect(g); g.connect(f); s.start(t); s.stop(t + sec + .3); track(s, f);
+        const hp = ac.createBiquadFilter(), bp = ac.createBiquadFilter(), lp = ac.createBiquadFilter(), g = ac.createGain(); hp.type = 'highpass'; bp.type = 'bandpass'; lp.type = 'lowpass'; lp.Q.value = .5; g.gain.setValueAtTime(0, t);
+        if (kind === 'in') { hp.frequency.value = 420; lp.frequency.value = 1900; bp.Q.value = .9; bp.frequency.setValueAtTime(800, t); bp.frequency.linearRampToValueAtTime(1350, t + sec * .9);
+          g.gain.linearRampToValueAtTime(.05, t + sec * .3); g.gain.linearRampToValueAtTime(.075, t + sec * .82); g.gain.linearRampToValueAtTime(0, t + sec * .97); }
+        else { hp.frequency.value = 180; lp.frequency.value = 1100; bp.Q.value = .7; bp.frequency.setValueAtTime(620, t); bp.frequency.exponentialRampToValueAtTime(340, t + sec * .95);
+          g.gain.linearRampToValueAtTime(.12, t + .45); g.gain.setTargetAtTime(0, t + .8, sec / 3.4); }
+        const f = chain(); s.connect(hp); hp.connect(bp); bp.connect(lp); lp.connect(g); g.connect(f); s.start(t); s.stop(t + sec + .3); track(s, f);
       },
       stop() { const old = [...live]; live.clear(); old.forEach(o => { try { o.f.gain.setTargetAtTime(0, ac.currentTime, .08); } catch (e) {} }); setTimeout(() => old.forEach(o => { try { o.s.stop(); } catch (e) {} }), 400); },
       toggle() { on = !on; try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {} if (!on) this.stop(); return on; }
