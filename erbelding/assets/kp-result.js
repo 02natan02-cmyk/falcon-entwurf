@@ -444,7 +444,8 @@
   /* =========================================================================
      3) Echtoptik – eigenes Render (KP.renderHQ, sonst zweite 3D-Instanz mit eigener Kamera) + Nachbearbeitung
      ========================================================================= */
-  const VIEWS = [['uebersicht', 'Übersicht'], ['augen', 'Augenhöhe'], ['detail', 'Detail']];
+  const VIEWS = [['uebersicht', 'Übersicht'], ['augen', 'Augenhöhe'], ['detail', 'Detail'], ['oben', 'Von oben'], ['hier', 'Ihr Blick']];
+  let hereCam = null;   // Kamera des Planers beim Öffnen – „Ihr Blick“ wird genau so berechnet
   let K2 = null, K2key = '', K2host = null, engineP = null; const cache = new Map();
   function ensureEngine() {
     if (window.PelPlanner3D) return Promise.resolve();
@@ -460,6 +461,8 @@
   async function settle(k, max = 2600) { const t0 = performance.now(); await wait(60); while (performance.now() - t0 < max) { if (!k.busy || !k.busy()) return; await new Promise(r => requestAnimationFrame(r)); } }
   function camFor(view, pd) {
     const W = pd.room.w / 100, D = pd.room.d / 100, M = Math.max(W, D), ah = pd.ah / 100;
+    if (view === 'hier' && hereCam) return { p: hereCam.pos, t: hereCam.target, fov: hereCam.fov };
+    if (view === 'oben') { const Hc = M * 1.45 + 2.4, p = [W / 2, Hc, D / 2 + D * .3], t = [W / 2, .6, D / 2 - D * .04], dist = Math.hypot(p[1], p[2] - t[2]); return { p, t, fov: 2 * Math.atan(Math.max(D * .74, W * .72 / 1.6) / dist) * 180 / Math.PI }; }
     if (view === 'augen') { const z = pd.form === 'zwei' ? D - .6 - .38 : D - .3; return { p: [W * .6, 1.6, z], t: [W * .43, 1.18, 0], fov: 58 }; }
     if (view === 'detail') {
       let best = null; const pref = ['kf', 'ko', 'sp'];
@@ -550,7 +553,7 @@
     const mob = innerWidth < 700 || matchMedia('(pointer:coarse)').matches;
     const qs = new URLSearchParams(location.search), qw = +(qs.get('rtw') || 0);   // rtw: Testgröße
     const Wd = qw >= 240 ? qw : mob ? 1280 : 1920, Hd = Math.round(Wd * .625);
-    const r = await PRT.render(RTK, { w: Wd, h: Hd, view, mood, plan: getPlan(), samples: mob ? 220 : 640, minSamples: mob ? 32 : 48, maxMs: mob ? 30000 : 26000, tiles: mob ? 3 : 2, texSize: mob ? 512 : 1024, envLight: 'apartment', onProgress: onProg, signal: { get aborted() { return !isLive(); } } });
+    const r = await PRT.render(RTK, { w: Wd, h: Hd, view, camera: view === 'hier' ? hereCam : null, mood, plan: getPlan(), samples: mob ? 220 : 640, minSamples: mob ? 32 : 48, maxMs: mob ? 30000 : 26000, tiles: mob ? 3 : 2, texSize: mob ? 512 : 1024, envLight: 'apartment', onProgress: onProg, signal: { get aborted() { return !isLive(); } } });
     if (!isLive()) return null;
     // Plausibilität: schwarzes, leeres oder einfarbiges Bild (z. B. Treiberfehler) → klassische Darstellung
     { const t = document.createElement('canvas'); t.width = 48; t.height = 30; const g = t.getContext('2d'); g.drawImage(r.canvas, 0, 0, 48, 30); const d = g.getImageData(0, 0, 48, 30).data; let s = 0, s2 = 0, n = 0;
@@ -561,7 +564,7 @@
   async function renderView(view, mood, onStep) {
     const K = KPo(); if (!K) throw new Error('kp');
     const Wd = innerWidth < 700 ? 1440 : 1920, Hd = Math.round(Wd * .625);
-    const key = view + '|' + mood + '|' + Wd + '|' + JSON.stringify(K.state3d ? K.state3d() : {});
+    const key = view + '|' + mood + '|' + Wd + '|' + (view === 'hier' && hereCam ? hereCam.pos.map(v => v.toFixed(2)).join(',') : '') + '|' + JSON.stringify(K.state3d ? K.state3d() : {});
     if (cache.has(key)) return cache.get(key);
     let c = null, how = 'own';
     // 1) eigene Kamera (zweite 3D-Instanz) – nutzt renderHQ der Engine, wenn vorhanden
@@ -619,7 +622,7 @@
         <p class="kpr-err" data-ferr hidden></p>
       </div>
       <div class="kpr-fbar">
-        <div class="kpr-seg" role="group" aria-label="Blickwinkel">${VIEWS.map(([k, n]) => `<button type="button" data-view="${k}">${n}</button>`).join('')}</div>
+        <div class="kpr-seg" role="group" aria-label="Blickwinkel">${VIEWS.map(([k, n]) => `<button type="button" data-view="${k}"${k === 'hier' ? ' title="Genau so, wie Sie die Küche gerade im Planer gedreht haben"' : k === 'oben' ? ' title="Draufsicht wie ein 3D-Grundriss"' : ''}>${n}</button>`).join('')}</div>
         <button type="button" class="kpr-chip" data-mood aria-pressed="false">${ICO.moon}<span>Abendlicht</span></button>
         <span class="kpr-sp"></span>
         <button type="button" class="kpr-btn kpr-ghost" data-save-foto>${ICO.dl}<span>Bild speichern</span></button>
@@ -704,7 +707,7 @@
     live.classList.remove('on'); rtp.hidden = true;
     try {
       let r = null;
-      const key = 'rt|' + view + '|' + mood + '|' + JSON.stringify(KPo().state3d ? KPo().state3d() : {});
+      const key = 'rt|' + view + '|' + mood + '|' + (view === 'hier' && hereCam ? hereCam.pos.map(v => v.toFixed(2)).join(',') : '') + '|' + JSON.stringify(KPo().state3d ? KPo().state3d() : {});
       if (rtSupported()) {
         if (cache.has(key)) r = cache.get(key);
         else {
@@ -1004,7 +1007,9 @@
     const K = KPo(), acc = (K && K.acc) || getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#c0673f';
     el.style.setProperty('--kpr-acc', acc);
     $('[data-sub]', el).textContent = subLine();
-    if (o.view && VIEWS.some(v => v[0] === o.view)) view = o.view; if (o.mood === 'abend' || o.mood === 'tag') mood = o.mood; if (typeof o.dims === 'boolean') dimsOn = o.dims; if (o.mode) mode = o.mode;
+    try { const k3 = K.k3d && K.k3d(); hereCam = k3 && k3.camInfo ? k3.camInfo() : null; } catch (e) { hereCam = null; }
+    $$('[data-view="hier"]', el).forEach(b => { b.hidden = !hereCam; });
+    if (o.view && VIEWS.some(v => v[0] === o.view)) view = o.view; if (view === 'hier' && !hereCam) view = 'uebersicht'; if (o.mood === 'abend' || o.mood === 'tag') mood = o.mood; if (typeof o.dims === 'boolean') dimsOn = o.dims; if (o.mode) mode = o.mode;
     $('[data-dims]', el).checked = dimsOn; syncChips(); lastFoto = null;
     back = document.activeElement; el.hidden = false; document.documentElement.classList.add('kpr-on');
     try { window.__lenis && window.__lenis.stop(); } catch (e) { }
@@ -1022,5 +1027,71 @@
     if (RMO) done(); else setTimeout(done, 320);
   }
   document.addEventListener('click', e => { const b = e.target.closest('[data-kpr-open]'); if (!b) return; e.preventDefault(); open({ tab: b.getAttribute('data-kpr-open') || undefined }); });
-  window.KPResult = { open, close, plan: () => getPlan(), version: '1.0' };
+  /* ---------- Aktionsleiste direkt unter der 3D-Bühne: alles Wichtige auf einen Blick ---------- */
+  const XI = {
+    real: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z" fill="currentColor"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z" fill="currentColor" opacity=".7"/></svg>',
+    cam: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3.2l1.6-2.4h6.4L16.8 8H20v11H4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13.2" r="3.4" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>',
+    top: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7l8-4 8 4-8 4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M4 12l8 4 8-4M4 17l8 4 8-4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>',
+    plan: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 3.5h17v17h-17zM3.5 10h7v10.5M14 3.5v6.5h6.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>',
+    inst: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 3v4.2M15.5 3v4.2M6 7.2h12v3.8a6 6 0 0 1-12 0zM12 17v4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    list: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6.5h12M8 12h12M8 17.5h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="4.2" cy="6.5" r="1.2" fill="currentColor"/><circle cx="4.2" cy="12" r="1.2" fill="currentColor"/><circle cx="4.2" cy="17.5" r="1.2" fill="currentColor"/></svg>',
+    img: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v11M7.5 10l4.5 4.5 4.5-4.5M4 17.5v3h16v-3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    save: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>',
+  };
+  const SKEY = 'kp-meine-kuechen:' + location.pathname;
+  const lsGet = () => { try { return JSON.parse(localStorage.getItem(SKEY) || '[]') || []; } catch (e) { return []; } };
+  const lsSet = a => { try { localStorage.setItem(SKEY, JSON.stringify(a)); return true; } catch (e) { return false; } };
+  function thumb() { try { const k3 = KPo() && KPo().k3d && KPo().k3d(); const src = k3 && k3.capture ? k3.capture(480, 300) : null; if (!src) return null; const c = document.createElement('canvas'); c.width = 240; c.height = 150; c.getContext('2d').drawImage(src, 0, 0, 240, 150); return c.toDataURL('image/jpeg', .72); } catch (e) { return null; } }
+  function saveKitchen(btn) {
+    const K = KPo(); if (!K || !K.hash) return; const h = K.hash(); if (!/^#k=/.test(h)) return;
+    const link = location.href.split('#')[0] + h, list = lsGet().filter(x => x.h !== h);
+    const pd0 = getPlan(), name = pd0 ? `${pd0.formName} · ${m2(pd0.room.w)} × ${m2(pd0.room.d)} m` : 'Mein Entwurf';
+    list.unshift({ h, t: Date.now(), name, img: thumb() }); while (list.length > 8) list.pop();
+    let ok = lsSet(list); if (!ok) { list.forEach(x => { x.img = null; }); ok = lsSet(list); }
+    try { navigator.clipboard && navigator.clipboard.writeText(link).catch(() => { }); } catch (e) { }
+    if (K.toast) K.toast(ok ? 'Gespeichert ✓ – unter „Meine Küchen“ jederzeit wieder da. Der Link ist kopiert.' : 'Der Link ist kopiert – damit kommen Sie jederzeit zu diesem Entwurf zurück.');
+    if (btn) { btn.classList.add('done'); setTimeout(() => btn.classList.remove('done'), 1800); }
+    renderMine();
+  }
+  function renderMine() {
+    const box = $('[data-kpx-mine]'); if (!box) return; const list = lsGet();
+    box.hidden = !list.length; if (!list.length) return;
+    box.querySelector('[data-kpx-mn]').textContent = list.length;
+    box.querySelector('[data-kpx-ml]').innerHTML = list.map((x, i) => `<li><button type="button" data-kpx-load="${i}">${x.img ? `<img src="${x.img}" alt="">` : '<i></i>'}<span><b>${esc(x.name)}</b><small>${new Date(x.t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })} · ${new Date(x.t).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</small></span></button><button type="button" class="x" data-kpx-del="${i}" aria-label="Entwurf löschen">×</button></li>`).join('');
+  }
+  function addBar() {
+    const build = $('.kp-build'), stage = $('.kp-stage'); if (!build || !stage || $('.kpx')) return;
+    const bar = document.createElement('div'); bar.className = 'kpx'; bar.setAttribute('role', 'toolbar'); bar.setAttribute('aria-label', 'Ihre Küche ansehen und speichern');
+    bar.innerHTML = `<button type="button" class="kpx-hero" data-kpx="real">${XI.real}<span><b>In echt ansehen</b><small>Fotorealistisch berechnet</small></span></button>
+<div class="kpx-row">
+  <button type="button" data-kpx="here">${XI.cam}<span>Foto von hier</span></button>
+  <button type="button" data-kpx="top">${XI.top}<span>Draufsicht</span></button>
+  <button type="button" data-kpx="plan">${XI.plan}<span>Grundriss &amp; Wände</span></button>
+  <button type="button" data-kpx="inst">${XI.inst}<span>Installationsplan</span></button>
+  <button type="button" data-kpx="list">${XI.list}<span>Details</span></button>
+  <button type="button" data-kpx="img">${XI.img}<span>Bild speichern</span></button>
+  <button type="button" data-kpx="save">${XI.save}<span>Küche speichern</span></button>
+</div>
+<div class="kpx-mine" data-kpx-mine hidden><button type="button" class="kpx-mt" data-kpx-mt aria-expanded="false">Meine Küchen <i data-kpx-mn>0</i></button><ul data-kpx-ml></ul></div>`;
+    build.insertBefore(bar, build.firstChild);
+    bar.addEventListener('click', e => {
+      const b = e.target.closest('[data-kpx]');
+      if (b) {
+        const k = b.dataset.kpx;
+        if (k === 'real') return open({ tab: 'foto', view: 'uebersicht' });
+        if (k === 'here') return open({ tab: 'foto', view: 'hier' });
+        if (k === 'top') return open({ tab: 'foto', view: 'oben' });
+        if (k === 'plan' || k === 'inst' || k === 'list') return open({ tab: k === 'list' ? 'liste' : k });
+        if (k === 'img') { const s2 = $('[data-ksend="img"]'); if (s2) s2.click(); return; }
+        if (k === 'save') return saveKitchen(b);
+      }
+      const mt = e.target.closest('[data-kpx-mt]'); if (mt) { const box = mt.parentNode, on = !box.classList.contains('open'); box.classList.toggle('open', on); mt.setAttribute('aria-expanded', on); return; }
+      const ld = e.target.closest('[data-kpx-load]'); if (ld) { const x = lsGet()[+ld.dataset.kpxLoad]; const K = KPo(); if (x && K && K.applyPlan) { try { K.applyPlan(decodeURIComponent(escape(atob(x.h.slice(3).replace(/-/g, '+').replace(/_/g, '/'))))); if (K.toast) K.toast(`„${x.name}“ ist wieder da.`); } catch (er) { } } $('[data-kpx-mine]').classList.remove('open'); return; }
+      const dl = e.target.closest('[data-kpx-del]'); if (dl) { const list = lsGet(); list.splice(+dl.dataset.kpxDel, 1); lsSet(list); renderMine(); return; }
+    });
+    renderMine();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(addBar, 0)); else setTimeout(addBar, 0);
+
+  window.KPResult = { open, close, plan: () => getPlan(), version: '1.1' };
 })();
