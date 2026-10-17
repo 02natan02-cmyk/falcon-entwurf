@@ -108,7 +108,7 @@
 
   /* ---------- Playlist: startet leise, sonst bei der ersten Interaktion ---------- */
   const PL = (() => {
-    const el = $('[data-pl]'), T = D.tracks || [], sbtn = $('[data-snd]'); if (!el || !T.length) return { duck() {}, swell() {} };
+    const el = $('[data-pl]'), T = D.tracks || [], sbtn = $('[data-snd]'); if (!el || !T.length) return { duck() {}, swell() {}, ensure() {} };
     const a = new Audio(); a.preload = 'auto';
     const LOW = .12, KEY = 'vp-mute';
     const ss = { get: () => { try { return sessionStorage.getItem(KEY); } catch (e) { return null; } }, set: v => { try { v ? sessionStorage.setItem(KEY, v) : sessionStorage.removeItem(KEY); } catch (e) {} } };
@@ -137,7 +137,7 @@
       return a.play().then(() => { playing = true; ui(); vol(muted || ducked ? 0 : LOW, fade); });
     };
     const pause = () => { vol(0, 400); setTimeout(() => { if (muted || ducked || !playing) a.pause(); }, 450); };
-    const evs = ['pointerdown', 'touchstart', 'keydown', 'wheel', 'scroll', 'click'];
+    const evs = ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'keydown', 'wheel', 'scroll', 'click'];
     const onGesture = e => { if (e && e.isTrusted === false) return; /* Vorführ-Klicks (Impulse) starten keine Musik */ if (muted || playing) return disarm(); if (e && e.target && e.target.closest && e.target.closest('[data-pl],[data-snd]')) return; webaudio(); play().then(disarm).catch(() => {}); };
     const arm = () => { if (armed) return; armed = true; evs.forEach(ev => addEventListener(ev, onGesture, { passive: true, capture: true })); };
     const disarm = () => { armed = false; evs.forEach(ev => removeEventListener(ev, onGesture, { capture: true })); };
@@ -157,6 +157,7 @@
     document.addEventListener('click', e => { if (e.isTrusted !== false && !tl.hidden && !e.target.closest('[data-pl]')) { tl.hidden = true; lb.setAttribute('aria-expanded', 'false'); el.classList.remove('open'); } });
     if (sbtn) sbtn.addEventListener('click', () => (playing && !muted && !a.paused) ? stop() : start());
     return {
+      ensure() { if (muted || el.classList.contains('paused')) return; if (!playing || a.paused) { webaudio(); play(1500).then(disarm).catch(() => {}); } },
       duck(on) { if (on === ducked) return; ducked = on; if (!playing || muted) return; if (on) pause(); else play(1500).catch(() => {}); },
       swell(f, sec) { if (playing && !muted && !ducked) vol(LOW * f, sec * 1000 * .6); }
     };
@@ -262,21 +263,68 @@
     if (!ta.value.trim() || ta.dataset.pre === '1') { ta.value = 'Mich interessiert: ' + fsel.l + ' (' + fsel.r.join(', ') + '). '; ta.dataset.pre = '1'; }
   });
 
-  /* ---------- Atmen ---------- */
-  const bw = $('[data-bwrap]'), bt = $('[data-bt]'), bn = $('[data-bn]'), bbtn = $('[data-breath]'), brr = $('[data-br-r]'); let bRun = false;
+  /* ---------- Atmen: ruhige Stimme führt, Ein- und Ausatmen hörbar, Musik läuft mit ---------- */
+  const BA = (() => {
+    const SRC = 'media/atem.mp3', KEY = 'vp-atem-stimme';
+    const CUE = { intro: [0, 8.18], in1: [8.43, 2.12], hold1: [10.8, 1], out1: [12.05, 3.68], in2: [15.98, 1.16], hold2: [17.39, .98], out2: [18.62, 1.28], in3: [20.15, 2.95], hold3: [23.35, .99], out3: [24.59, 2.7], end: [27.54, 6.16] };
+    let ac = null, out = null, buf = null, noise = null, ab = null, loading = null, on = true; const live = new Set();
+    try { on = localStorage.getItem(KEY) !== '0'; } catch (e) {}
+    const fetchAB = () => ab ? Promise.resolve(ab) : (loading = loading || fetch(SRC).then(r => { if (!r.ok) throw new Error('atem'); return r.arrayBuffer(); }).then(x => (ab = x)).catch(e => { loading = null; throw e; }));
+    const chain = () => { const f = ac.createGain(); f.connect(out); return f; };
+    const track = (s, f) => { const o = { s, f }; live.add(o); s.onended = () => live.delete(o); };
+    const ready = () => { if (!ac) return Promise.resolve(false); if (buf) return Promise.resolve(true);
+      return fetchAB().then(x => new Promise((res, rej) => ac.decodeAudioData(x.slice(0), res, rej))).then(b => { buf = b; return true; }).catch(() => false); };
+    return {
+      get on() { return on; },
+      prefetch() { fetchAB().catch(() => {}); },
+      unlock() {   /* läuft direkt im Klick – sonst bleibt der Ton auf dem iPhone stumm */
+        try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+        if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); out = ac.createGain(); out.connect(ac.destination); const z = ac.createBufferSource(); z.buffer = ac.createBuffer(1, 1, 22050); z.connect(out); z.start(0); } catch (e) { ac = null; } }
+        if (ac && ac.state === 'suspended') { try { ac.resume(); } catch (e) {} }
+                return ready();
+      },
+      len: k => CUE[k] ? CUE[k][1] : 0,
+      say(k) { if (!on || !ac || !buf || !CUE[k]) return; const s = ac.createBufferSource(), f = chain(); s.buffer = buf; s.connect(f); s.start(ac.currentTime + .05, CUE[k][0], CUE[k][1]); track(s, f); },
+      breath(kind, sec) {   /* Atemgeräusch: gefiltertes Rauschen, Einatmen hell und anschwellend, Ausatmen tief und weich auslaufend */
+        if (!on || !ac) return; const t = ac.currentTime + .05;
+        if (!noise) { const n = ac.sampleRate * 2, nb = ac.createBuffer(1, n, ac.sampleRate), d = nb.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; noise = nb; }
+        const s = ac.createBufferSource(); s.buffer = noise; s.loop = true; s.playbackRate.value = .92 + Math.random() * .16;
+        const hp = ac.createBiquadFilter(), bp = ac.createBiquadFilter(), g = ac.createGain(); hp.type = 'highpass'; bp.type = 'bandpass'; g.gain.setValueAtTime(0, t);
+        if (kind === 'in') { hp.frequency.value = 520; bp.Q.value = 1.1; bp.frequency.setValueAtTime(950, t); bp.frequency.linearRampToValueAtTime(1750, t + sec * .9);
+          g.gain.linearRampToValueAtTime(.2, t + sec * .3); g.gain.linearRampToValueAtTime(.3, t + sec * .82); g.gain.linearRampToValueAtTime(0, t + sec * .97); }
+        else { hp.frequency.value = 200; bp.Q.value = .75; bp.frequency.setValueAtTime(720, t); bp.frequency.exponentialRampToValueAtTime(360, t + sec * .95);
+          g.gain.linearRampToValueAtTime(.5, t + .45); g.gain.setTargetAtTime(0, t + .8, sec / 3.4); }
+        const f = chain(); s.connect(hp); hp.connect(bp); bp.connect(g); g.connect(f); s.start(t); s.stop(t + sec + .3); track(s, f);
+      },
+      stop() { const old = [...live]; live.clear(); old.forEach(o => { try { o.f.gain.setTargetAtTime(0, ac.currentTime, .08); } catch (e) {} }); setTimeout(() => old.forEach(o => { try { o.s.stop(); } catch (e) {} }), 400); },
+      toggle() { on = !on; try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {} if (!on) this.stop(); return on; }
+    };
+  })();
+  const bw = $('[data-bwrap]'), bt = $('[data-bt]'), bn = $('[data-bn]'), bbtn = $('[data-breath]'), brr = $('[data-br-r]'), bvb = $('[data-bvoice]'); let bRun = false, bId = 0;
   const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const phase = async (cls, label, sec) => { bw.className = 'breath ' + cls; bt.textContent = label; for (let s = sec; s > 0; s--) { if (!bRun) return; bn.textContent = s; await sleep(1000); } };
+  const vUi = () => { if (!bvb) return; bvb.setAttribute('aria-pressed', String(BA.on)); bvb.lastChild.textContent = BA.on ? 'Stimme an' : 'Stimme aus'; };
+  vUi(); bvb && bvb.addEventListener('click', () => { BA.toggle(); vUi(); });
+  if ('IntersectionObserver' in window) new IntersectionObserver((es, o) => es.forEach(e => { if (e.isIntersecting) { BA.prefetch(); o.disconnect(); } }), { rootMargin: '900px' }).observe(bw);
   bbtn.addEventListener('click', async () => {
-    if (bRun) { bRun = false; return; }
-    bRun = true; bbtn.lastChild.textContent = ' Stopp';
+    if (bRun) { bRun = false; BA.stop(); return; }
+    const id = ++bId, alive = () => bRun && id === bId; bRun = true; bbtn.lastChild.textContent = ' Stopp';
+    PL.ensure();   /* die Musik läuft während der Übung immer mit */
+    const voice = BA.on ? BA.unlock() : Promise.resolve(false);
+    const wait = async sec => { for (let k = 0; k < sec * 10; k++) { if (!alive()) return; await sleep(100); } };
+    const phase = async (cls, label, sec) => { bw.className = 'breath ' + cls; bt.textContent = label; for (let k = sec; k > 0; k--) { if (!alive()) return; bn.textContent = k; await sleep(1000); } };
     if (innerWidth < 900) { const r = bw.getBoundingClientRect(); if (r.bottom > innerHeight || r.top < 70) bw.scrollIntoView({ block: 'center', behavior: RM ? 'auto' : 'smooth' }); }
-    for (let r = 1; r <= 3 && bRun; r++) {
+    bw.className = 'breath'; bt.textContent = 'Ankommen'; bn.textContent = ''; brr.textContent = 'Mach es dir bequem';
+    const ok = await Promise.race([voice, sleep(3500).then(() => false)]);
+    if (ok && alive()) { BA.say('intro'); await wait(BA.len('intro') + .6); }
+    for (let r = 1; r <= 3 && alive(); r++) {
       brr.textContent = `Runde ${r} von 3`;
-      breatheSound(1.7, 4); await phase('in', 'Einatmen', 4);
-      if (!bRun) break; await phase('hold', 'Halten', 2);
-      if (!bRun) break; breatheSound(.6, 6); await phase('out', 'Ausatmen', 6);
+      BA.say('in' + r); BA.breath('in', 4); breatheSound(2, 4); await phase('in', 'Einatmen', 4);
+      if (!alive()) break; BA.say('hold' + r); await phase('hold', 'Halten', 2);
+      if (!alive()) break; BA.say('out' + r); BA.breath('out', 6); breatheSound(1.5, 6); await phase('out', 'Ausatmen', 6);
     }
-    breatheSound(1, 2); bw.className = 'breath'; bt.textContent = bRun ? 'Schön.' : 'Bereit?'; bn.textContent = bRun ? 'Spürst du es?' : ''; brr.textContent = bRun ? 'Drei Runden geschafft. Aloha.' : 'Runde 0 von 3';
+    if (id !== bId) return;
+    const done = bRun; if (done) BA.say('end');
+    breatheSound(1, 2); bw.className = 'breath'; bt.textContent = done ? 'Schön.' : 'Bereit?'; bn.textContent = done ? 'Spürst du es?' : ''; brr.textContent = done ? 'Drei Runden geschafft. Aloha.' : 'Runde 0 von 3';
     bRun = false; bbtn.lastChild.textContent = ' Nochmal atmen';
   });
 
