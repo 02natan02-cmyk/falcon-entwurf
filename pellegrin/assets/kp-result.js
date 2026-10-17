@@ -411,7 +411,7 @@
   // Fotorealistisch: physikalisches Licht (Himmel, Sonne durchs Fenster, LED, Spots), echte Materialien, Deko.
   // Ältere Geräte ohne WebGL2-Gleitkomma-Puffer bekommen die bisherige Darstellung.
   // Freischaltung: bis zur Prüfung auf echten Grafikkarten nur mit ?rt=1 (merkt sich der Tab). RT_DEFAULT = true schaltet es für alle ein.
-  const RT_DEFAULT = false;
+  const RT_DEFAULT = true;
   const RT_OFF = /[?&]rt=0/.test(location.search) || (!RT_DEFAULT && !(() => { try { if (/[?&]rt=1/.test(location.search)) sessionStorage.setItem('kp-rt', '1'); return sessionStorage.getItem('kp-rt') === '1'; } catch (e) { return /[?&]rt=1/.test(location.search); } })());
   let RTp = null, RTK = null, RThost = null, rtChain = Promise.resolve();
   function rtSupported() { if (RT_OFF) return false; try { const c = document.createElement('canvas'), gl = c.getContext('webgl2'); const ok = !!(gl && gl.getExtension('EXT_color_buffer_float')); try { gl && gl.getExtension('WEBGL_lose_context').loseContext(); } catch (e) { } return ok; } catch (e) { return false; } }
