@@ -14,9 +14,21 @@
   window.__lenis = lenis;
 
   /* ---------- Header ---------- */
-  const hdr = $('.hdr'); let lastY = 0;
-  const onScroll = () => { const y = scrollY; const hero = $('.hero'); hdr.classList.toggle('solid', !hero || y > hero.offsetHeight - 90); hdr.classList.toggle('hide', y > 700 && y > lastY + 2 && !root.classList.contains('menu-open') && page !== 'planer'); lastY = y; };
+  // Ein-/Ausblenden mit Hysterese: erst nach ~40 px am Stück nach unten weg, nach ~28 px nach oben wieder da.
+  // (Vorher reichten 2 px – langsames Daumen-Scrollen und die Montage-Fahrt ließen den Kopf am Handy zittern.)
+  const hdr = $('.hdr'), heroEl = $('.hero'); let lastY = scrollY, acc = 0, hid = false, heroH = heroEl ? heroEl.offsetHeight : 0, solid = null;
+  const heroM = () => { heroH = heroEl ? heroEl.offsetHeight : 0; }; addEventListener('resize', heroM, { passive: true }); addEventListener('load', heroM); setTimeout(heroM, 1500);
+  const setHide = v => { if (v !== hid) { hid = v; hdr.classList.toggle('hide', v); } };
+  const onScroll = () => {
+    const y = Math.max(0, scrollY), d = y - lastY; lastY = y;
+    const so = !heroEl || y > heroH - 90; if (so !== solid) { solid = so; hdr.classList.toggle('solid', so); }
+    if (y < 700 || page === 'planer' || root.classList.contains('menu-open')) { acc = 0; setHide(false); return; }
+    if (!d) return; if ((d > 0) !== (acc > 0)) acc = 0; acc += d;
+    if (acc > 40) setHide(true); else if (acc < -28) setHide(false);
+  };
   addEventListener('scroll', onScroll, { passive: true }); onScroll();
+  // Handy: Schnellkontakt-Leiste macht Platz, solange die 3D-Montage den Bildschirm füllt (sie verdeckte sonst deren Knöpfe)
+  { const dock = $('.dock'), mt = $('.pm3-track'); if (dock && mt && 'IntersectionObserver' in window) new IntersectionObserver(es => root.classList.toggle('dock-off', es[0].isIntersecting), { rootMargin: '-45% 0px -45% 0px' }).observe(mt); }
   const burger = $('.burger');
   burger.addEventListener('click', () => { const o = root.classList.toggle('menu-open'); burger.setAttribute('aria-expanded', o); $('.mnav').setAttribute('aria-hidden', !o); lenis && (o ? lenis.stop() : lenis.start()); });
   $$('.mnav a').forEach(a => a.addEventListener('click', () => { root.classList.remove('menu-open'); lenis && lenis.start(); }));
@@ -164,7 +176,7 @@
     let via = 'mail'; $$('[data-via]', tf).forEach(b => b.addEventListener('click', () => via = b.dataset.via));
     tf.addEventListener('submit', e => { e.preventDefault(); const d = new Date($('[data-days] .on', tf).dataset.d + 'T12:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' }); const slot = $('[data-slot] .on', tf).dataset.v, what = $('[data-what]', tf).value, name = $('[data-name]', tf).value.trim();
       const txt = `Hallo Herr Pellegrin,\n\nich würde gern einen Beratungstermin vereinbaren.\nWunschtermin: ${d}, ${slot}\nThema: ${what}\n\nViele Grüße\n${name || ''}`;
-      if (via === 'wa') window.open(WA + '?text=' + encodeURIComponent(txt), '_blank'); else location.href = `mailto:${MAIL}?subject=${encodeURIComponent('Terminanfrage: ' + what)}&body=${encodeURIComponent(txt)}`; });
+      if (via === 'wa') window.open(WA + '?text=' + encodeURIComponent(txt), '_blank'); else location.href = `mailto:${tf.dataset.mail || MAIL}?subject=${encodeURIComponent('Terminanfrage: ' + what)}&body=${encodeURIComponent(txt)}`; });
   }
 
   /* =====================================================================

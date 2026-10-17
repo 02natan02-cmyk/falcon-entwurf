@@ -27,7 +27,8 @@
   const FORMS = { zeile: { n: 'Küchenzeile', walls: ['N'] }, l: { n: 'L-Küche', walls: ['W', 'N'] }, u: { n: 'U-Küche', walls: ['W', 'N', 'E'] }, zwei: { n: 'zweizeilige Küche', walls: ['N', 'S'] }, insel: { n: 'Küche mit Kochinsel', walls: ['N'], island: 1 } };
   const FN = { zeile: 'Küchenzeile', l: 'L-Küche', u: 'U-Küche', zwei: 'Zweizeilig', insel: 'Mit Kochinsel' };
   const WAN = { N: 'an der Rückwand', W: 'an der linken Wand', E: 'an der rechten Wand', S: 'an der Wand gegenüber' };
-  const FRONTS = [['Weiß', '#f1eee8'], ['Creme', '#ece3cf'], ['Kaschmir', '#d9cfbf'], ['Sandgrau', '#cfc8bc'], ['Salbei', '#7f8e77'], ['Nachtblau', '#22304a'], ['Graphit', '#45474b'], ['Schwarz', '#232426']];
+  // Spiegel der Farbwelten aus kp.js (gleiche HEX-Werte)
+  const FRONTS = [['Weiß', '#f1eee8'], ['Kreide', '#e9e4da'], ['Creme', '#ece3cf'], ['Seidengrau', '#dad6cd'], ['Sand', '#dccdb3'], ['Kaschmir', '#d9cfbf'], ['Sandgrau', '#cfc8bc'], ['Macchiato', '#bba58c'], ['Taupe', '#968777'], ['Eukalyptus', '#a1ae9d'], ['Schilf', '#b6b398'], ['Salbei', '#7f8e77'], ['Olive', '#6c6945'], ['Tannengrün', '#37453a'], ['Taubenblau', '#98a9b5'], ['Steinblau', '#6d7e8b'], ['Fjordblau', '#53687a'], ['Nachtblau', '#22304a'], ['Graphit', '#45474b'], ['Schwarzgrün', '#2c3530'], ['Coffee', '#56443a'], ['Schwarz', '#232426']];
   const HANDLES = { grifflos: 'grifflos', bar: 'mit Edelstahlgriffen', schwarz: 'mit schwarzen Griffen', gold: 'mit Messinggriffen', knopf: 'mit Knopfgriffen' };
   const TOPS = { eiche: 'Eiche', keramik: 'Stein hell', beton: 'Beton', marmor: 'Marmor dunkel' };
   const FINISH = { matt: 'matt', seide: 'seidenmatt', glanz: 'in Hochglanz' };
@@ -60,16 +61,38 @@
 
   /* ================= 1) Text verstehen ================= */
   // Zahlwörter und „3 auf 4 Meter“ in Ziffern bzw. „3 x 4“ übersetzen
-  const NW = { ein: 1, eins: 1, eine: 1, einen: 1, zwei: 2, drei: 3, vier: 4, fünf: 5, sechs: 6, sieben: 7, acht: 8, neun: 9, zehn: 10, elf: 11, zwölf: 12 };
+  const NW = { ein: 1, eins: 1, eine: 1, einen: 1, zwei: 2, zwo: 2, drei: 3, vier: 4, fünf: 5, sechs: 6, sieben: 7, acht: 8, neun: 9, zehn: 10, elf: 11, zwölf: 12 };
   const NWR = Object.keys(NW).sort((a, b) => b.length - a.length).join('|');
+  // Gesprochene Zahlen ab 13 (eindeutig, darum immer umwandeln): „achtzig“, „fünfundneunzig“, „dreihundertachtzig“
+  const U9 = { ein: 1, zwei: 2, zwo: 2, drei: 3, vier: 4, fünf: 5, sechs: 6, sieben: 7, acht: 8, neun: 9 };
+  const TEEN = { zehn: 10, elf: 11, zwölf: 12, dreizehn: 13, vierzehn: 14, fünfzehn: 15, sechzehn: 16, siebzehn: 17, achtzehn: 18, neunzehn: 19 };
+  const TENS = { zwanzig: 20, dreißig: 30, dreissig: 30, vierzig: 40, fünfzig: 50, sechzig: 60, siebzig: 70, achtzig: 80, neunzig: 90 };
+  const U9R = 'ein|zwei|zwo|drei|vier|fünf|sechs|sieben|acht|neun', TENR = Object.keys(TENS).join('|'), TEENR = 'dreizehn|vierzehn|fünfzehn|sechzehn|siebzehn|achtzehn|neunzehn';
+  const BIG = new RegExp(`(^|[^a-zäöüß])((?:(?:${U9R})?hundert(?:und)?(?:(?:${U9R})und(?:${TENR})|${TENR}|${TEENR}|zehn|elf|zwölf|eins|${U9R})?)|(?:${U9R})und(?:${TENR})|${TENR}|${TEENR})(?=[^a-zäöüß]|$)`, 'g');
+  function bigNum(w) {
+    let n = 0, r = w; const h = r.match(new RegExp(`^(${U9R})?hundert(?:und)?`));
+    if (h) { n = (h[1] ? U9[h[1]] : 1) * 100; r = r.slice(h[0].length); if (!r) return n; }
+    if (TEEN[r] != null) return n + TEEN[r]; if (TENS[r] != null) return n + TENS[r];
+    const c = r.match(new RegExp(`^(${U9R})und(${TENR})$`)); if (c) return n + U9[c[1]] + TENS[c[2]];
+    if (n && (U9[r] != null || r === 'eins')) return n + (r === 'eins' ? 1 : U9[r]);
+    return null;
+  }
   function normNum(t) {
     const nv = x => NW[x] != null ? NW[x] : x;
+    t = t.replace(BIG, (a, pre, w) => { const v = bigNum(w); return v == null ? a : pre + v; });
+    t = t.replace(/\banderthalb\b/g, '1,5');
     t = t.replace(new RegExp(`\\b(${NWR})einhalb\\b`, 'g'), (a, w) => String(NW[w] + .5).replace('.', ','));
     t = t.replace(/\b(ein(?:en)?\s+)?halbe[nr]?\s+meter\b/g, '0,5 meter');
     t = t.replace(new RegExp(`\\b(${NWR}|\\d+)\\s+komma\\s+(${NWR}|\\d+)\\b`, 'g'), (a, x, y) => `${nv(x)},${nv(y)}`);
     t = t.replace(new RegExp(`\\b(${NWR})(?=\\s*(meter|metern|m\\b|zentimeter|cm\\b|auf\\b|x\\b|bei\\b))`, 'g'), (a, w) => String(NW[w]));
     t = t.replace(new RegExp(`\\b(auf|x|bei)\\s+(${NWR})\\b`, 'g'), (a, q, w) => `${q} ${NW[w]}`);
     t = t.replace(/(\d+(?:[.,]\d+)?)\s*(cm|m|meter|metern)?\s+(?:auf|bei)\s+(\d+(?:[.,]\d+)?)/g, (a, x, u, y) => `${x}${u ? ' ' + u : ''} x ${y}`);
+    // „3 meter 80“ / „3 m 80“ → „3,80 m“ (gesprochen: drei Meter achtzig; „drei Meter fünf“ = 3,05 m)
+    t = t.replace(/(^|[^\d,.])(\d)\s*(?:m|meter|metern)\s+(\d{1,2})(?![\d,.])(?!\s*(?:cm|mm|m\b|meter|metern|%|grad))/g, (a, p, x, y) => `${p}${x},${y.length < 2 ? '0' + y : y} m`);
+    // „drei 80 x zwei 60“ (Meter weggelassen) → „3,80 x 2,60“
+    t = t.replace(new RegExp(`(^|\\s)(${NWR})\\s+(\\d{2})(?=\\s*(?:x\\b|m\\b|meter|metern))`, 'g'), (a, p, w, y) => `${p}${NW[w]},${y}`);
+    t = t.replace(/(^|[\s(])(\d)\s+(\d{2})(?=\s*(?:x\b|m\b|meter|metern))/g, '$1$2,$3');
+    t = t.replace(/(\bx\s+)(\d)\s+(\d{2})(?!\d|[.,]\d)/g, '$1$2,$3');
     return t;
   }
   const normText = raw => normNum(' ' + String(raw || '').toLowerCase().replace(/[×*]/g, ' x ').replace(/\bmal\b/g, ' x ').replace(/ae/g, 'ä').replace(/oe/g, 'ö').replace(/ue/g, 'ü').replace(/zentimeter/g, 'cm').replace(/\s+/g, ' ') + ' ');
@@ -197,7 +220,13 @@
     if (has(/hochglanz|glänzend|glanz\b/)) st.finish = 'glanz'; else if (has(/seidenmatt|seidig/)) st.finish = 'seide'; else if (has(/\bmatt/)) st.finish = 'matt';
     if (has(/landhaus|rahmenfront|kassette|klassisch|country|cottage/)) { b.look = 'landhaus'; st.frame = 1; }
     else if (has(/skandi|skandinav|nordisch/)) b.look = 'skandi';
-    const col = [[/nachtblau|dunkelblau|navy|\bblau/, '#22304a'], [/salbei|grün|olive|mint/, '#7f8e77'], [/sandgrau|greige|sandfarb|\bsand\b|taupe|hellgrau|\bgrau\b|\bgraue/, '#cfc8bc'], [/kaschmir|cashmere|beige/, '#d9cfbf'], [/creme|elfenbein|vanille/, '#ece3cf'], [/graphit|grafit|anthrazit|dunkelgrau/, '#45474b'], [/schwarz/, '#232426'], [/weiß|\bweiße|\bhell\b|hell und|helle küche/, '#f1eee8']];
+    // Farben außerhalb der Planer-Töne (rot, gelb, rosa …) werden als Wunschfarbe übernommen
+    const col = [[/bordeaux|weinrot|dunkelrot|burgunder/, '#6e2a33'], [/terrakotta|terracotta|rostrot|ziegelrot|ziegelfarb/, '#b5603f'], [/senfgelb|\bsenf|\bocker/, '#c39a3c'], [/aubergine|\bpflaume/, '#5b4058'], [/flieder|lavendel/, '#b9abc9'], [/türkis/, '#3f8a8c'],
+      [/schwarzgrün|schwarz-grün/, '#2c3530'], [/tannengrün|dunkelgrün|flaschengrün|waldgrün/, '#37453a'], [/oliv/, '#6c6945'], [/eukalyptus|mint/, '#a1ae9d'], [/schilf/, '#b6b398'], [/salbei|grün/, '#7f8e77'],
+      [/taubenblau|hellblau|graublau|blaugrau/, '#98a9b5'], [/fjord|petrol/, '#53687a'], [/steinblau/, '#6d7e8b'], [/nachtblau|dunkelblau|navy|\bblau/, '#22304a'],
+      [/\bcoffee\b|\bmokka\b|kaffeebraun|schokobraun|dunkelbraun|\bbraune?n?\b/, '#56443a'], [/macchiato|cappuccino|milchkaffee/, '#bba58c'], [/taupe/, '#968777'], [/kaschmir|cashmere|beige/, '#d9cfbf'], [/sandgrau|greige|hellgrau|\bgrau\b|\bgraue/, '#cfc8bc'], [/sandfarb|\bsand\b/, '#dccdb3'],
+      [/seidengrau|lichtgrau/, '#dad6cd'], [/kreide|kalkweiß|altweiß|naturweiß/, '#e9e4da'], [/creme|elfenbein|vanille/, '#ece3cf'], [/\brot(e|en|er|es)?\b|signalrot|kirschrot/, '#a8443a'], [/\bgelb(e|en|er|es)?\b|zitronengelb|sonnengelb/, '#e0c25a'], [/\borange(n|farben)?\b|apricot|aprikose/, '#d0783f'],
+      [/altrosa|\brosa\b|rosé|\bpink\b|puderrosa/, '#d6aaa4'], [/\blila\b|violett/, '#5b4058'], [/graphit|grafit|anthrazit|dunkelgrau/, '#45474b'], [/schwarz/, '#232426'], [/weiß|\bweiße|\bhell\b|hell und|helle küche/, '#f1eee8']];
     const fc2 = col.find(([r]) => r.test(t)); if (fc2) st.front = fc2[1];
     const wood = has(/nussbaum|walnuss|\bnuss/) ? 'nuss' : has(/eiche|holz/) ? 'eiche' : null;
     if (wood) { if (!st.front && !b.look) { st.wood = wood; if (!st.top) st.top = wood === 'nuss' ? 'keramik' : 'marmor'; } else if (!st.top) st.top = 'eiche'; }
@@ -244,7 +273,7 @@
     if (b.balkon) g.push('Balkontür');
     if (b.water) g.push('Wasser ' + ({ lang: 'an der langen Wand', kurz: 'an der kurzen Wand', W: 'links', E: 'rechts', S: 'gegenüber', N: 'an der Rückwand' })[b.water.wall]);
     if (b.look) g.push({ landhaus: 'Landhaus', skandi: 'Skandinavisch', dunkel: 'Elegant dunkel', modern: 'Modern' }[b.look]);
-    if (st.front) g.push((FRONTS.find(f => f[1] === st.front) || ['Farbe'])[0]); if (st.wood) g.push(st.wood === 'nuss' ? 'Nussbaum' : 'Eiche-Fronten');
+    if (st.front) g.push(fnm({ front: st.front })); if (st.wood) g.push(st.wood === 'nuss' ? 'Nussbaum' : 'Eiche-Fronten');
     if (st.handle) g.push({ grifflos: 'Grifflos', gold: 'Messinggriffe', schwarz: 'Schwarze Griffe', bar: 'Edelstahlgriffe', knopf: 'Knopfgriffe' }[st.handle]);
     if (st.top) g.push('Platte ' + TOPS[st.top]); if (st.finish) g.push({ matt: 'Matt', seide: 'Seidenmatt', glanz: 'Hochglanz' }[st.finish]);
     if (b.ah) g.push(`Arbeitshöhe ${b.ah} cm`);
@@ -477,6 +506,31 @@
     }
     return best;
   }
+  // Zweite Idee (Natan 17.10.): deutlich andere Anordnung zum Vergleichen – was der Kunde gesagt hat, bleibt in beiden gleich
+  function sig(p) { const ws = FORMS[p.f].walls, has = (w, ts) => (p.rw[w] || []).some(m => ts.includes(m[0])); const sw = ws.find(w => has(w, ['sp'])) || (p.f === 'insel' && p.is.v === 'spuele' ? 'I' : '-'), cw = ws.find(w => has(w, ['kf', 'ko'])) || (p.f === 'insel' && p.is.v === 'kochfeld' ? 'I' : '-'); return [p.f, sw, cw, ws.map(w => (p.rw[w] || []).map(m => m[0]).join(',')).join('/')].join('|'); }
+  function mirror(p0) {
+    const p = JSON.parse(JSON.stringify(p0));
+    const flip = r => { if (!r || r.length < 2) return r; const c0 = M[r[0][0]] && M[r[0][0]].c ? 1 : 0, c1 = r.length > 1 && M[r[r.length - 1][0]] && M[r[r.length - 1][0]].c ? 1 : 0; return [...r.slice(0, c0), ...r.slice(c0, r.length - c1).reverse(), ...r.slice(r.length - c1)]; };
+    p.rw.N = flip(p.rw.N); if (p.f === 'zwei') p.rw.S = flip(p.rw.S);
+    return p;
+  }
+  function ideaB(b, cur, A, formFixed) {
+    if (!A || !A.plan) return null;
+    const sa = sig(A.plan), R = b.room, cands = [];
+    const roomy = f => f !== 'insel' || (R.w >= 420 && R.d >= 400);   // Insel nur mit Platz zum Herumgehen
+    // andere Form zuerst (sieht man sofort), in dieser Reihenfolge bevorzugt; gleiche Form nur, wenn keine andere passt
+    if (!formFixed) ({ zeile: ['l', 'zwei', 'insel'], l: ['insel', 'u', 'zwei', 'zeile'], u: ['insel', 'l'], zwei: ['l', 'u'], insel: ['u', 'l'] }[A.plan.f] || []).filter(roomy).forEach((f, k) => {
+      const b2 = JSON.parse(JSON.stringify(b)); b2.form = f; b2.isl = Object.assign({ v: 'kochfeld' }, b2.isl || {}, { want: f === 'insel' }); b2.notes = (b2.notes || []).slice();
+      let r = null; try { r = generateBest(b2, cur); } catch (e) { r = null; } if (r && valid(r.plan)) cands.push({ r, b: b2, pen: -3 + k * .5 });
+    });
+    [{ altSink: 1 }, { herd: 1 }].forEach(o => { let r = null; try { r = generate(JSON.parse(JSON.stringify(b)), cur, o); } catch (e) { r = null; } if (r && valid(r.plan)) cands.push({ r, b, pen: 2 }); });
+    { const m = mirror(A.plan); if (m && valid(m)) cands.push({ r: { plan: m, notes: (A.notes || []).slice(), opt: {} }, b, pen: 1.5 }); }
+    let best = null, bs = Infinity;
+    cands.forEach(c => { if (sig(c.r.plan) === sa) return; let sc = 99; try { sc = score(c.r, c.b) + c.pen; } catch (e) { sc = 99; } if (sc < bs) { bs = sc; best = c; } });
+    let sA = 0; try { sA = score(A, b); } catch (e) { sA = 0; }
+    if (!best || bs > sA + 8) return null;
+    return { plan: best.r.plan, why: whyOf(best.r, best.b), notes: best.r.notes || [], got: b.got, brief: best.b, src: 'local' };
+  }
   // Positionen entlang einer Wand
   function rangeStart(plan, w) { const N = plan.rw.N || []; if (w === 'E' && N.length) return 60 + (N[N.length - 1][0] === 'ek' && FORMS[plan.f].walls.includes('E') ? 30 : 0); return 0; }
   function spans(plan, w) { const out = []; let x = rangeStart(plan, w); (plan.rw[w] || []).forEach(m => { out.push({ t: m[0], x, w: m[1] }); x += m[1]; }); return out; }
@@ -547,7 +601,7 @@
     if (st.front) { s.front = st.front; s.wood = null; }
     if (st.wood) { s.wood = st.wood; }
     ['handle', 'top', 'finish', 'floor', 'wall', 'back', 'sink', 'tap', 'hood', 'ihood'].forEach(k => { if (st[k] != null) s[k] = st[k]; });
-    const extra = {}; if (cur.style) for (const k in cur.style) if (!(k in DEF_STYLE) && !['look', 'frame', 'back', 'hobV'].includes(k) && /^(string|number)$/.test(typeof cur.style[k]) && String(cur.style[k]).length < 24) extra[k] = cur.style[k];
+    const extra = {}; if (cur.style) for (const k in cur.style) if (!(k in DEF_STYLE) && !['look', 'frame', 'back', 'hobV', 'world'].includes(k) && /^(string|number)$/.test(typeof cur.style[k]) && String(cur.style[k]).length < 24) extra[k] = cur.style[k];
     if (st.frame != null) s.frame = st.frame;
     if (b.look === 'landhaus' && !st.handle && s.front === '#232426') s.handle = 'gold';
     if (s.look && (st.front || st.wood || st.handle || st.top) && JSON.stringify(Object.assign({}, LOOKS[s.look], { look: s.look })) !== JSON.stringify(s)) { /* bleibt Ausgangsstil, Details angepasst */ }
@@ -555,7 +609,7 @@
   }
   function cleanStyle(s0) {
     const s = Object.assign({}, DEF_STYLE, s0 || {}), out = {};
-    out.front = FRONTS.some(f => f[1] === s.front) ? s.front : '#f1eee8';
+    out.front = /^#[0-9a-f]{6}$/i.test(s.front || '') ? String(s.front).toLowerCase() : '#f1eee8';
     out.wood = s.wood === 'eiche' || s.wood === 'nuss' ? s.wood : null;
     out.handle = HANDLES[s.handle] ? s.handle : 'grifflos';
     out.top = TOPS[s.top] ? s.top : 'eiche';
@@ -589,10 +643,12 @@
     const tl = all.filter(s => isTall(s.t)).map(s => NM[s.t]);
     const uniq = tl.filter((x, i) => tl.indexOf(x) === i).map(x => x === 'Kühlschrank' && tl.filter(y => y === x).length > 1 ? 'Kühl- und Gefrierschrank' : x);
     if (uniq.length) S.push(`${list(uniq)} ${uniq.length > 1 ? 'stehen als Hochschrank-Block' : 'steht als Hochschrank'} am Wandende – so bleibt die Arbeitsfläche durchgehend frei${b.W.ovenHigh && tl.includes('Backofen') ? ', und der Backofen ist rückenschonend auf Augenhöhe' : ''}.`);
-    const s = p.s, fr = s.wood ? (s.wood === 'nuss' ? 'Nussbaum' : 'Eiche') : (FRONTS.find(x => x[1] === s.front) || ['Weiß'])[0];
+    const s = p.s, fr = fnm(s);
     S.push(`Fronten in ${fr} ${FINISH[s.finish]}${s.frame ? ' mit Rahmen im Landhausstil' : ''}, ${HANDLES[s.handle]}, Arbeitsplatte ${TOPS[s.top]}${b.W.mulde ? (s.hobV === 'dd' ? ' – der Muldenlüfter saugt direkt am Kochfeld ab, darum hängt keine Haube darüber' : f === 'insel' ? ' – der Muldenlüfter sitzt direkt im Kochfeld der Insel' : '') : ''}.`);
     return S.slice(0, 5).join(' ');
   }
+  // Frontname: Planer-Ton oder beschreibende Wunschfarbe (Ziegelrot, Senfgelb …) – Namen liefert der Planer
+  function fnm(s) { try { if (window.KP && KP.frontShort) return KP.frontShort(s); } catch (e) { } return s.wood ? (s.wood === 'nuss' ? 'Nussbaum' : 'Eiche') : (FRONTS.find(x => x[1] === s.front) || ['Wunschfarbe'])[0]; }
   const list = a => a.length < 2 ? (a[0] || '') : a.slice(0, -1).join(', ') + ' und ' + a[a.length - 1];
 
   /* ================= 4) Server-Antwort prüfen und reparieren ================= */
@@ -759,8 +815,11 @@
   /* ================= 6) Oberfläche ================= */
   const ICO = {
     spark: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z" opacity=".7"/></svg>',
-    mic: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    mic: '<svg class="i-mic" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    stop: '<svg class="i-stop" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="6.5" width="11" height="11" rx="2.6"/></svg>',
   };
+  // Tastatur mit pulsierender Mikrofon-Taste (Hinweis, wenn der Browser selbst nicht zuhören kann)
+  const KBSVG = '<svg viewBox="0 0 72 48" aria-hidden="true"><rect class="kb" x="1.5" y="1.5" width="69" height="45" rx="8"/><g class="ky"><rect x="7" y="9" width="7" height="7" rx="1.6"/><rect x="16" y="9" width="7" height="7" rx="1.6"/><rect x="25" y="9" width="7" height="7" rx="1.6"/><rect x="34" y="9" width="7" height="7" rx="1.6"/><rect x="43" y="9" width="7" height="7" rx="1.6"/><rect x="11" y="19" width="7" height="7" rx="1.6"/><rect x="20" y="19" width="7" height="7" rx="1.6"/><rect x="29" y="19" width="7" height="7" rx="1.6"/><rect x="38" y="19" width="7" height="7" rx="1.6"/><rect x="47" y="19" width="7" height="7" rx="1.6"/><rect x="7" y="29" width="7" height="7" rx="1.6"/><rect x="16" y="29" width="34" height="7" rx="1.6"/><rect x="52" y="29" width="7" height="7" rx="1.6"/></g><g class="mk"><circle class="mr" cx="60" cy="12.5" r="8.5"/><circle class="mb" cx="60" cy="12.5" r="6.2"/><rect x="58.2" y="8.6" width="3.6" height="5.6" rx="1.8" fill="#fff"/><path d="M56.6 12.6a3.4 3.4 0 006.8 0M60 16v1.6" fill="none" stroke="#fff" stroke-width="1.1" stroke-linecap="round"/></g></svg>';
   const EXE = 'Fenster 30 cm nach links, Raum 3,20 × 4,00 m, Wasser an der linken Wand, Spüle unters Fenster';
   const CHIPS_E = ['Fenster 30 cm nach links', 'Fenster an die linke Wand', 'Raum 3,20 × 4,00 m', 'Wasser an der linken Wand', 'Spüle unters Fenster', 'Tür nach rechts', 'Fenster breiter', 'Arbeitshöhe 95 cm', 'Fronten in Salbei'];
   const EX = 'L-Küche, Raum 3,80 × 2,60 m, Fenster an der langen Wand, Spüle unter dem Fenster, großer Kühlschrank, Backofen auf Augenhöhe, viel Stauraum, Kochinsel wäre toll, grifflos in Sandgrau mit Eiche';
@@ -770,10 +829,9 @@
   const RMO = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-  let ov_ = null, lastFocus = null, result = null;
+  let ov_ = null, lastFocus = null, result = null, V = null;
   function build() {
     const el = document.createElement('div'); el.className = 'kpai'; el.hidden = true; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-labelledby', 'kpai-t');
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     el.innerHTML = `<div class="kpai-bg" data-kpai-x></div>
 <div class="kpai-box" data-lenis-prevent>
   <button type="button" class="kpai-x" data-kpai-x aria-label="Schließen">×</button>
@@ -781,8 +839,10 @@
     <div class="kpai-top"><p class="kpai-k">${ICO.spark}<span>KI-Planung</span></p><div class="kpai-mode" role="group" aria-label="Was möchten Sie tun?"><button type="button" data-mode="neu" class="on" aria-pressed="true">Neu planen</button><button type="button" data-mode="edit" aria-pressed="false">Entwurf ändern</button></div></div>
     <h2 class="kpai-h" id="kpai-t"><span class="kpai-mn">Erzählen Sie uns von Ihrer Küche.<em>Wir planen sie ein.</em></span><span class="kpai-me">Was soll sich ändern?<em>Einfach sagen – wir setzen es um.</em></span></h2>
     <p class="kpai-p"><span class="kpai-mn">Raum, Fenster, Wünsche, Farben – ganz in Ihren Worten. Zuerst prüfen wir mit Ihnen die Raummaße, dann steht ein durchdachter Entwurf im Planer, den Sie nur noch verfeinern.</span><span class="kpai-me">Fenster verschieben, Raummaße korrigieren, Wasseranschluss eintragen, Spüle unters Fenster … – Ihr Entwurf bleibt, nur das Gesagte ändert sich. Jede Änderung lässt sich rückgängig machen.</span></p>
+    <div class="kpai-coach" hidden role="status" aria-live="polite"></div>
     <div class="kpai-ta"><textarea maxlength="${MAXLEN}" rows="5" placeholder="z. B. ${esc(EX)}" aria-label="Ihre Küche in eigenen Worten"></textarea>
-      <div class="kpai-tab">${SR ? `<button type="button" class="kpai-mic" aria-pressed="false">${ICO.mic}<span>Einsprechen</span></button>` : ''}<button type="button" class="kpai-ex">Beispiel einsetzen</button><span class="kpai-cnt">0 / ${MAXLEN}</span></div></div>
+      <div class="kpai-tab"><button type="button" class="kpai-ex">Beispiel<span>einsetzen</span></button><span class="kpai-cnt">0 / ${MAXLEN}</span><span class="kpai-vst"></span><canvas class="kpai-wave" aria-hidden="true"></canvas><button type="button" class="kpai-mic" aria-pressed="false" aria-label="Einsprechen: Ihre Küche einfach erzählen"><span class="kpai-mh" aria-hidden="true"></span>${ICO.mic}${ICO.stop}<b>Einsprechen</b></button><span class="kpai-tip" aria-hidden="true">Neu: einfach erzählen statt tippen</span></div></div>
+    <p class="kpai-vnote" hidden>Die Sprache wandelt Ihr Browser in Text um (je nach Browser bei Google, Apple oder Microsoft). Wir erhalten keine Aufnahme – nur den Text im Feld.</p>
     <div class="kpai-mn"><p class="kpai-l">Form</p><div class="kpai-chips" data-g="f">${CHIPS_F.map(([n, s]) => `<button type="button" data-ph="${esc(s)}">${n}</button>`).join('')}</div>
     <p class="kpai-l">Wünsche – einfach antippen</p><div class="kpai-chips">${CHIPS_W.map(([n, s]) => `<button type="button" data-ph="${esc(s)}">${n}</button>`).join('')}</div></div>
     <div class="kpai-me"><p class="kpai-l">Beispiele – antippen und anpassen</p><div class="kpai-chips">${CHIPS_E.map(s => `<button type="button" data-ph="${esc(s)}">${esc(s)}</button>`).join('')}</div></div>
@@ -827,6 +887,7 @@
   </section>
   <section class="kpai-s" data-s="res">
     <p class="kpai-k">${ICO.spark}<span>Ihr Entwurf ist fertig</span></p>
+    <div class="kpai-ideas" data-kpai-ideas hidden></div>
     <div class="kpai-rg"><div class="kpai-pv"></div><div class="kpai-rt"><h3 class="kpai-h3"></h3><div class="kpai-got"></div><p class="kpai-why"></p><ul class="kpai-notes"></ul></div></div>
     <div class="kpai-go row"><button type="button" class="kpai-btn" data-kpai-apply>${ICO.spark}<span>Plan übernehmen</span></button><button type="button" class="kpai-ghost" data-kpai-back>Text ändern</button></div>
     <p class="kpai-fine">Im Planer passen Sie danach alles frei an – jeden Schrank, jede Breite, jede Farbe.</p>
@@ -851,7 +912,8 @@
         ta.value = ta.value.slice(0, MAXLEN); sync(); return;
       }
       if (e.target.closest('[data-kpai-run]')) return run();
-      if (e.target.closest('[data-kpai-back]')) return show('in');
+      if (e.target.closest('[data-kpai-back]')) { if (V) V.cancel(); return show('in'); }
+      { const id = e.target.closest('[data-idea]'); if (id) return pickIdea(+id.dataset.idea); }
       if (e.target.closest('[data-kpai-apply]')) return apply();
       const md = e.target.closest('[data-mode]'); if (md) return setMode(md.dataset.mode, true);
       if (e.target.closest('[data-kpai-plan]')) return planConfirmed();
@@ -871,21 +933,170 @@
     });
     el.querySelectorAll('[data-rin]').forEach(inp => inp.addEventListener('change', () => { if (!rc) return; let v = parseFloat(String(inp.value).replace(',', '.')); if (!isFinite(v)) return renderRoom(); if (v < 15) v *= 100; setDim(inp.dataset.rin, v); }));
     roomPointer(el.querySelector('[data-rsvg]'));
-    // Mikrofon
-    const mic = el.querySelector('.kpai-mic');
-    if (mic && SR) {
-      let rec = null, base = '';
-      mic.addEventListener('click', () => {
-        if (rec) { rec.stop(); return; }
-        try { rec = new SR(); } catch (e) { mic.remove(); return; }
-        rec.lang = 'de-DE'; rec.interimResults = true; rec.continuous = true; base = ta.value.trim();
-        rec.onresult = ev => { let s = ''; for (let i = 0; i < ev.results.length; i++) s += ev.results[i][0].transcript; ta.value = ((base ? base + ' ' : '') + s.trim()).slice(0, MAXLEN); sync(); };
-        rec.onend = () => { rec = null; mic.classList.remove('on'); mic.setAttribute('aria-pressed', 'false'); mic.querySelector('span').textContent = 'Einsprechen'; };
-        rec.onerror = () => { if (rec) try { rec.stop(); } catch (e) { } };
-        try { rec.start(); mic.classList.add('on'); mic.setAttribute('aria-pressed', 'true'); mic.querySelector('span').textContent = 'Hört zu … (tippen zum Beenden)'; } catch (e) { rec = null; }
-      });
-    }
+    // Spracheingabe (Mikrofon im Textfeld)
+    V = voiceInit(el, ta, sync);
     return el;
+  }
+  /* ================= 6c) Spracheingabe ================= */
+  // Chrome, Edge, Safari, Samsung: Spracherkennung des Browsers (Web Speech API), Text erscheint live im Feld.
+  // Ohne eigene Erkennung (z. B. Firefox, In-App-Browser) oder wenn sie scheitert: Hinweis auf das Diktier-Mikrofon der Tastatur bzw. des Computers.
+  const SRC = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const UA = navigator.userAgent || '', TOUCH = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+  const OSN = /Android/i.test(UA) ? 'android' : (/iPhone|iPad|iPod/i.test(UA) || (/Macintosh/i.test(UA) && navigator.maxTouchPoints > 1)) ? 'ios' : /Windows/i.test(UA) ? 'win' : /Mac OS X|Macintosh/i.test(UA) ? 'mac' : 'other';
+  const KBD = TOUCH || OSN === 'android' || OSN === 'ios';
+  const REALWAVE = !KBD && /Chrome\/|Edg\//.test(UA) && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  const VMAX = 120000, VQUIET = 7000;
+  const srOK = () => { if (!SRC || /[?&]sr=0\b/.test(location.search)) return false; try { return sessionStorage.getItem('kpai-sr') !== 'x'; } catch (e) { return true; } };
+  const srBad = () => { try { sessionStorage.setItem('kpai-sr', 'x'); } catch (e) { } };
+  function voiceInit(el, ta, sync) {
+    const box = el.querySelector('.kpai-ta'), mic = el.querySelector('.kpai-mic'), lab = mic.querySelector('b'), st = el.querySelector('.kpai-vst'), cv = el.querySelector('.kpai-wave'), coach = el.querySelector('.kpai-coach'), note = el.querySelector('.kpai-vnote'), err = el.querySelector('.kpai-err');
+    const cx = cv.getContext && cv.getContext('2d');
+    let rec = null, on = false, want = false, t0 = 0, last = 0, base = '', finals = [], off = 0, interim = '', heard = false, speaking = false, bump = 0, lvl = 0, raf = 0, tmr = 0, why = '', restarts = 0, after = null;
+    let stream = null, actx = null, ana = null, abuf = null, col = '#b0703f', coachOn = false, coachLen = 0, okT = 0;
+    const fmt = ms => { const q = Math.floor(ms / 1000); return Math.floor(q / 60) + ':' + String(q % 60).padStart(2, '0'); };
+    // Android liefert gelegentlich den ganzen Satz noch einmal als neues Ergebnis – dann ersetzen statt anhängen
+    const compose = () => {
+      let out = '';
+      const add = t => { t = String(t || '').replace(/\s+/g, ' ').trim(); if (!t) return; const a = out.toLowerCase(), b = t.toLowerCase(); if (!out) out = t; else if (b.startsWith(a)) out = t; else if (!a.endsWith(b)) out += ' ' + t; };
+      finals.forEach(add); if (interim.trim()) add(interim); return out;
+    };
+    const write = () => {
+      const said = compose(); let v = base;
+      if (said) { const sx = v ? said : said.charAt(0).toUpperCase() + said.slice(1); v = v ? v.replace(/\s+$/, '') + (/[.,;:!?]$/.test(v) ? ' ' : ', ') + sx : sx; }
+      ta.value = v.slice(0, MAXLEN); sync(); ta.scrollTop = ta.scrollHeight;
+    };
+    const ui = state => {
+      box.classList.toggle('vox', state === 'on'); mic.setAttribute('aria-pressed', state === 'on' ? 'true' : 'false');
+      lab.textContent = state === 'on' ? 'Fertig' : 'Einsprechen'; mic.setAttribute('aria-label', state === 'on' ? 'Zuhören beenden' : 'Einsprechen: Ihre Küche einfach erzählen');
+      note.hidden = state !== 'on';
+    };
+    const say = (html, ms) => {
+      clearTimeout(okT); if (!html) { st.innerHTML = ''; box.classList.remove('vmsg'); return; }
+      if (st.innerHTML !== html) st.innerHTML = html; box.classList.add('vmsg'); if (ms) okT = setTimeout(() => { st.innerHTML = ''; box.classList.remove('vmsg'); }, ms);
+    };
+    function tip() {
+      let seen = false; try { seen = !!sessionStorage.getItem('kpai-mt'); } catch (e) { }
+      if (seen || on) return; try { sessionStorage.setItem('kpai-mt', '1'); } catch (e) { }
+      setTimeout(() => { box.classList.add('tip'); setTimeout(() => box.classList.remove('tip'), 5200); }, 900);
+    }
+    function start() {
+      if (on) return stop();
+      hideCoach(); err.textContent = ''; box.classList.remove('tip');
+      if (!srOK()) return showCoach();
+      let r = null; try { r = new SRC(); } catch (e) { srBad(); return showCoach(); }
+      base = ta.value.trim(); finals = []; off = 0; interim = ''; heard = false; speaking = false; why = ''; restarts = 0; want = true; t0 = last = Date.now(); after = null;
+      try { col = (getComputedStyle(box).getPropertyValue('--a') || '').trim() || col; } catch (e) { }
+      rec = r; wire(r);
+      try { r.start(); } catch (e) { rec = null; srBad(); return showCoach(); }
+      on = true; ui('on'); say('<i></i>Mikrofon wird geöffnet …');
+      if (document.activeElement === ta) ta.blur();   // Handy: Tastatur weg, damit Welle und Text sichtbar bleiben
+      cancelAnimationFrame(raf); raf = requestAnimationFrame(draw);
+      clearInterval(tmr); tmr = setInterval(() => {
+        const now = Date.now();
+        if (on) say(`<i></i>${heard ? 'Hört zu' : 'Jetzt sprechen'} · ${fmt(now - t0)}`);
+        if (now - t0 > VMAX || (heard && !speaking && now - last > VQUIET)) stop();
+      }, 250);
+    }
+    function wire(r) {
+      r.lang = 'de-DE'; r.interimResults = true; r.continuous = true; try { r.maxAlternatives = 1; } catch (e) { }
+      r.onaudiostart = () => { if (REALWAVE && !stream) realWave(); };
+      r.onspeechstart = () => { speaking = true; last = Date.now(); };
+      r.onspeechend = () => { speaking = false; last = Date.now(); };
+      r.onresult = ev => {
+        if (rec !== r) return; interim = '';
+        for (let i = ev.resultIndex; i < ev.results.length; i++) { const x = ev.results[i], t = (x[0] && x[0].transcript) || ''; if (x.isFinal) finals[off + i] = t; else interim += t; }
+        heard = true; last = Date.now(); bump = 1; write();
+      };
+      r.onerror = ev => { why = (ev && ev.error) || 'x'; };
+      r.onend = () => {
+        if (rec !== r) return;
+        if (interim.trim()) { finals.push(interim); interim = ''; }
+        const fatal = /not-allowed|service-not-allowed|network|audio-capture|language-not-supported|bad-grammar/.test(why), now = Date.now();
+        // Handy-Browser beenden nach einer Sprechpause von selbst – solange gerade noch gesprochen wurde, weiter zuhören
+        if (want && !fatal && now - t0 < VMAX && restarts < 10 && (heard ? now - last < VQUIET : now - t0 < 8000)) {
+          restarts++; off = finals.length; why = '';
+          try { const n = new SRC(); rec = n; wire(n); n.start(); return; } catch (e) { }
+        }
+        finish();
+      };
+    }
+    function stop(cb) { if (typeof cb === 'function') after = cb; want = false; const r = rec; if (!r) return finish(); try { r.stop(); } catch (e) { finish(); } setTimeout(() => { if (on && rec === r) finish(); }, 2500); }
+    function cancel() { after = null; if (on) { want = false; finish(true); } hideCoach(); }
+    function finish(quiet) {
+      if (!on) return; on = false; want = false; clearInterval(tmr); cancelAnimationFrame(raf); stopWave();
+      const r = rec; rec = null; if (r) { r.onresult = r.onend = r.onerror = r.onaudiostart = r.onspeechstart = r.onspeechend = null; try { r.abort(); } catch (e) { } }
+      if (interim.trim()) { finals.push(interim); interim = ''; }
+      write(); ui('off'); box.style.removeProperty('--lv');
+      const said = compose().trim(), cb = after; after = null;
+      if (quiet) { say(''); return; }
+      if (said) {
+        say(`<b class="ok">✓</b> Verstanden – Text prüfen, dann weiter`, 4200);
+        box.classList.remove('vok'); void box.offsetWidth; box.classList.add('vok'); setTimeout(() => box.classList.remove('vok'), 1500);
+        if (cb) return cb();
+        const go = el.querySelector('[data-kpai-run]'); if (go) { go.classList.remove('nudge'); void go.offsetWidth; go.classList.add('nudge'); setTimeout(() => go.classList.remove('nudge'), 3200); }
+        return;
+      }
+      say('');
+      if (cb && ta.value.trim().length >= 4) return cb();
+      if (/^not-allowed$/.test(why)) showCoach('Das Mikrofon ist für diese Seite gesperrt – erlauben Sie es über das Schloss-Symbol neben der Adresse, oder diktieren Sie so:');
+      else if (/network|service-not-allowed|language-not-supported|bad-grammar/.test(why)) { srBad(); showCoach('Die Spracherkennung Ihres Browsers ist gerade nicht erreichbar – so geht es trotzdem:'); }
+      else if (why === 'audio-capture') showCoach('Es wurde kein Mikrofon gefunden – diktieren Sie stattdessen so:');
+      else err.textContent = 'Ich habe nichts gehört – tippen Sie noch einmal auf „Einsprechen“ und sprechen Sie einfach los.';
+    }
+    // Welle: am PC echte Lautstärke (Chrome/Edge), sonst aus den Sprach-Ereignissen des Browsers
+    async function realWave() {
+      try {
+        const sm = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+        if (!on) { sm.getTracks().forEach(t => t.stop()); return; } stream = sm;
+        const AC = window.AudioContext || window.webkitAudioContext; actx = new AC(); const src = actx.createMediaStreamSource(sm);
+        ana = actx.createAnalyser(); ana.fftSize = 1024; abuf = new Float32Array(ana.fftSize); src.connect(ana);
+      } catch (e) { stopWave(); }
+    }
+    function stopWave() { ana = null; if (stream) { try { stream.getTracks().forEach(t => t.stop()); } catch (e) { } stream = null; } if (actx) { try { actx.close(); } catch (e) { } actx = null; } }
+    function draw(ts) {
+      if (!on) return; raf = requestAnimationFrame(draw);
+      let tg;
+      if (ana && abuf) { ana.getFloatTimeDomainData(abuf); let q = 0; for (let i = 0; i < abuf.length; i += 2) q += abuf[i] * abuf[i]; tg = Math.min(1, Math.sqrt(q / (abuf.length / 2)) * 7.5); }
+      else { tg = Math.max(bump, speaking ? .5 + .28 * Math.sin(ts / 170) * Math.sin(ts / 83 + 1) : heard ? .1 : .05); bump *= .93; }
+      lvl += (tg - lvl) * (tg > lvl ? .45 : .12); box.style.setProperty('--lv', lvl.toFixed(3));
+      if (!cx) return;
+      const dpr = Math.min(2, window.devicePixelRatio || 1), W = cv.clientWidth, H = cv.clientHeight; if (!W || !H) return;
+      if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+      cx.setTransform(dpr, 0, 0, dpr, 0, 0); cx.clearRect(0, 0, W, H);
+      const n = Math.max(14, Math.min(64, Math.floor(W / 6))), bw = Math.max(2, W / n * .52), mid = H / 2, t = RMO ? 0 : ts;
+      cx.fillStyle = col;
+      for (let i = 0; i < n; i++) {
+        const u = i / (n - 1), env = Math.sin(Math.PI * u) * .75 + .25;
+        const wob = .55 + .45 * Math.sin(i * 1.83 + t / 140) * Math.sin(i * .61 - t / 230);
+        const h = Math.max(2.5, (H - 4) * env * (.07 + lvl * wob));
+        cx.globalAlpha = .35 + .65 * env; const x = i * (W / n) + (W / n - bw) / 2;
+        if (cx.roundRect) { cx.beginPath(); cx.roundRect(x, mid - h / 2, bw, h, bw / 2); cx.fill(); } else cx.fillRect(x, mid - h / 2, bw, h);
+      }
+      cx.globalAlpha = 1;
+    }
+    // Hinweis-Karte: Diktieren über die Tastatur (Handy) bzw. den Computer
+    function showCoach(title) {
+      const kb = KBD;
+      const key = OSN === 'mac' ? 'Zweimal <kbd>fn</kbd> (🌐) drücken' : OSN === 'win' ? '<kbd>⊞ Win</kbd> + <kbd>H</kbd> drücken' : 'Diktierfunktion Ihres Systems starten';
+      const head = kb ? `Jetzt in Ihrer Tastatur auf <i class="kpai-kbm">${ICO.mic}</i> tippen` : key;
+      const body = 'Dann einfach lossprechen – der Text erscheint direkt hier im Feld.';
+      const extra = title ? '' : !SRC ? `<small>${kb ? 'Ihr Browser hört hier nicht selbst zu, Ihre Tastatur schon. In Chrome oder Safari geht es auch direkt.' : 'Ihr Browser hört hier nicht selbst zu. In Chrome, Edge oder Safari geht es auch direkt.'}</small>` : '';
+      coach.innerHTML = `<div class="kpai-kbi${kb ? '' : ' pc'}" aria-hidden="true">${kb ? KBSVG : ICO.mic}</div><div class="kpai-ctx">${title ? `<em>${title}</em>` : ''}<b>${head}</b><span>${body}</span>${extra}</div><button type="button" class="kpai-cx" aria-label="Hinweis schließen">×</button>`;
+      coach.hidden = false; coach.classList.remove('ok'); requestAnimationFrame(() => coach.classList.add('in'));
+      coach.querySelector('.kpai-cx').onclick = () => { hideCoach(); ta.focus(); };
+      coachOn = true; coachLen = ta.value.length;
+      try { ta.focus({ preventScroll: true }); const n = ta.value.length; ta.setSelectionRange(n, n); } catch (e) { ta.focus(); }
+      setTimeout(() => { try { coach.scrollIntoView({ block: 'nearest', behavior: RMO ? 'auto' : 'smooth' }); } catch (e) { } }, kb ? 420 : 60);
+    }
+    function hideCoach() { if (!coachOn && coach.hidden) return; coachOn = false; coach.classList.remove('in'); setTimeout(() => { if (!coachOn) coach.hidden = true; }, 260); }
+    ta.addEventListener('input', () => {
+      if (!coachOn || ta.value.length < coachLen + 3) return;
+      coachOn = false; coach.classList.add('ok');
+      const b = coach.querySelector('.kpai-ctx'); if (b) b.innerHTML = '<b>✓ Klappt – einfach weitererzählen.</b><span>Wenn alles drinsteht, tippen Sie auf „Weiter“.</span>';
+      setTimeout(hideCoach, 2600);
+    });
+    mic.addEventListener('click', () => { if (on) stop(); else start(); });
+    return { start, stop, cancel, tip, on: () => on };
   }
   function accent() {
     const root = document.querySelector('[data-kp]'), a = (window.KP && KP.acc) || (root && root.dataset.acc);
@@ -894,12 +1105,12 @@
   function show(s) {
     ov_.querySelectorAll('.kpai-s').forEach(x => x.classList.toggle('on', x.dataset.s === s));
     const box = ov_.querySelector('.kpai-box'); box.scrollTop = 0;
-    if (s === 'in') setTimeout(() => ov_.querySelector('textarea').focus(), 30);
+    if (s === 'in') setTimeout(() => { if (!(V && V.on())) ov_.querySelector('textarea').focus(); }, 30);
     if (s === 'res') setTimeout(() => ov_.querySelector('[data-kpai-apply]').focus(), 30);
     if (s === 'room') setTimeout(() => ov_.querySelector('[data-kpai-plan]').focus({ preventScroll: true }), 30);
     if (s === 'done') setTimeout(() => ov_.querySelector('.kpai-s[data-s="done"] [data-kpai-x]').focus({ preventScroll: true }), 30);
   }
-  function open(pre, mode) {
+  function open(pre, mode, opt) {
     if (!ov_) ov_ = build(); accent();
     lastFocus = document.activeElement; ov_.hidden = false; document.documentElement.classList.add('kpai-lock'); try { window.__lenis && window.__lenis.stop(); } catch (e) { }
     requestAnimationFrame(() => ov_.classList.add('in'));
@@ -907,6 +1118,7 @@
     setMode(mode || (used ? 'edit' : 'neu'));
     if (pre) { const ta = ov_.querySelector('textarea'); ta.value = pre; ta.dispatchEvent(new Event('input')); }
     show('in');
+    if (opt && opt.listen && V) V.start(); else if (V) V.tip();
   }
   let mode = 'neu';
   function setMode(m, focus) {
@@ -916,12 +1128,12 @@
     if (focus) ta.focus();
   }
   function close() {
-    if (!ov_ || ov_.hidden) return; ov_.classList.remove('in'); document.documentElement.classList.remove('kpai-lock'); try { window.__lenis && window.__lenis.start(); } catch (e) { }
+    if (!ov_ || ov_.hidden) return; if (V) V.cancel(); ov_.classList.remove('in'); document.documentElement.classList.remove('kpai-lock'); try { window.__lenis && window.__lenis.start(); } catch (e) { }
     setTimeout(() => { ov_.hidden = true; }, RMO ? 0 : 260); if (lastFocus && lastFocus.focus) lastFocus.focus();
   }
   let busy = false, rc = null;
   function run() {
-    if (busy) return; const ta = ov_.querySelector('textarea'), err = ov_.querySelector('.kpai-err'); const text = ta.value.trim().slice(0, MAXLEN);
+    if (busy) return; if (V && V.on()) return V.stop(run); const ta = ov_.querySelector('textarea'), err = ov_.querySelector('.kpai-err'); const text = ta.value.trim().slice(0, MAXLEN);
     if (text.length < 4) { err.textContent = mode === 'edit' ? 'Was soll sich ändern? Zum Beispiel: „Fenster 30 cm nach links“.' : 'Beschreiben Sie kurz Ihren Raum oder Ihre Wünsche – oder tippen Sie ein paar Wünsche an.'; ta.focus(); return; }
     err.textContent = '';
     if (mode === 'edit' || looksLikeEdit(text)) return runEdit(text);
@@ -943,7 +1155,11 @@
     clearInterval(iv); bar.style.transitionDuration = '.25s'; bar.style.width = '100%'; busy = false;
     setTimeout(() => { bar.style.transitionDuration = '0s'; bar.style.width = '0'; }, 400);
     if (!res) { show('room'); const wl = ov_.querySelector('[data-rwarn]'); wl.innerHTML = '<li class="bad">Mit diesen Maßen ließ sich keine Küche planen – bitte Raum oder Form prüfen.</li>'; return; }
-    res.text = text; result = res; renderResult(res);
+    res.text = text; result = res;
+    let alt = null; try { alt = ideaB(b, cur, res, !!(rc.b && rc.b.formSaid) || rc.form !== rc.form0); } catch (e) { alt = null; }
+    if (alt) alt.text = text;
+    ideas = alt ? [res, alt] : [res]; pick = 0;
+    renderResult(res); renderIdeas();
     show('res');
   }
   function renderResult(r) {
@@ -954,6 +1170,44 @@
     ov_.querySelector('.kpai-got').innerHTML = (r.got || []).slice(0, 14).map(g => `<span>${esc(g)}</span>`).join('');
     ov_.querySelector('.kpai-why').textContent = r.why || '';
     ov_.querySelector('.kpai-notes').innerHTML = (r.notes || []).slice(0, 3).map(n => `<li>${esc(n)}</li>`).join('');
+  }
+  // Zwei Ideen als Karten: 3D-Vorschaubild (Planer), drei Kennzahlen, was sie unterscheidet
+  let ideas = [], pick = 0;
+  function traits(p) {
+    const ws = FORMS[p.f].walls, all = [].concat(...ws.map(w => (p.rw[w] || []).map(m => m[0]))), T = [];
+    const win = (p.op || []).filter(o => o[0] === 'fenster'), sinkW = ws.find(w => (p.rw[w] || []).some(m => m[0] === 'sp'));
+    if (sinkW) { const sp = spans(p, sinkW).find(x => x.t === 'sp'); if (sp && win.some(o => o[1] === sinkW && ov(sp.x, sp.w, o[2], o[3], 10))) T.push('Spüle unterm Fenster'); }
+    { const WA = { W: 'an der linken Wand', E: 'an der rechten Wand', S: 'gegenüber' }; if (sinkW && sinkW !== 'N' && WA[sinkW]) T.push('Spüle ' + WA[sinkW]); const cw = ws.find(w => (p.rw[w] || []).some(m => m[0] === 'kf' || m[0] === 'ko')); if (cw && cw !== 'N' && WA[cw]) T.push('Kochfeld ' + WA[cw]); }
+    if (p.f === 'insel') T.push(p.is.v === 'kochfeld' ? 'Kochen auf der Insel' : p.is.v === 'spuele' ? 'Spülen auf der Insel' : 'Insel als Arbeitsfläche');
+    if (all.includes('bm')) T.push('Backofen + Mikrowelle hoch'); else if (all.includes('bo')) T.push('Backofen auf Augenhöhe'); else if (all.includes('ko')) T.push('Herd mit Backofen unten');
+    if (all.includes('vo')) T.push('Vorratsschrank'); if (all.includes('ah') || all.includes('ap')) T.push('Apothekerschrank');
+    if (all.filter(t => t === 'kue').length > 1) T.push('Kühl- + Gefrierschrank');
+    { const sp = spans(p, 'N').find(x => x.t === 'sp'), kf = spans(p, 'N').find(x => x.t === 'kf' || x.t === 'ko'); if (sp && kf) T.push(sp.x < kf.x ? 'Spüle links, Kochfeld rechts' : 'Kochfeld links, Spüle rechts'); }
+    return T;
+  }
+  function renderIdeas() {
+    const box = ov_.querySelector('[data-kpai-ideas]'), sec = ov_.querySelector('[data-s="res"]'), k = sec.querySelector('.kpai-k span'), ap = sec.querySelector('[data-kpai-apply] span');
+    if (ideas.length < 2) { box.hidden = true; box.innerHTML = ''; sec.classList.remove('two'); if (k) k.textContent = 'Ihr Entwurf ist fertig'; if (ap) ap.textContent = 'Plan übernehmen'; return; }
+    sec.classList.add('two'); if (k) k.textContent = 'Zwei Ideen für Ihren Raum';
+    const met = ideas.map(r => { try { return window.KP && KP.metricsOf ? KP.metricsOf(r.plan) : null; } catch (e) { return null; } });
+    const tr = ideas.map(r => traits(r.plan)), fm = ideas.map(r => { const n = FORMS[r.plan.f].n; return n.charAt(0).toUpperCase() + n.slice(1); });
+    const m1 = v => (v / 100).toFixed(1).replace('.', ',') + ' m', lt = v => String(v).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' l';
+    const better = (i, key, low) => { const a = met[0], c = met[1]; if (!a || !c || a[key] == null || c[key] == null) return false; const v = [a[key], c[key]]; return low ? v[i] < v[1 - i] - 30 : v[i] > v[1 - i] * 1.04; };
+    box.innerHTML = `<p class="kpai-il">Welche gefällt Ihnen auf den ersten Blick? Tippen Sie eine an – darunter stehen die Details.</p><div class="kpai-ig">${ideas.map((r, i) => {
+      const own = tr[i].filter(t => !tr[1 - i].includes(t)).slice(0, 2), m = met[i], sub = fm[0] !== fm[1] ? fm[i] : (own[0] || fm[i]);
+      return `<button type="button" class="kpai-idea${i === pick ? ' on' : ''}" data-idea="${i}" aria-pressed="${i === pick}">
+        <span class="kpai-iv"><span class="kpai-iimg" data-iimg="${i}">${planSvg(r.plan)}</span><b class="kpai-it">Idee ${'AB'[i]}</b><i class="kpai-ick" aria-hidden="true">✓</i></span>
+        <span class="kpai-ib"><b>${esc(sub)}</b>${(fm[0] !== fm[1] ? own : own.slice(1)).map(t => `<small>${esc(t)}</small>`).join('')}</span>
+        ${m ? `<span class="kpai-im"><span${better(i, 'free') ? ' class="up"' : ''}><em>${m1(m.free)}</em>Arbeitsfläche</span><span${better(i, 'vol') ? ' class="up"' : ''}><em>${lt(m.vol)}</em>Stauraum</span><span${m.tri != null && better(i, 'tri', 1) ? ' class="up"' : ''}><em>${m.tri != null ? m1(m.tri) : '–'}</em>Laufweg</span></span>` : ''}
+      </button>`; }).join('')}</div>`;
+    box.hidden = false; if (ap) ap.textContent = `Mit Idee ${'AB'[pick]} weitermachen`;
+    // echte 3D-Vorschaubilder, sobald der Ergebnis-Schritt steht (Planer-Engine; ohne Planer bleibt der Grundriss)
+    setTimeout(() => { ideas.forEach((r, i) => { try { const c = window.KP && KP.shot ? KP.shot(r.plan, 560, 350) : null; const el = box.querySelector(`[data-iimg="${i}"]`); if (c && el) { el.innerHTML = `<img src="${c.toDataURL('image/jpeg', .86)}" alt="Idee ${'AB'[i]} als 3D-Ansicht">`; el.classList.add('img'); } } catch (e) { } }); }, 120);
+  }
+  function pickIdea(i) {
+    if (!ideas[i] || i === pick) return; pick = i; result = ideas[i]; renderResult(result);
+    ov_.querySelectorAll('[data-idea]').forEach(b => { const on = +b.dataset.idea === i; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+    const ap = ov_.querySelector('[data-kpai-apply] span'); if (ap) ap.textContent = `Mit Idee ${'AB'[i]} weitermachen`;
   }
   function apply() {
     if (!result) return; const p = result.plan;
@@ -994,7 +1248,7 @@
     const stage = document.querySelector('.kp-stage') || document.querySelector('[data-kp]'); if (!stage) return;
     document.querySelectorAll('.kpai-done').forEach(x => x.remove());
     const d = document.createElement('div'); d.className = 'kpai-done'; d.setAttribute('role', 'status');
-    d.innerHTML = `<div class="kpai-dh">${ICO.spark}<div><b>Ihre KI-Küche steht.</b><span>Jetzt nach Herzenslust anpassen – Schränke antippen, ziehen, tauschen. Oder der KI sagen, was sich ändern soll.</span></div><button type="button" class="kpai-dx" aria-label="Hinweis schließen">×</button></div>${info.why ? `<details><summary>Warum so geplant?</summary><p>${esc(info.why)}</p></details>` : ''}<div class="kpai-da"><button type="button" data-kpai-edit>Mit KI ändern</button>${info.prev ? '<button type="button" data-kpai-prev>Alten Entwurf zurück</button>' : ''}<button type="button" data-kpai-again>Neu beschreiben</button></div>`;
+    d.innerHTML = `<div class="kpai-dh">${ICO.spark}<div><b>Ihre KI-Küche steht.</b><span>Jetzt nach Herzenslust anpassen – Schränke antippen, ziehen, tauschen. Oder der KI sagen, was sich ändern soll.</span></div><button type="button" class="kpai-dx" aria-label="Hinweis schließen">×</button></div>${info.why ? `<details><summary>Warum so geplant?</summary><p>${esc(info.why)}</p></details>` : ''}<div class="kpai-da"><button type="button" data-kpai-say class="say">${ICO.mic}Einsprechen</button><button type="button" data-kpai-edit>Mit KI ändern</button>${info.prev ? '<button type="button" data-kpai-prev>Alten Entwurf zurück</button>' : ''}<button type="button" data-kpai-again>Neu beschreiben</button></div>`;
     stage.appendChild(d); requestAnimationFrame(() => d.classList.add('in'));
     const rm = () => { d.classList.remove('in'); setTimeout(() => d.remove(), 300); };
     d.querySelector('.kpai-dx').onclick = rm;
@@ -1005,6 +1259,7 @@
     };
     d.querySelector('[data-kpai-again]').onclick = () => { rm(); open('', 'neu'); };
     d.querySelector('[data-kpai-edit]').onclick = () => { rm(); open('', 'edit'); };
+    d.querySelector('[data-kpai-say]').onclick = () => { rm(); open('', 'edit', { listen: true }); };
     setTimeout(() => { if (d.isConnected && !d.matches(':hover') && !d.querySelector('details[open]')) d.classList.add('mini'); }, innerWidth < 1000 ? 9000 : 14000);
   }
 
@@ -1018,7 +1273,7 @@
     (pre ? pre.plan.op : []).forEach(([t, w, s0, ow]) => items.push({ t, wall: w, c: s0 + ow / 2, w: ow }));
     if (!pre && !b.win.none) items.push({ t: 'fenster', wall: resolveWall(b.win.wall, r) || 'N', c: r.w / 2, w: b.win.w || 120 });
     if (b.water) { const w = resolveWall(b.water.wall, r) || 'N'; items.push({ t: 'wasser', wall: w, c: rlen(w, r) / 2, w: 0 }); }
-    return { b, text, w: r.w, d: r.d, form, items, given: !!b.roomGiven, menu: null };
+    return { b, text, w: r.w, d: r.d, form, form0: form, items, given: !!b.roomGiven, menu: null };
   }
   function briefFromRC(c) {
     const b = JSON.parse(JSON.stringify(c.b)); b.room = { w: c.w, d: c.d }; b.roomGiven = true; b.form = c.form; b.formSaid = true;
@@ -1237,8 +1492,9 @@
     const pane = root.querySelectorAll('[data-kpane]')[0];
     if (pane) {
       const c = document.createElement('div'); c.className = 'kpai-card';
-      c.innerHTML = `<div class="kpai-ci">${ICO.spark}</div><div class="kpai-ct"><b>KI plant Ihre Küche</b><span>Raum und Wünsche in eigenen Worten beschreiben – oder einfach einsprechen. Sekunden später steht Ihr Entwurf, Sie verfeinern nur noch.</span><button type="button" class="kpai-btn sm">${ICO.spark}<span>Jetzt beschreiben</span></button></div>`;
-      c.querySelector('button').addEventListener('click', () => open());
+      c.innerHTML = `<div class="kpai-ci">${ICO.spark}</div><div class="kpai-ct"><b>KI plant Ihre Küche</b><span>Raum und Wünsche in eigenen Worten beschreiben – oder einfach einsprechen. Sekunden später steht Ihr Entwurf, Sie verfeinern nur noch.</span><div class="kpai-cb"><button type="button" class="kpai-btn sm">${ICO.spark}<span>Jetzt beschreiben</span></button><button type="button" class="kpai-cmic" aria-label="Küche einsprechen">${ICO.mic}<span>Einsprechen</span></button></div></div>`;
+      c.querySelector('.kpai-btn').addEventListener('click', () => open());
+      c.querySelector('.kpai-cmic').addEventListener('click', () => open('', null, { listen: true }));
       const forms = pane.querySelector('[data-kp-forms]');
       if (forms && forms.parentNode === pane) pane.insertBefore(c, forms); else pane.insertBefore(c, pane.firstChild);
     }

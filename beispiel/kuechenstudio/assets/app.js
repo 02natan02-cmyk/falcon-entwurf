@@ -29,15 +29,17 @@
   });
 
   /* Header */
-  var hdr = $('.hdr'), last = 0;
+  // Ein-/Ausblenden mit Hysterese (erst nach ~40 px am Stück nach unten weg, nach ~28 px nach oben wieder da) –
+  // vorher wechselte der Kopf bei langsamem Daumen-Scrollen ständig und zitterte am Handy.
+  var hdr = $('.hdr'), last = window.scrollY, acc = 0, hid = false, sol = null;
+  function setHide(v) { if (v !== hid) { hid = v; hdr.classList.toggle('hide', v); } }
   function onScroll() {
-    var y = window.scrollY;
-    if (hdr) {
-      hdr.classList.toggle('solid', y > 60);
-      hdr.classList.toggle('hide', y > 500 && y > last + 4 && !document.body.classList.contains('menu-open'));
-      if (y < last - 4) hdr.classList.remove('hide');
-    }
-    last = y;
+    var y = Math.max(0, window.scrollY), d = y - last; last = y;
+    if (!hdr) return;
+    var so = y > 60; if (so !== sol) { sol = so; hdr.classList.toggle('solid', so); }
+    if (y <= 500 || document.body.classList.contains('menu-open')) { acc = 0; setHide(false); return; }
+    if (!d) return; if ((d > 0) !== (acc > 0)) acc = 0; acc += d;
+    if (acc > 40) setHide(true); else if (acc < -28) setHide(false);
   }
   window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
 

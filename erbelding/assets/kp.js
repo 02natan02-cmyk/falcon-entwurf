@@ -72,7 +72,69 @@
     insel: { n: 'Mit Insel', walls: ['N'], island: 1, d: 'Zeile + Kochinsel', p: 'M6 6h52v10H6zM18 26h28v10H18z' },
   };
   const WN = { N: 'Rückwand', W: 'Linke Wand', E: 'Rechte Wand', S: 'Gegenüber' };
-  const FRONTS = [['Weiß', '#f1eee8'], ['Creme', '#ece3cf'], ['Kaschmir', '#d9cfbf'], ['Sandgrau', '#cfc8bc'], ['Salbei', '#7f8e77'], ['Nachtblau', '#22304a'], ['Graphit', '#45474b'], ['Schwarz', '#232426'], ['Eiche', 'wood:eiche'], ['Nussbaum', 'wood:nuss']];
+  // Farbwelten (Natan 17.10.: „Ja mach alles“): Kunden wählen nach Gefühl, nicht nach Hersteller. Jede Welt hat ihre Töne und eine
+  // stimmige Kombination (Arbeitsplatte, Griffe, Wand, Boden). Die Herstellerzuordnung geht nur verdeckt als Hinweis mit der Anfrage ans Studio.
+  const WORLDS = [
+    { k: 'hell', n: 'Hell & freundlich', d: 'Weiß, Kreide, Creme', m: 'Licht und zeitlos – macht jeden Raum größer.', c: [['Weiß', '#f1eee8'], ['Kreide', '#e9e4da'], ['Creme', '#ece3cf'], ['Seidengrau', '#dad6cd']], pair: { top: 'eiche', handle: 'schwarz', wall: '#f3efe9', floor: 'eiche' } },
+    { k: 'natur', n: 'Natürlich & warm', d: 'Sand, Kaschmir, Taupe', m: 'Weich und gemütlich – wie Leinen und warmer Sand.', c: [['Sand', '#dccdb3'], ['Kaschmir', '#d9cfbf'], ['Sandgrau', '#cfc8bc'], ['Macchiato', '#bba58c'], ['Taupe', '#968777']], pair: { top: 'eiche', handle: 'gold', wall: '#e6dccb', floor: 'eiche' } },
+    { k: 'gruen', n: 'Grün & ruhig', d: 'Salbei, Olive, Eukalyptus', m: 'Natur im Haus – beruhigt und passt zu Holz und Messing.', c: [['Eukalyptus', '#a1ae9d'], ['Schilf', '#b6b398'], ['Salbei', '#7f8e77'], ['Olive', '#6c6945'], ['Tannengrün', '#37453a']], pair: { top: 'eiche', handle: 'gold', wall: '#f3efe9', floor: 'eiche' } },
+    { k: 'blau', n: 'Blau & klar', d: 'Taubenblau, Fjord, Nacht', m: 'Frisch und nordisch – mit heller Platte besonders edel.', c: [['Taubenblau', '#98a9b5'], ['Steinblau', '#6d7e8b'], ['Fjordblau', '#53687a'], ['Nachtblau', '#22304a']], pair: { top: 'keramik', handle: 'gold', wall: '#f3efe9', floor: 'hell' } },
+    { k: 'tief', n: 'Tief & elegant', d: 'Graphit, Coffee, Schwarz', m: 'Dunkel und edel – mit Stein und Licht ein Statement.', c: [['Graphit', '#45474b'], ['Schwarzgrün', '#2c3530'], ['Coffee', '#56443a'], ['Schwarz', '#232426']], pair: { top: 'marmor', handle: 'grifflos', wall: '#e6dccb', floor: 'eiche' } },
+    { k: 'holz', n: 'Holz pur', d: 'Eiche, Nussbaum', m: 'Echte Wärme – jede Front ein Unikat.', c: [['Eiche', 'wood:eiche'], ['Nussbaum', 'wood:nuss']], pair: { top: 'keramik', handle: 'schwarz', wall: '#f3efe9', floor: 'grau' } },
+  ];
+  const FRONTS = WORLDS.flatMap(w => w.c);
+  // Verdeckter Studio-Hinweis: nächster Herstellerton (Namen aus Herstellerunterlagen 2024–2026, Farbwerte geschätzt → „am Muster prüfen“).
+  // Welche Marken: data-herst am Planer (Pellegrin: nobilia, Nolte, Schüller). Ohne Angabe nur Farbname + HEX.
+  const HERST = { nobilia: [['Weiß', '#f2f1ec'], ['Sand', '#d8cab1'], ['Macchiato', '#c2ad94'], ['Taupegrau', '#a2988c'], ['Steingrau', '#8b8d89'], ['Coffee', '#5b493c'], ['Schilf', '#b7b496'], ['Olive', '#6e6b46'], ['Steinblau', '#6f7d88'], ['Fjordblau', '#54687a'], ['Schwarz', '#262627']],
+    nolte: [['Weiß softmatt', '#f1f0eb'], ['Magnolia', '#ece4d3'], ['Avocado', '#7e8b64'], ['Quarzgrau', '#7c7e7f'], ['Schwarzgrün', '#2c3530']],
+    schueller: [['Kristallweiß matt', '#f3f3f0'], ['Muschelweiß matt', '#ebe5d8'], ['Kaschmirbraun', '#b8a58f'], ['Kieselgrau', '#b3afa7'], ['Sandgelb', '#d8c38e'], ['Eukalyptusgrün', '#8fa293'], ['Stahlblau', '#6f8597'], ['Tiefblau matt', '#26344a'], ['Sepiabraun', '#6c5443'], ['Orientrot', '#9a3b2f'], ['Lavaschwarz matt', '#2a2a2b']] };
+  const HERSTN = { nobilia: 'nobilia', nolte: 'Nolte', schueller: 'Schüller' };
+  const HERSTWOOD = { eiche: 'Holzdekore z. B. nobilia „Eiche San Remo“, Schüller „Eiche Skagen“', nuss: 'Nussbaum: passendes Holzdekor im Studio wählen' };
+  const labC = h => { const L = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255).map(v => v > .04045 ? Math.pow((v + .055) / 1.055, 2.4) : v / 12.92); const f = t => t > .008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116; const x = f((L[0] * .4124 + L[1] * .3576 + L[2] * .1805) / .95047), y = f(L[0] * .2126 + L[1] * .7152 + L[2] * .0722), z = f((L[0] * .0193 + L[1] * .1192 + L[2] * .9505) / 1.08883); return [116 * y - 16, 500 * (x - y), 200 * (y - z)]; };
+  const dE = (a, b) => { const p = labC(a), q = labC(b); return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]); };
+  const isHex = v => /^#[0-9a-f]{6}$/i.test(v || '');
+  const lch = h => { const [L, a, b] = labC(h); return [L, Math.hypot(a, b), (Math.atan2(b, a) * 180 / Math.PI + 360) % 360]; };
+  // Wunschfarbe → deutscher Farbname (nach Farbton/Helligkeit/Buntheit im Lab-Raum), z. B. #B04A3A → „Ziegelrot“
+  const TN = [
+    [22, [[34, 20, 'Weinrot'], [34, 0, 'Mahagoni'], [60, 46, 'Himbeerrot'], [60, 0, 'Altrosa'], [101, 12, 'Rosa'], [101, 0, 'Puderrosa']]],
+    [47, [[34, 22, 'Bordeaux'], [34, 0, 'Mahagoni'], [57, 58, 'Signalrot'], [57, 30, 'Ziegelrot'], [57, 0, 'Altrosa'], [74, 30, 'Koralle'], [74, 0, 'Altrosa'], [101, 22, 'Lachs'], [101, 0, 'Puderrosa']]],
+    [57, [[30, 0, 'Mokka'], [46, 30, 'Kupferbraun'], [46, 0, 'Nussbraun'], [64, 40, 'Terrakotta'], [64, 22, 'Cognac'], [64, 0, 'Taupe'], [78, 48, 'Orange'], [101, 22, 'Apricot'], [101, 10, 'Sand'], [101, 0, 'Kaschmir']]],
+    [76, [[30, 0, 'Mokka'], [48, 28, 'Nussbraun'], [48, 0, 'Mokka'], [56, 40, 'Cognac'], [56, 0, 'Taupe'], [72, 52, 'Orange'], [72, 24, 'Karamell'], [72, 0, 'Macchiato'], [101, 30, 'Apricot'], [101, 12, 'Sand'], [101, 0, 'Kaschmir']]],
+    [100, [[38, 0, 'Bronze'], [62, 40, 'Ocker'], [62, 0, 'Khaki'], [80, 54, 'Senfgelb'], [80, 36, 'Ocker'], [80, 0, 'Sand'], [101, 58, 'Sonnengelb'], [101, 20, 'Vanille'], [101, 11, 'Sand'], [101, 0, 'Creme']]],
+    [128, [[38, 0, 'Dunkeloliv'], [62, 16, 'Olivgrün'], [62, 0, 'Schilfgrün'], [92, 42, 'Lindgrün'], [92, 22, 'Pistazie'], [92, 0, 'Schilf'], [101, 0, 'Vanille']]],
+    [175, [[36, 0, 'Tannengrün'], [58, 34, 'Smaragdgrün'], [58, 0, 'Salbeigrün'], [80, 36, 'Maigrün'], [80, 0, 'Salbei'], [101, 40, 'Hellgrün'], [101, 14, 'Mint'], [101, 0, 'Eukalyptus']]],
+    [225, [[40, 0, 'Petrol'], [64, 20, 'Türkis'], [64, 0, 'Graupetrol'], [101, 22, 'Aqua'], [101, 0, 'Eisgrün']]],
+    [303, [[30, 0, 'Nachtblau'], [50, 45, 'Königsblau'], [50, 11, 'Fjordblau'], [50, 0, 'Schieferblau'], [60, 24, 'Himmelblau'], [60, 0, 'Steinblau'], [74, 26, 'Himmelblau'], [74, 0, 'Taubenblau'], [101, 20, 'Hellblau'], [101, 0, 'Eisblau']]],
+    [318, [[34, 0, 'Indigo'], [60, 40, 'Violett'], [60, 0, 'Pflaume'], [101, 45, 'Lila'], [101, 0, 'Lavendel']]],
+    [340, [[34, 0, 'Aubergine'], [60, 40, 'Violett'], [60, 0, 'Pflaume'], [101, 45, 'Orchidee'], [101, 0, 'Flieder']]],
+    [361, [[34, 0, 'Brombeere'], [60, 46, 'Magenta'], [60, 0, 'Beere'], [101, 40, 'Pink'], [101, 12, 'Rosa'], [101, 0, 'Puderrosa']]],
+  ];
+  function toneName(hex) {
+    const [L, C, H] = lch(hex);
+    if (C < 6.5) return L >= 93 ? 'Weiß' : L >= 82 ? 'Lichtgrau' : L >= 64 ? 'Hellgrau' : L >= 44 ? 'Steingrau' : L >= 24 ? 'Anthrazit' : 'Schwarz';
+    if (C < 13 && H >= 22 && H < 110) return L >= 88 ? 'Creme' : L >= 74 ? 'Kaschmir' : L >= 56 ? 'Greige' : L >= 38 ? 'Taupe' : L >= 24 ? 'Mokka' : 'Schwarzbraun';
+    if (C < 8 && H >= 110 && H < 225) return L >= 76 ? 'Grüngrau' : L >= 45 ? 'Salbeigrau' : L >= 24 ? 'Schwarzgrün' : 'Schwarz';
+    const band = TN.find(b => (H >= 300 && H < 312 && L < 40 ? 302 : H) < b[0])[1];
+    return (band.find(r => L < r[0] && C >= r[1]) || band[band.length - 1])[2];
+  }
+  // Name einer Wunschfarbe: fast gleich einem Planer-Ton → dessen Name, sonst beschreibender Farbname
+  const wishName = hex => { const n = FRONTS.filter(x => !x[1].startsWith('wood')).reduce((b, x) => dE(x[1], hex) < dE(b[1], hex) ? x : b); return dE(n[1], hex) < 6 ? n[0] : toneName(hex); };
+  const worldOf = st => st.wood ? 'holz' : (WORLDS.find(w => w.c.some(c => c[1] === st.front)) || { k: 'wunsch' }).k;
+  const frontName = st => { const f = FRONTS.find(x => st.wood ? x[1] === 'wood:' + st.wood : x[1] === st.front); if (f) return f[0]; return isHex(st.front) ? `Wunschfarbe „${wishName(st.front)}“ ${st.front.toUpperCase()}` : 'Wunschfarbe'; };
+  const frontShort = st => st.wood ? (st.wood === 'nuss' ? 'Nussbaum' : 'Eiche') : ((FRONTS.find(x => x[1] === st.front) || [])[0] || (isHex(st.front) ? wishName(st.front) : 'Weiß'));
+  // Stimmige Kombination: Farbwelt-Paar, bei Wunschfarben nach Helligkeit und Farbton
+  const pairOf = st => { const W = WORLDS.find(w => w.k === worldOf(st)); if (W) return W.pair; const [L, C, H] = lch(isHex(st.front) ? st.front : '#f1eee8');
+    if (C < 10) return (L > 80 ? WORLDS[0] : L > 45 ? WORLDS[1] : WORLDS[4]).pair;
+    if (L < 32) return { top: 'keramik', handle: 'gold', wall: '#f3efe9', floor: 'eiche' };
+    if (H >= 110 && H < 200) return WORLDS[2].pair; if (H >= 200 && H < 312) return WORLDS[3].pair;
+    return L < 58 ? { top: 'keramik', handle: 'gold', wall: '#f3efe9', floor: 'eiche' } : { top: 'eiche', handle: 'schwarz', wall: '#f3efe9', floor: 'eiche' }; };
+  function herstHint(st) {
+    const el = document.querySelector('[data-kp]'), list = String((el && el.dataset.herst) || '').split(',').map(x => x.trim().toLowerCase()).filter(x => HERST[x]);
+    if (st.wood) return list.length ? HERSTWOOD[st.wood] || '' : '';
+    if (!/^#[0-9a-f]{6}$/i.test(st.front || '')) return '';
+    if (!list.length) return `Farbwert ${st.front.toUpperCase()}`;
+    return list.map(b => { const best = HERST[b].reduce((x, y) => dE(y[1], st.front) < dE(x[1], st.front) ? y : x); return dE(best[1], st.front) < 22 ? `${HERSTN[b]} „${best[0]}“` : `${HERSTN[b]}: Sonderfarbe (Lack nach Muster)`; }).join(' · ') + ` · Farbwert ${st.front.toUpperCase()}`;
+  }
   const HANDLES = [['grifflos', 'Grifflos'], ['bar', 'Edelstahl'], ['schwarz', 'Schwarz'], ['gold', 'Messing'], ['knopf', 'Knopf']];
   const TOPS = [['eiche', 'Eiche', '#b98a5c'], ['keramik', 'Stein hell', '#e7e4de'], ['beton', 'Beton', '#9b9893'], ['marmor', 'Marmor dunkel', '#1d1d1f']];
   const WOOD = { eiche: '#c39a6b', nuss: '#76553b' };
@@ -287,7 +349,7 @@
   // Jede Ecke einer L-/U-Küche bekommt einen Eckschrank – auch nach dem Löschen (dann Blindecke)
   function fillCorners() {
     const N = P.rows.N, add = []; if (!N) return add;
-    ['l', 'r'].forEach(sd => { if (!hasCornerSlot(sd)) return; const m0 = sd === 'l' ? N[0] : N[N.length - 1]; if (m0 && M[m0.t].corner && cornerSide('N', sd === 'l' ? 0 : N.length - 1) === sd) return; const m = mk('eb', 90); if (sd === 'l') N.unshift(m); else N.push(m); add.push(m); });
+    ['l', 'r'].forEach(sd => { if (!hasCornerSlot(sd) || !N.length || !(P.rows[sd === 'l' ? 'W' : 'E'] || []).length) return; const m0 = sd === 'l' ? N[0] : N[N.length - 1]; if (m0 && M[m0.t].corner && cornerSide('N', sd === 'l' ? 0 : N.length - 1) === sd) return; const m = mk('eb', 90); if (sd === 'l') N.unshift(m); else N.push(m); add.push(m); });
     if (add.length) { makeRoom('N', add[0]); ['W', 'E'].forEach(w => P.rows[w] && makeRoom(w)); }
     return add;
   }
@@ -1001,7 +1063,8 @@
     // Heizkörper: unter ein Fenster ohne Schränke davor, sonst mittig an eine Wand ohne Küche
     if (t === 'heiz') { const win = P.op.find(o => o.t === 'fenster' && !P.rows[o.wall]) || P.op.find(o => o.t === 'fenster'); if (win) { wall = win.wall; s = win.s + win.w / 2; } else { wall = ['S', 'E', 'W', 'N'].find(w => !P.rows[w]) || 'S'; s = wallLen(wall) / 2; } }
     const c = { id: uid++, t, wall, s: 0 }; if (t === 'heiz') { const win = P.op.find(o => o.t === 'fenster' && o.wall === wall); if (win) c.hw = Math.max(40, Math.min(300, Math.round(win.w * .8 / 10) * 10)); if (win && opY(win) < 75) c.hh = Math.max(20, Math.round((opY(win) - 20) / 5) * 5); } c.s = clampCx(c, s);
-    (P.cx = P.cx || []).push(c); selCx = c.id; sel = null; selOp = null; change();
+    // Handy zeigt nur eine Wand: zur Wand mit dem neuen Anschluss wechseln, sonst sieht man ihn nicht
+    (P.cx = P.cx || []).push(c); selCx = c.id; sel = null; selOp = null; if (MOBQ.matches) curWall = c.wall; change();
     toast({ wasser: 'Wasseranschluss eingesetzt – an die echte Stelle ziehen, die Spüle rückt mit.', herd: 'Herdanschluss eingesetzt – an die echte Stelle ziehen.', dose: 'Doppelsteckdose über der Arbeitsplatte eingesetzt – antippen für 1-/2-/3-fach, senkrecht und Höhe.', abluft: 'Abluft-Durchbruch Ø 150 eingesetzt – antippen für Durchmesser und Höhe.', heiz: 'Heizkörper eingesetzt – antippen für Breite, Höhe und Bodenabstand.' }[t]);
   }
   $$('[data-addcx]').forEach(b => b.addEventListener('click', () => addCx(b.dataset.addcx)));
@@ -1246,7 +1309,7 @@
         if (P.rows[wall]) { const X = xs(wall); let bad = false; P.rows[wall].forEach((m, i) => { const x = X[i]; if (s0 + o.w > x + 2 && s0 < x + m.w - 2 && (t !== 'fenster' || M[m.t].h === 't' || m.t === 'kf' || m.t === 'ko')) bad = true; }); if (bad) continue; }
         ok.push(s0);
       }
-      if (ok.length) { o.s = ok.sort((a, b) => Math.abs(a + o.w / 2 - L / 2) - Math.abs(b + o.w / 2 - L / 2))[0]; P.op.push(o); selOp = o.id; sel = null; change(); toast(`${OPN[t]} eingesetzt – zum Verschieben anfassen.`); return; }
+      if (ok.length) { o.s = ok.sort((a, b) => Math.abs(a + o.w / 2 - L / 2) - Math.abs(b + o.w / 2 - L / 2))[0]; P.op.push(o); selOp = o.id; sel = null; if (MOBQ.matches) curWall = wall; change(); toast(`${OPN[t]} eingesetzt – zum Verschieben anfassen.`); return; }
     }
     toast(`Kein freier Platz für ${t === 'tuer' ? 'eine Tür' : t === 'balkon' ? 'eine Balkontür' : 'ein Fenster'} – erst etwas verschieben oder entfernen.`);
   }
@@ -1294,7 +1357,7 @@
     P.op.forEach(o => { const r = P.rows[o.wall]; if (!r) return; r.forEach((m, i) => { const L = locate(o.wall, i); if (!opOver(o, L.x0, L.w)) return; if (o.t === 'fenster') { if (M[m.t].h === 't' && hOf(m) > 105) warn('Ein Hochschrank steht vor dem Fenster'); } else warn(o.t === 'tuer' ? 'Vor der Tür stehen Schränke – Tür im Grundriss verschieben' : 'Vor der Balkontür stehen Schränke'); }); });
     for (const w in P.rows) upList(w).forEach(u => { const c = upConflict(w, u); if (c === 'tall') warn('Ein Hängeschrank stößt an einen Hochschrank – verschieben oder Hochschrank niedriger'); if (c === 'win') warn('Ein Hängeschrank hängt vor einem Fenster oder einer Tür'); });
     if (!isDD()) for (const w in P.up) { const X = xs(w); P.rows[w] && P.rows[w].forEach((m, i) => { if ((m.t === 'kf' || m.t === 'ko') && !P.up[w].some(u => u.t === 'dh' && ov(u.s, u.w, X[i], m.w))) warn('Über dem Kochfeld fehlt die Dunstabzugshaube'); }); }
-    if (P.rows.N && (hasCornerSlot('l') || hasCornerSlot('r'))) { const N = P.rows.N; if ((hasCornerSlot('l') && M[N[0].t].corner) || (hasCornerSlot('r') && M[N[N.length - 1].t].corner)) ok('Ecke clever genutzt'); }
+    if (P.rows.N && P.rows.N.length && (hasCornerSlot('l') || hasCornerSlot('r'))) { const N = P.rows.N; if ((hasCornerSlot('l') && M[N[0].t].corner) || (hasCornerSlot('r') && M[N[N.length - 1].t].corner)) ok('Ecke clever genutzt'); }
     if (!P.op.some(o => o.t === 'tuer' || o.t === 'balkon')) warn('Noch keine Tür – wie kommt man in die Küche?');
     [['wasser', ['sp'], 'Die Spüle', 'Wasseranschluss', isl && P.island.v === 'spuele'], ['herd', ['kf', 'ko'], 'Das Kochfeld', 'Herdanschluss', isl && P.island.v === 'kochfeld']].forEach(([t, ks, nm, an, inIsl]) => {
       const cs = (P.cx || []).filter(c => c.t === t); if (!cs.length || inIsl) return; let best = null;
@@ -1360,10 +1423,27 @@
   function schedule3D() { if (t3) return; t3 = setTimeout(() => { t3 = 0; K && K.set(toState()); }, 60); }
   function loadEngine() { return p3 || (p3 = new Promise((res, rej) => { if (window.PelPlanner3D) return res(); const s = document.createElement('script'); s.src = 'js/planner3d.js?v=' + VER; s.onload = res; s.onerror = rej; document.head.appendChild(s); })); }
   let l3 = null;
+  const opts3 = () => ({ acc: ACC, onHover: hl2d, onEq: (q, cx, cy) => { const hr = host3.getBoundingClientRect(); openEq({ k: q.k, id: q.id, wall: q.wall, rx: cx - hr.left, ry: cy - hr.top }); }, onPick: (id, on) => { if (on) openNow.add(String(id)); else openNow.delete(String(id)); syncDoors(); if (!pop.hidden) renderPop(); }, onLost: lost3D, onRestored: restored3D });
+  function mk3D() { K = PelPlanner3D(host3, opts3()); K.set(toState()); syncDoors(); }
   function load3D() {
     return l3 || (l3 = loadEngine()
-      .then(() => { const l = $('.kp-load', host3); if (l) l.remove(); K = PelPlanner3D(host3, { acc: ACC, onHover: hl2d, onEq: (q, cx, cy) => { const hr = host3.getBoundingClientRect(); openEq({ k: q.k, id: q.id, wall: q.wall, rx: cx - hr.left, ry: cy - hr.top }); }, onPick: (id, on) => { if (on) openNow.add(String(id)); else openNow.delete(String(id)); syncDoors(); if (!pop.hidden) renderPop(); } }); K.set(toState()); syncDoors(); })
+      .then(() => { const l = $('.kp-load', host3); if (l) l.remove(); mk3D(); })
       .catch(() => { l3 = null; const l = $('.kp-load', host3); if (l) l.textContent = '3D-Ansicht konnte nicht geladen werden.'; }));
+  }
+  // Selbstheilung (Natan 17.10.: „oben gar keine Ansicht mehr“): Bricht die Grafik weg (Treiber-Neustart, Überlast), zeigt die Bühne
+  // kurz „startet neu“ – kommt der Browser-Kontext nicht von selbst zurück, legt der Planer die 3D-Ansicht neu an. Nie ein leeres Feld.
+  let lostT = 0, msg3 = null;
+  function msg3D(html) { if (!msg3) { msg3 = document.createElement('div'); msg3.className = 'kp-3dmsg'; msg3.setAttribute('role', 'status'); host3.appendChild(msg3); } msg3.innerHTML = html; msg3.hidden = false; }
+  function unmsg3D() { if (msg3) msg3.hidden = true; }
+  function lost3D() { clearTimeout(lostT); msg3D('<i class="kp-3dspin" aria-hidden="true"></i><b>3D-Ansicht startet neu …</b><small>Die Grafik Ihres Geräts hat kurz ausgesetzt. Ihre Planung bleibt erhalten.</small>'); lostT = setTimeout(heal3D, 2600); }
+  function after3D() { const cb = $('[data-cam].on'); if (cb && cb.dataset.cam !== 'perspektive') K.view(cb.dataset.cam); if (night && K.mood) K.mood('abend', toState()); }
+  function restored3D() { clearTimeout(lostT); unmsg3D(); if (!K) return; K.set(toState()); syncDoors(); after3D(); }
+  function heal3D() {
+    if (K && K.lost && !K.lost()) { restored3D(); return; }
+    try { if (K) K.dispose(); } catch (e) { }
+    K = null; $$('canvas', host3).forEach(c => c.remove());
+    try { mk3D(); unmsg3D(); after3D(); }
+    catch (e) { K = null; msg3D('<b>Die 3D-Ansicht ist gerade blockiert</b><small>Der Browser hat die Grafik nach einer Überlastung gesperrt. Einmal neu laden behebt das – Ihre Planung bleibt erhalten.</small><button type="button" class="kp-3dre">Seite neu laden</button>'); const b = $('.kp-3dre', host3); if (b) b.addEventListener('click', () => { try { saveAuto(); } catch (er) { } location.reload(); }); }
   }
   // Hover-Kopplung: Wandansicht ↔ 3D (Maus)
   function hl2d(id) { $$('.hl3', wallsEl).forEach(x => x.classList.remove('hl3')); if (id == null) return; const g = $(`[data-m="${id}"],[data-u="${id}"]`, wallsEl); if (g) g.classList.add('hl3'); }
@@ -1420,6 +1500,31 @@
   }
   function undo() { if (hist.length < 2) return; hist.pop(); des(hist[hist.length - 1]); change(true); }
   $$('[data-undo]').forEach(b => b.addEventListener('click', undo));
+  // Neu anfangen (Natan 17.10.): Raum leeren · neu einrichten mit gleichen Maßen · ganz von vorn – alles mit Rückgängig
+  function resetPlan(k) {
+    if (k === 'leer') {
+      for (const w in P.rows) P.rows[w] = [];
+      P.up = {}; for (const w in P.top) P.top[w] = 0;
+      if (P.form === 'insel') P.island.v = 'frei';
+    } else if (k === 'neu') {
+      const ops = P.op.map(o => ({ ...o })); fresh(P.form, { room: { ...P.room }, ah: P.ah, cx: P.cx, style: { ...P.style } });
+      P.op = ops; P.op.forEach(o => { o.s = clampOp(o, o.s); });
+      const wq = (P.cx || []).find(c => c.t === 'wasser'); if (wq) try { moveApp(['sp'], wq); } catch (e) { }
+    } else { fresh('l', { ah: 90 }); attach = null; try { syncAttach(); } catch (e) { } }
+    sel = null; selOp = null; selCx = null; eqSel = null; disarm(); pop.hidden = true; openNow.clear(); xfade(); change(); renderPal();
+    if (K && K.view) { K.view('perspektive'); $$('[data-cam]').forEach(x => x.classList.toggle('on', x.dataset.cam === 'perspektive')); }
+    go(k === 'alles' ? 0 : 1);
+    toast({ leer: 'Der Raum ist leer – Fenster, Türen und Anschlüsse sind geblieben. Ziehen Sie Schränke einfach wieder hinein.' + (P.form === 'insel' ? ' Die Insel bleibt als freie Fläche.' : ''), neu: `Neu eingerichtet: ${FORMS[P.form].n} in Ihrem Raum (${P.room.w} × ${P.room.d} cm), Fenster und Türen wie gehabt.`, alles: 'Alles auf Anfang – viel Spaß beim Planen!' }[k], undo);
+  }
+  { const box = $('[data-kp-new]'), nb = box && $('[data-kp-newb]', box), nm = box && $('[data-kp-newm]', box);
+    if (box && nb && nm) {
+      const setOpen = on => { nm.hidden = !on; nb.setAttribute('aria-expanded', on); root.classList.toggle('kp-newon', on);
+        if (on) { const sm = $('[data-kp-reset="neu"] small', nm); if (sm) sm.textContent = `Frische Grundausstattung als ${FORMS[P.form].n} – gleicher Raum (${P.room.w} × ${P.room.d} cm), Fenster und Türen bleiben`; const l = $('[data-kp-reset="leer"] small', nm); if (l) l.textContent = 'Alle Schränke raus' + (P.form === 'insel' ? ' (Insel bleibt als freie Fläche)' : '') + ' · Raum, Fenster, Türen und Anschlüsse bleiben'; requestAnimationFrame(() => { const f = $('[data-kp-reset]', nm); f && f.focus({ preventScroll: true }); }); } };
+      nb.addEventListener('click', e => { e.stopPropagation(); setOpen(nm.hidden); });
+      document.addEventListener('pointerdown', e => { if (!nm.hidden && !e.target.closest('[data-kp-new]')) setOpen(false); });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape' && !nm.hidden) { setOpen(false); nb.focus(); } });
+      nm.addEventListener('click', e => { if (e.target.closest('[data-kp-newx]')) { setOpen(false); nb.focus(); return; } const b = e.target.closest('[data-kp-reset]'); if (!b) return; setOpen(false); resetPlan(b.dataset.kpReset); });
+    } }
   function fromHash() {
     let h = location.hash.slice(1); if (!h && /[?&]gesendet=1/.test(location.search)) { try { h = (sessionStorage.getItem('kp-last') || '').slice(1); } catch (er) { } } if (!h) return false;
     try {
@@ -1432,7 +1537,7 @@
 
   /* ---------------- Schritte & Bedienfelder ---------------- */
   const steps = $$('[data-kstep]'), panes = $$('[data-kpane]');
-  function go(i) { if (selCx) { selCx = null; try { renderWalls(); } catch (e) { } } steps.forEach((b, j) => { b.classList.toggle('on', j === i); b.classList.toggle('done', j < i); }); panes.forEach((p, j) => p.classList.toggle('on', j === i)); root.dataset.step = i; if (innerWidth < 1000) { const t = i === 3 ? $('[data-kpane].on') : $('.kp-stage'); if (t && i !== 1) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } renderPop(); }
+  function go(i, quiet) { if (selCx) { selCx = null; try { renderWalls(); } catch (e) { } } steps.forEach((b, j) => { b.classList.toggle('on', j === i); b.classList.toggle('done', j < i); }); panes.forEach((p, j) => p.classList.toggle('on', j === i)); root.dataset.step = i; if (innerWidth < 1000 && !quiet) { const t = i === 3 ? $('[data-kpane].on') : $('.kp-stage'); if (t && i !== 1) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } renderPop(); }
   steps.forEach((b, i) => b.addEventListener('click', () => go(i)));
   $$('[data-kgo]').forEach(b => b.addEventListener('click', () => go(+b.dataset.kgo)));
   root.addEventListener('click', e => { const b = e.target.closest('[data-kp-lookinfo] [data-kgo]'); if (b) go(+b.dataset.kgo); });
@@ -1441,7 +1546,7 @@
   const rw = $('[data-kp-rw]'), rd = $('[data-kp-rd]');
   function roomIn() { P.room.w = +rw.value; P.room.d = +rd.value; for (const w in P.rows) makeRoomQuiet(w); for (const w in P.up) { const L = wallLen(w); P.up[w] = P.up[w].filter(u => u.w <= L); P.up[w].forEach(u => { u.s = Math.max(0, Math.min(L - u.w, u.s)); }); } P.op.forEach(o => { if (o.w > wallLen(o.wall) - 20) o.w = OPW[o.t].filter(v => v <= wallLen(o.wall) - 20).pop() || o.w; o.s = clampOp(o, o.s); }); (P.cx || []).forEach(c => { c.s = clampCx(c, c.s); }); followHoods(); syncRoomOut(); renderWalls(); renderTips(); schedule3D(); }
   function makeRoomQuiet(w) { let over = -free(w); if (over <= 0) { fillGap(w); return; } const R = [...P.rows[w]].reverse().filter(x => x.t === 'us'); for (const x of R) { if (over <= 0.5) break; const fit = M.us.ws.filter(v => v <= x.w - over).pop(); if (fit) { over -= x.w - fit; x.w = fit; } else { over -= x.w; P.rows[w] = P.rows[w].filter(y => y !== x); } } }
-  function fillGap(w) { const f = free(w); if (f >= 30) { const last = [...P.rows[w]].reverse().find(x => x.t === 'us'); const grow = last && M.us.ws.filter(v => v <= last.w + f).pop(); if (last && grow > last.w) last.w = grow; else fillRest(w); } }
+  function fillGap(w) { if (!P.rows[w].length) return; const f = free(w); if (f >= 30) { const last = [...P.rows[w]].reverse().find(x => x.t === 'us'); const grow = last && M.us.ws.filter(v => v <= last.w + f).pop(); if (last && grow > last.w) last.w = grow; else fillRest(w); } }
   [rw, rd].forEach(el => { el.addEventListener('input', roomIn); el.addEventListener('change', () => change()); });
   const ahIn = $('[data-kp-ah]');
   if (ahIn) { ahIn.addEventListener('input', () => { P.ah = +ahIn.value; $('[data-kp-aho]').textContent = P.ah + ' cm'; renderWalls(); schedule3D(); }); ahIn.addEventListener('change', () => change()); }
@@ -1449,7 +1554,29 @@
   const anyTop = () => Object.values(P.top).some(Boolean) || Object.values(P.up || {}).some(l => l.some(u => u.t !== 'dh'));
   $$('[data-kp-top]').forEach(b => b.addEventListener('click', () => { const on = !anyTop(); const had = Object.keys(P.up).length; for (const k in P.top) P.top[k] = on ? 1 : 0; P.up = {}; change(); if (had) toast(on ? 'Hängeschränke wieder automatisch über allen Unterschränken.' : 'Alle Hängeschränke entfernt.', undo); }));
   // Stil
-  $('[data-kp-fronts]').innerHTML = FRONTS.map(([n, c]) => `<button type="button" class="kp-sw" data-front="${c}" style="--c:${c.startsWith('wood') ? WOOD[c.slice(5)] : c}"><i></i><span>${n}</span></button>`).join('');
+  const swc = c => c.startsWith('wood') ? WOOD[c.slice(5)] : c;
+  const fan = cols => cols.map(([, c], i, a) => `<i style="--c:${swc(c)};--i:${(i - (a.length - 1) / 2).toFixed(2)}"${c.startsWith('wood') ? ' class="wd"' : ''}></i>`).join('');
+  { const we = $('[data-kp-worlds]'); if (we) we.innerHTML = WORLDS.map(w => `<button type="button" class="kp-world" data-world="${w.k}" aria-pressed="false"><span class="kp-fan" aria-hidden="true">${fan(w.c)}</span><b>${w.n}</b><small>${w.d}</small></button>`).join('') + `<button type="button" class="kp-world kp-wwish" data-world="wunsch" aria-pressed="false"><span class="kp-fan rb" aria-hidden="true"><i style="--i:-1.5"></i><i style="--i:-.5"></i><i style="--i:.5"></i><i style="--i:1.5"></i></span><b>Ihre Wunschfarbe</b><small>Jeder Farbton möglich</small></button>`; }
+  let wishT = 0;
+  { const inp = $('[data-kp-wcol]'); if (inp) {
+    const ap = () => { P.style.front = inp.value.toLowerCase(); P.style.wood = null; P.style.world = 'wunsch'; change(); renderPal(); };
+    inp.addEventListener('input', () => { const w = $('[data-kp-wish]'); if (w) w.style.setProperty('--c', inp.value); clearTimeout(wishT); wishT = setTimeout(ap, 160); });
+    inp.addEventListener('change', () => { clearTimeout(wishT); xfade(); ap(); });
+  } }
+  function renderTones() {
+    const box = $('[data-kp-fronts]'); if (!box) return; const s = P.style, wk = s.world && (s.world === 'wunsch' || WORLDS.some(w => w.k === s.world)) ? s.world : worldOf(s), W0 = WORLDS.find(w => w.k === wk);
+    $$('[data-world]').forEach(b => { const on = b.dataset.world === wk; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+    box.innerHTML = W0 ? W0.c.map(([n, c]) => `<button type="button" class="kp-sw${c.startsWith('wood') ? ' wd' : ''}" data-front="${c}" style="--c:${swc(c)}"><i></i><span>${n}</span></button>`).join('') : '';
+    box.hidden = !W0;
+    const wn = $('[data-kp-wn]'); if (wn) wn.innerHTML = W0 ? `<b>${W0.n}</b> · ${W0.m}` : '<b>Ihre Wunschfarbe</b> · Tippen Sie auf das Farbfeld und wählen Sie frei.';
+    const wish = $('[data-kp-wish]'); if (wish) { wish.hidden = wk !== 'wunsch'; const inp = $('[data-kp-wcol]', wish); if (inp && /^#[0-9a-f]{6}$/i.test(s.front || '') && !s.wood) { inp.value = s.front; wish.style.setProperty('--c', s.front); } const lb = $('[data-kp-wlab]', wish); if (lb) lb.innerHTML = wk === 'wunsch' && !s.wood && isHex(s.front) ? `<b>${wishName(s.front)}</b><small>${s.front.toUpperCase()}</small>` : '<b>Farbe wählen</b>'; }
+    const tip = $('[data-kp-wtip]'); if (tip) {
+      const pr = W0 ? W0.pair : pairOf(s);
+      const same = Object.keys(pr).every(k => s[k] === pr[k]);
+      const tn = (TOPS.find(t => t[0] === pr.top) || ['', ''])[1], hn = (HANDLES.find(h => h[0] === pr.handle) || ['', ''])[1], wl = (WALLC.find(c => c[1] === pr.wall) || ['', ''])[0];
+      tip.innerHTML = same ? `<span class="ok">✓ Stimmig abgestimmt</span> Arbeitsplatte ${tn} · Griffe ${hn} · Wand ${wl}` : `<span>Passt dazu: Arbeitsplatte <b>${tn}</b> · Griffe <b>${hn}</b> · Wand <b>${wl}</b></span><button type="button" data-kp-pair>Stimmig abstimmen</button>`;
+    }
+  }
   $('[data-kp-handles]').innerHTML = HANDLES.map(([k, n]) => `<button type="button" data-handle="${k}"><svg viewBox="0 0 40 26" aria-hidden="true"><rect x="1" y="1" width="38" height="24" rx="2" fill="#e9e4dc" stroke="#cfc6b9"/>${k === 'grifflos' ? '<rect x="1" y="1" width="38" height="3" fill="#8b8379"/>' : k === 'knopf' ? `<circle cx="20" cy="7.4" r="2.4" fill="${HCOL[k]}" stroke="rgba(0,0,0,.25)" stroke-width=".4"/>` : `<rect x="12" y="6" width="16" height="2.4" rx="1.2" fill="${HCOL[k]}"/>`}</svg>${n}</button>`).join('');
   const sw = (s2, html) => { const el = $(s2); if (el) el.innerHTML = html; };
   sw('[data-kp-finish]', FINISHES.map(([k, n]) => `<button type="button" data-finish="${k}">${n}</button>`).join(''));
@@ -1484,18 +1611,26 @@
   root.addEventListener('click', e => {
     const f = e.target.closest('[data-front]'), h = e.target.closest('[data-handle]'), t = e.target.closest('[data-top]'), st = e.target.closest('[data-style]');
     const fi = e.target.closest('[data-finish]'), bk = e.target.closest('[data-back]'), wc = e.target.closest('[data-wallc]'), fl = e.target.closest('[data-floor]'), fs = e.target.closest('[data-fstyle]'), lk = e.target.closest('[data-look]');
-    if (lk) { const L = LOOKS.find(x => x[0] === lk.dataset.look); if (!L) return; xfade(); Object.assign(P.style, L[3], { look: L[0] }); change(); renderPal(); toast(`Stil „${L[1]}“ übernommen – in Schritt 3 können Sie alles fein anpassen.`); return; }
+    if (lk) { const L = LOOKS.find(x => x[0] === lk.dataset.look); if (!L) return; xfade(); Object.assign(P.style, L[3], { look: L[0] }); P.style.world = worldOf(P.style); change(); renderPal(); toast(`Stil „${L[1]}“ übernommen – in Schritt 3 können Sie alles fein anpassen.`); return; }
+    const wb = e.target.closest('[data-world]');
+    if (wb) {
+      const k = wb.dataset.world; P.style.world = k;
+      if (k === 'wunsch') { P.style.world = 'wunsch'; renderTones(); const inp = $('[data-kp-wcol]'); if (inp) { inp.getBoundingClientRect(); try { inp.showPicker ? inp.showPicker() : inp.click(); } catch (er) { inp.click(); } } return; }
+      const W0 = WORLDS.find(w => w.k === k); if (W0 && !W0.c.some(c => P.style.wood ? c[1] === 'wood:' + P.style.wood : c[1] === P.style.front)) { const c = W0.c[W0.k === 'gruen' ? 2 : 0][1]; if (c.startsWith('wood:')) P.style.wood = c.slice(5); else { P.style.front = c; P.style.wood = null; } xfade(); change(); renderPal(); }
+      renderTones(); return;
+    }
+    if (e.target.closest('[data-kp-pair]')) { xfade(); Object.assign(P.style, pairOf(P.style)); change(); renderPal(); toast('Abgestimmt: Arbeitsplatte, Griffe und Wand passen jetzt zu Ihrer Farbe.'); return; }
     if (fs) { xfade(); P.style.frame = +fs.dataset.fstyle; change(); renderPal(); return; }
     if (fi || bk || wc || fl) { xfade(); if (fi) P.style.finish = fi.dataset.finish; if (bk) P.style.back = bk.dataset.back; if (wc) P.style.wall = wc.dataset.wallc; if (fl) P.style.floor = fl.dataset.floor; change(); return; }
-    if (f) { const v = f.dataset.front; if (v.startsWith('wood:')) P.style.wood = v.slice(5); else { P.style.front = v; P.style.wood = null; } }
+    if (f) { const v = f.dataset.front; if (v.startsWith('wood:')) P.style.wood = v.slice(5); else { P.style.front = v; P.style.wood = null; } P.style.world = worldOf(P.style); }
     else if (h) P.style.handle = h.dataset.handle; else if (t) P.style.top = t.dataset.top;
-    else if (st) { const S = STY[st.dataset.style]; Object.assign(P.style, S); }
+    else if (st) { const S = STY[st.dataset.style]; Object.assign(P.style, S); P.style.world = worldOf(P.style); }
     else return;
     xfade(); change(); renderPal();
   });
   const STY = { hell: { front: '#f1eee8', wood: null, handle: 'grifflos', top: 'eiche' }, dunkel: { front: '#232426', wood: null, handle: 'grifflos', top: 'eiche' }, natur: { front: '#d9cfbf', wood: null, handle: 'gold', top: 'keramik' }, holz: { wood: 'eiche', handle: 'schwarz', top: 'marmor' }, farbe: { front: '#7f8e77', wood: null, handle: 'gold', top: 'keramik' }, blau: { front: '#22304a', wood: null, handle: 'gold', top: 'keramik' } };
   function syncUI() {
-    const s = P.style;
+    const s = P.style; renderTones();
     $$('[data-front]').forEach(b => b.classList.toggle('on', s.wood ? b.dataset.front === 'wood:' + s.wood : b.dataset.front === s.front));
     $$('[data-handle]').forEach(b => b.classList.toggle('on', b.dataset.handle === s.handle));
     $$('[data-top]').forEach(b => b.classList.toggle('on', b.dataset.top === s.top));
@@ -1545,10 +1680,41 @@
       arbeitshoehe: ah, sockel: 10 + ah - 90, arbeitsplatte: 4, waende, oeffnungen: P.op.map(opOf),
       anschluesse: (P.cx || []).map(c => ({ typ: c.t, name: CXN[c.t], wand: c.wall, abWand: c.s, hoehe: Math.round(cxH(c)), bestand: !c.neu, neu: !!c.neu, ...(c.t === 'dose' ? { fach: cxN(c), lage: cxO(c) === 'v' ? 'senkrecht' : 'waagerecht', bereich: cxZone(c) } : {}), ...(c.t === 'abluft' ? { durchmesser: cxD(c), bereich: cxZone(c) } : {}), ...(c.t === 'heiz' ? { breite: hzW(c), koerperHoehe: hzH(c), bodenabstand: hzY(c) } : {}) })),
       insel: P.form === 'insel' ? { breite: P.island.w, tiefe: 100, hoehe: 90, variante: P.island.v, mitteX: W / 2, mitteZ: Math.max(210, Math.min(D - 120, 225)) } : null,
-      stil: { ...P.style, ausgangsstil: LK ? LK[1] : null, front: (FRONTS.find(f => P.style.wood ? f[1] === 'wood:' + P.style.wood : f[1] === P.style.front) || [P.style.front])[0], griffe: (HANDLES.find(h => h[0] === P.style.handle) || ['', ''])[1], arbeitsplatteName: (TOPS.find(t => t[0] === P.style.top) || ['', ''])[1] },
+      stil: { ...P.style, ausgangsstil: LK ? LK[1] : null, front: frontName(P.style), farbwelt: (WORLDS.find(w => w.k === worldOf(P.style)) || { n: 'Wunschfarbe' }).n, frontHex: P.style.wood ? null : P.style.front, studioHinweisFront: herstHint(P.style) || null, griffe: (HANDLES.find(h => h[0] === P.style.handle) || ['', ''])[1], arbeitsplatteName: (TOPS.find(t => t[0] === P.style.top) || ['', ''])[1] },
       ausstattung: eqData(),
       zusammenfassung: summary(),
     };
+  }
+  // Kennzahlen eines Entwurfs (Varianten-Vergleich, KI-Ideen) – Längen in cm, Stauraum in Litern (nutzbarer Anteil je Schrankart geschätzt)
+  const STOR = { us: 1, ut: 1, u1: 1, u2: 1, s2: 1, s4: 1, ui: 1, ur: .7, fa: 1, ap: 1, mt: .55, sp: .35, kf: .85, ko: .12, gs: 0, ek: .75, el: .85, eb: .6, bo: .62, bm: .5, kue: 0, vo: 1, ah: 1, bs: .75, vg: .9, h1: 1, h2: 1, hk: 1, hs: 1, hf: 1, hg: .9, ho: .6, he: .9, dh: 0 };
+  function metrics() {
+    const W = P.room.w, D = P.room.d, ah = P.ah || 90, pt = (w, a, d) => ({ N: [a, d], S: [W - a, D - d], W: [d, D - a], E: [W - d, a] })[w];
+    let top = 0, free = 0, best = 0, vol = 0, upLen = 0, tallW = 0, nCab = 0; const at = {}, cnt = {};
+    for (const w in P.rows) {
+      const LY = layout(w); let end = null, run = 0;
+      P.rows[w].forEach(m => {
+        const c = M[m.t], x = LY.X.get(m), tall = c.h === 't'; nCab++; cnt[m.t] = (cnt[m.t] || 0) + 1;
+        if (end != null && Math.abs(x - end) > 1) run = 0;
+        if (tall) { run = 0; tallW += m.w; vol += m.w * (hOf(m) - 10) * 56 / 1000 * (STOR[m.t] ?? 1); if (axOf(m)) vol += m.w * axOf(m) * 56 / 1000; }
+        else { top += m.w; vol += m.w * (ah - 14) * 56 / 1000 * (STOR[m.t] ?? 1); if (m.t === 'sp' || m.t === 'kf' || m.t === 'ko') run = 0; else { free += m.w; run += m.w; best = Math.max(best, run); } }
+        end = x + m.w;
+        const k = m.t === 'ko' ? 'kf' : m.t; if (['sp', 'kf', 'kue'].includes(k) && !at[k]) at[k] = pt(w, x + m.w / 2, 90);
+      });
+    }
+    for (const w in P.rows) upList(w).forEach(u => { if (u.t === 'dh') return; nCab++; upLen += u.w; vol += u.w * hOf(u) * 32 / 1000 * (STOR[u.t] ?? 1); });
+    if (P.form === 'insel') { const I = P.island, z = Math.max(60 + 100 + 50, Math.min(D - 120, 60 + 115 + 50)), occ = I.v === 'frei' ? 0 : 80; top += I.w; free += I.w - occ; best = Math.max(best, I.w - occ); vol += I.w * (ah - 14) * 70 / 1000 * .8; nCab++;
+      if (I.v === 'spuele' && !at.sp) at.sp = [W / 2, z]; if (I.v === 'kochfeld' && !at.kf) at.kf = [W / 2, z]; }
+    const d = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]), tri = at.sp && at.kf && at.kue ? Math.round(d(at.sp, at.kf) + d(at.kf, at.kue) + d(at.kue, at.sp)) : null;
+    const dev = [], isl = P.form === 'insel' ? P.island.v : null;
+    if (cnt.sp || isl === 'spuele') dev.push(isl === 'spuele' ? 'Spüle in der Insel' : 'Spüle');
+    if (cnt.kf || isl === 'kochfeld') dev.push(`Kochfeld ${eqv('hobW', 80)} cm${isDD() ? ' mit Muldenlüfter' : ''}${isl === 'kochfeld' ? ' (Insel)' : ''}`);
+    if (cnt.ko) dev.push('Herd mit Backofen');
+    if (cnt.gs) dev.push('Spülmaschine'); if (cnt.bo) dev.push('Backofen auf Augenhöhe'); if (cnt.bm) dev.push('Backofen + Mikrowelle hoch');
+    if (cnt.kue) dev.push(cnt.kue > 1 ? `${cnt.kue} Kühlgeräte` : 'Kühlschrank'); if (cnt.mt) dev.push('Mülltrenner');
+    if (cnt.ah || cnt.ap) dev.push('Apothekerschrank'); if (cnt.bs) dev.push('Besenschrank'); if (cnt.vg) dev.push('Vitrine');
+    if (isl === 'frei') dev.push('Insel als freie Fläche');
+    return { form: P.form, formName: FORMS[P.form].n, raum: [W, D], top, free, best, vol: Math.round(vol / 10) * 10, upLen, tallW, nCab, tri, ah, warn: tips().filter(x => x[0] === 'warn').length,
+      front: frontShort(P.style), frontHex: P.style.wood ? WOOD[P.style.wood] : P.style.front, griffe: (HANDLES.find(h => h[0] === P.style.handle) || ['', ''])[1], platte: (TOPS.find(t => t[0] === P.style.top) || ['', ''])[1], platteHex: (TOPS.find(t => t[0] === P.style.top) || ['', '', '#b98a5c'])[2], geraete: dev };
   }
   function backName(att) {
     const b = P.style.back || 'wand', cn = (BACKC.find(c => c[1] === (P.style.backC || '')) || ['eigene Farbe'])[0];
@@ -1561,7 +1727,7 @@
     return { spuele: sp ? nm(SINKS, eqv('sink', 'edel')) : null, armatur: sp ? nm(TAPS, eqv('tap', 'chrom')) : null, kochfeldBreite: wh || ih ? eqv('hobW', 80) : null, kochfeldArt: wh ? (isDD() ? 'mit Muldenlüfter' : 'normal') : null, dunstabzug: wh ? (isDD() ? 'Muldenlüfter im Kochfeld' : nm(HOODS, eqv('hood', 'schraeg'))) : null, inselAbzug: ih ? nm(IHOODS, eqv('ihood', 'mulde')) : null, rueckwand: backName(), rueckwandTyp: P.style.back || 'wand', rueckwandBeleuchtet: !!P.style.backLed, eigenesMotiv: (P.style.back === 'motiv') };
   }
   function summary(motAtt) {
-    const s = P.style, fr = FRONTS.find(f => s.wood ? f[1] === 'wood:' + s.wood : f[1] === s.front);
+    const s = P.style, fr = [frontName(s)];
     const L = [`Form: ${FORMS[P.form].n} · Raum ${P.room.w} × ${P.room.d} cm`];
     for (const w in P.rows) {
       { const TR = trims(w); L.push(`${WN[w]} unten: ` + ([...P.rows[w].map((m, i) => descr(m, cornerSide(w, i))), ...TR.pf.map(q => `Passstück ${Math.round(q.w)} cm ${q.where}${q.tall ? ' (hoch)' : ''}`), ...TR.wg.map(q => `Seitenwange ${q.side} (${(P.style.wgDek || 'top') === 'top' ? 'Arbeitsplattendekor' : 'Frontfarbe'})`)].join(' · ') || '–')); }
@@ -1572,7 +1738,8 @@
     if (P.op.length) L.push('Fenster & Türen: ' + P.op.map(o => `${OPN[o.t]} ${o.w} cm (${WN[o.wall]}, ab ${o.s} cm; ${opDesc(o)})`).join(' · '));
     const cxL = c => `${CXN[c.t]}${cxSpec(c) ? ' ' + cxSpec(c) : ''} (${WN[c.wall]}, Mitte ${c.s} cm von links${c.t === 'heiz' ? '' : `, ${Math.round(cxH(c))} cm hoch`})`;
     { const ex = (P.cx || []).filter(c => !c.neu), nw = (P.cx || []).filter(c => c.neu); if (ex.length) L.push('Anschlüsse im Raum (Bestand): ' + ex.map(cxL).join(' · ')); if (nw.length) L.push('Anschlüsse neu geplant: ' + nw.map(cxL).join(' · ')); }
-    L.push(`Fronten: ${fr ? fr[0] : s.front} · Griffe: ${HANDLES.find(h => h[0] === s.handle)[1]} · Arbeitsplatte: ${TOPS.find(t => t[0] === s.top)[1]} · Hängeschränke: ${Object.keys(P.up).length ? 'individuell geplant' : anyTop() ? 'automatisch' : 'keine'}`);
+    L.push(`Fronten: ${fr[0]}${WORLDS.some(w => w.k === worldOf(s)) ? ` (Farbwelt „${WORLDS.find(w => w.k === worldOf(s)).n}“)` : ''} · Griffe: ${HANDLES.find(h => h[0] === s.handle)[1]} · Arbeitsplatte: ${TOPS.find(t => t[0] === s.top)[1]} · Hängeschränke: ${Object.keys(P.up).length ? 'individuell geplant' : anyTop() ? 'automatisch' : 'keine'}`);
+    { const hh = herstHint(s); if (hh) L.push('Studio-Hinweis Frontfarbe (Richtwerte, bitte am Originalmuster prüfen): ' + hh); }
     const LK = LOOKS.find(x => x[0] === s.look); if (LK) L.push(`Ausgangsstil: ${LK[1]}`);
     { const q = eqData(), A = []; if (q.spuele) A.push(`Spüle ${q.spuele}`, `Armatur ${q.armatur}`); if (q.kochfeldBreite) A.push(`Kochfeld ${q.kochfeldBreite} cm${q.kochfeldArt === 'mit Muldenlüfter' ? ' mit Muldenlüfter' : ''}`); if (q.dunstabzug && q.kochfeldArt !== 'mit Muldenlüfter') A.push(`Dunstabzug: ${q.dunstabzug}`); if (q.inselAbzug) A.push(`Abzug an der Insel: ${q.inselAbzug}`); if (A.length) L.push('Ausstattung: ' + A.join(' · ')); }
     L.push(`Frontart: ${s.frame ? 'Rahmenfront (Landhaus)' : 'glatt'} · Oberfläche: ${(FINISHES.find(f => f[0] === (s.finish || 'matt')) || FINISHES[0])[1]} · Küchenrückwand: ${backName(motAtt)} · Wand: ${(WALLC.find(c => c[1] === s.wall) || ['eigene Farbe'])[0]} · Boden: ${(FLOORS.find(f => f[0] === s.floor) || FLOORS[0])[1]}`);
@@ -1646,6 +1813,10 @@
     renderHQ: (w = 1600, h = 1000) => load3D().then(() => { if (!K || !K.renderHQ) throw new Error('3D-Ansicht nicht verfügbar'); return K.renderHQ(w, h); }),
     // Maße der geplanten Küche (alles in cm) – für Maßstabsplan / Ergebnis-Ansicht
     planData: () => planData(),
+    // Vorschaubild eines Plans (Hash-Format) aus der Standard-Übersicht – null, solange die 3D-Ansicht nicht geladen ist
+    shot: (j, w = 480, h = 300) => { if (!K || !K.shot) return null; const r = window.KP.stateOf(j); return r && r.state ? K.shot(r.state, w, h) : null; },
+    metrics: () => metrics(), metricsOf: j => { const keep = P, ks = sel, ko = selOp, kc = selCx; try { des(typeof j === 'string' ? j : JSON.stringify(j)); return metrics(); } finally { P = keep; sel = ks; selOp = ko; selCx = kc; } },
+    frontName: st => frontName(st || P.style), frontShort: st => frontShort(st || P.style), toneName: h => isHex(h) ? toneName(h) : '',
     setAttach: a => { attach = a; syncAttach(); }, getAttach: () => attach,
     toSend: () => { go(3); setTimeout(() => { const c = $('[data-kpf-card]'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 120); },
     // Fertigen Plan (Hash-Format) übernehmen – ohne Neuladen, mit Rückgängig; bei Fehler bleibt der alte Entwurf
@@ -1752,7 +1923,7 @@
     let n = 0; const wait = () => { if (busy() && n++ < 40) return setTimeout(wait, 400); setTimeout(() => el.classList.add('on'), 700); }; wait();
     el.addEventListener('click', e => {
       const b = e.target.closest('[data-rs]'); if (!b) return; el.classList.remove('on'); setTimeout(() => el.remove(), 400);
-      if (b.dataset.rs === '1') { history.replaceState(null, '', d.h); if (fromHash()) { renderPal(); change(); syncAttach(); toast('Ihre letzte Planung ist wieder da – „Rückgängig“ führt zum leeren Start zurück.'); } }
+      if (b.dataset.rs === '1') { history.replaceState(null, '', d.h); if (fromHash()) { renderPal(); change(); syncAttach(); go(1, true); toast('Ihre letzte Planung ist wieder da – „Rückgängig“ führt zum leeren Start zurück.'); } }
       else { try { localStorage.removeItem(AS_KEY); } catch (er) { } }
     });
   }
@@ -1761,7 +1932,8 @@
   if (!fromHash()) fresh('l');
   const qAh = +(new URLSearchParams(location.search).get('ah') || 0);
   if (qAh >= 80 && qAh <= 110) { P.ah = qAh; setTimeout(() => toast(`Ihre Arbeitshöhe ${qAh} cm ist übernommen – sehen Sie den höheren Sockel?`), 2600); }
-  renderPal(); change(); go(/[?&]gesendet=1/.test(location.search) ? 3 : 1); syncAttach();
+  // Natan 17.10.: Der Planer beginnt bei Schritt 1 „Form & Raum“ – nur mit fertigem Plan im Link (KI, gespeicherte Küche) bei „Einrichten“
+  renderPal(); change(); go(SENT ? 3 : HASH0 ? 1 : 0, true); syncAttach();
   if (/[?&]gesendet=1/.test(location.search)) { const n = $('[data-sent]'); if (n) n.hidden = false; }
   offerResume();
   const io = new IntersectionObserver(([en]) => { if (en.isIntersecting) { io.disconnect(); load3D(); } }); io.observe(host3);

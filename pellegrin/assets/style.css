@@ -554,3 +554,9 @@ html[data-page="planer"] .wa-fab{display:none}
 @media (max-width:899px){.k-grid:not(.all) .kc:nth-child(n+7){display:none}
  .hw-mosaic{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;margin-inline:calc(-1*var(--gut));padding:0 var(--gut);scrollbar-width:none}.hw-mosaic::-webkit-scrollbar{display:none}
  .hw-mosaic figure{flex:0 0 82%;scroll-snap-align:center;aspect-ratio:4/3}}
+
+/* Handy: Kopf ohne Weichzeichner – spart Grafikleistung über den 3D-Szenen, kein Ruckeln beim Scrollen (17.10.) */
+@media (hover:none) and (pointer:coarse){.hdr{will-change:transform}.hdr.solid{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(246,241,233,.97)}html[data-page="planer"] .hdr,html[data-page="legal"] .hdr{background:#f6f1e9}}
+/* Schnellkontakt-Leiste weicht der 3D-Montage (17.10.) */
+.dock{transition:transform .4s cubic-bezier(.2,.8,.2,1),opacity .3s}
+html.dock-off .dock{transform:translateY(calc(100% + 30px));opacity:0;pointer-events:none}

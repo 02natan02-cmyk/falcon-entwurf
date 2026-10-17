@@ -507,6 +507,15 @@
      3) Echtoptik – eigenes Render (KP.renderHQ, sonst zweite 3D-Instanz mit eigener Kamera) + Nachbearbeitung
      ========================================================================= */
   const VIEWS = [['uebersicht', 'Übersicht'], ['augen', 'Augenhöhe'], ['detail', 'Detail'], ['oben', 'Von oben'], ['hier', 'Ihr Blick']];
+  const VTIP = { uebersicht: 'Die ganze Küche aus der Raumecke', augen: 'So sehen Sie die Küche, wenn Sie im Raum stehen', detail: 'Nah heran an Kochfeld oder Spüle', oben: 'Draufsicht wie ein 3D-Grundriss', hier: 'Genau so, wie Sie die Küche im Planer gedreht haben' };
+  const VICO = {
+    uebersicht: '<svg viewBox="0 0 48 30"><path d="M8 25V9l16-5 16 5v16M8 25h32M8 9l16 4 16-4M24 13v12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
+    augen: '<svg viewBox="0 0 48 30"><path d="M6 15s7-8 18-8 18 8 18 8-7 8-18 8S6 15 6 15z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="24" cy="15" r="4.2" fill="currentColor"/></svg>',
+    detail: '<svg viewBox="0 0 48 30"><circle cx="21" cy="13" r="7.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M26.5 18.5l7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    oben: '<svg viewBox="0 0 48 30"><rect x="9" y="5" width="30" height="20" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 10h20M29 5v20" stroke="currentColor" stroke-width="3.2"/></svg>',
+    hier: '<svg viewBox="0 0 48 30"><path d="M17 9h4l2-3h6l2 3h4v15H17z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="26" cy="16" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>',
+    sucher: '<svg viewBox="0 0 48 30"><path d="M8 10V5h6M40 10V5h-6M8 20v5h6M40 20v5h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M24 10v10M19 15h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+  };
   let hereCam = null;   // Kamera des Planers beim Öffnen – „Ihr Blick“ wird genau so berechnet
   let K2 = null, K2key = '', K2host = null, engineP = null; const cache = new Map();
   function ensureEngine() {
@@ -539,9 +548,78 @@
     }
     return { p: [W * .66, 1.85 + M * .13, D + .4 + M * .42], t: [W * .46, .92, D * .36], fov: 44 };
   }
+  // Vorschaubilder der Blickwinkel aus der eigenen 3D-Küche (gleiche Engine und WebGL-Kontext, je ein kleines Bild).
+  // Läuft nur beim Öffnen des Reiters, bevor ein Foto rechnet – danach wird die Kamera des Planers wiederhergestellt.
+  let thumbKey = '';
+  let thumbBusy = false;
+  async function makeThumbs() {
+    if (thumbBusy) return;
+    try {
+      const K = KPo(), k3 = K && K.k3d && K.k3d(); if (!el || !pd || !k3 || !k3.capture || !k3.lookAt || !k3.camInfo || (k3.lost && k3.lost())) return;
+      const key = JSON.stringify(K.state3d ? K.state3d() : 0) + '|' + (hereCam ? hereCam.pos.map(v => (+v).toFixed(2)).join(',') : '-');
+      if (key === thumbKey) return;
+      thumbBusy = true;
+      // erst, wenn das Echtoptik-Bild fertig ist (gleiche Grafikkarte) – dann ein Bild pro Takt, die Seite bleibt flüssig
+      for (let k = 0; k < 120 && fotoBusy; k++) await wait(250);
+      if (!el || el.hidden) return;
+      for (const [v] of VIEWS) {
+        const img = $(`[data-vth="${v}"]`, el); if (!img) continue;
+        if (v === 'hier' && !hereCam) { img.hidden = true; continue; }
+        await new Promise(r => requestAnimationFrame(() => r()));
+        if (fotoBusy || !el || el.hidden || (k3.lost && k3.lost())) return;
+        const ci = k3.camInfo(), rest = k3.photoPose ? k3.photoPose() : null;
+        try { const c = camFor(v, pd); k3.lookAt(c.p, c.t, c.fov); img.src = k3.capture(288, 180).toDataURL('image/jpeg', .84); img.hidden = false; }
+        finally { k3.lookAt(ci.pos, ci.target, ci.fov); if (rest) rest(); }
+      }
+      thumbKey = key;
+    } catch (e) { } finally { thumbBusy = false; }
+  }
+  // Sucher: die eigene 3D-Küche füllt den Bildschirm wie das Display einer Kamera – drehen, zoomen, auslösen.
+  // Das Foto entsteht danach genau aus diesem Blick („Ihr Blick“).
+  let vf = null;
+  function sucher() {
+    const K = KPo(), k3 = K && K.k3d && K.k3d(), host = $('[data-kp-3d]'); if (!k3 || !host || !host.parentNode || vf) return;
+    const start = Object.assign({}, camFor(view, pd)), keepMood = mood, touch = isMob();
+    // Hochkant-Bildschirm: gleiche Bildbreite wie im Foto behalten (Brennweite weiter, mit Grenze gegen Verzerrung)
+    const asp = innerWidth / Math.max(1, innerHeight); if (asp < 1.2) { const hf = 2 * Math.atan(Math.tan(start.fov * Math.PI / 360) * 1.6); start.fov = Math.min(74, 2 * Math.atan(Math.tan(hf / 2) / asp) * 180 / Math.PI); }
+    close();
+    const ph = document.createComment('kp-3d'); host.parentNode.insertBefore(ph, host);
+    vf = document.createElement('div'); vf.className = 'kpr-vf'; vf.setAttribute('role', 'dialog'); vf.setAttribute('aria-modal', 'true'); vf.setAttribute('aria-label', 'Sucher – Blickwinkel für das Foto wählen');
+    vf.innerHTML = `<div class="kpr-vfs"></div>
+<div class="kpr-vfo" aria-hidden="true"><i class="c1"></i><i class="c2"></i><i class="c3"></i><i class="c4"></i><i class="g1"></i><i class="g2"></i><i class="g3"></i><i class="g4"></i><i class="ret"></i></div>
+<p class="kpr-vft"><b>Sucher</b><span>${touch ? 'Wischen dreht, zwei Finger zoomen' : 'Ziehen zum Drehen, Mausrad zum Zoomen – dann auslösen'}</span></p>
+<div class="kpr-vfb"><button type="button" class="kpr-vfx" data-vfx>Abbrechen</button><button type="button" class="kpr-vfsh" data-vfsh aria-label="Auslösen – Foto aus diesem Blick"><i></i></button><p class="kpr-vfi" data-vfi aria-hidden="true"></p></div>
+<div class="kpr-vff" aria-hidden="true"></div>`;
+    document.body.appendChild(vf); $('.kpr-vfs', vf).appendChild(host);
+    document.documentElement.classList.add('kpr-vfon');
+    try { K.pause3d && K.pause3d(false); } catch (e) { }
+    try { k3.taps && k3.taps(false); } catch (e) { }
+    // Startblick = das gerade gewählte Foto; erst nach dem Vollbild-Umbau setzen (die Engine richtet sich beim Größenwechsel neu aus)
+    k3.lookAt(start.p, start.t, start.fov);
+    requestAnimationFrame(() => { if (!vf) return; vf.classList.add('in'); requestAnimationFrame(() => { if (vf) k3.lookAt(start.p, start.t, start.fov); }); });
+    // Anzeige wie im Kamera-Display: Augenhöhe und Brennweite (Kleinbild-Äquivalent)
+    let raf = 0; const info = $('[data-vfi]', vf);
+    const tick = () => { if (!vf) return; try { const c = k3.camInfo(), f = 12 / Math.tan(c.fov * Math.PI / 360); info.textContent = `${Math.max(0, c.pos[1]).toFixed(2).replace('.', ',')} m · ${Math.round(f)} mm`; } catch (e) { } raf = requestAnimationFrame(tick); };
+    tick();
+    const end = shot => {
+      if (!vf) return; cancelAnimationFrame(raf); document.removeEventListener('keydown', onKey, true);
+      try { k3.taps && k3.taps(true); } catch (e) { }
+      const v0 = vf; vf = null;
+      if (ph.parentNode) { ph.parentNode.insertBefore(host, ph); ph.remove(); }
+      document.documentElement.classList.remove('kpr-vfon');
+      v0.classList.remove('in'); setTimeout(() => v0.remove(), RMO ? 0 : 320);
+      open({ tab: 'foto', view: shot ? 'hier' : view, mood: keepMood });
+    };
+    const shoot = () => { if (!vf || vf.classList.contains('shot')) return; vf.classList.add('shot'); try { navigator.vibrate && navigator.vibrate(14); } catch (e) { } setTimeout(() => end(true), RMO ? 0 : 360); };
+    const onKey = e => { if (!vf) return; if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); end(false); } else if (e.key === 'Enter' && !e.target.closest('button')) { e.preventDefault(); shoot(); } };
+    document.addEventListener('keydown', onKey, true);
+    $('[data-vfx]', vf).addEventListener('click', () => end(false));
+    $('[data-vfsh]', vf).addEventListener('click', shoot);
+    setTimeout(() => { const b = vf && $('[data-vfsh]', vf); if (b) b.focus({ preventScroll: true }); }, 80);
+  }
   async function renderOwn(view, mood, Wd, Hd, onStep) {
     const K = KPo(); await ensureEngine(); if (!window.PelPlanner3D) throw new Error('engine');
-    if (!K2) { K2host.innerHTML = ''; K2 = window.PelPlanner3D(K2host, { acc: (K && K.acc) || '#c0673f' }); K2key = ''; }
+    if (K2 && K2.lost && K2.lost()) { try { K2.dispose(); } catch (e) { } K2 = null; K2key = ''; } if (!K2) { K2host.innerHTML = ''; K2 = window.PelPlanner3D(K2host, { acc: (K && K.acc) || '#c0673f' }); K2key = ''; }
     const st = K.state3d(), key = JSON.stringify(st) + '|' + mood;
     onStep && onStep(1);
     if (key !== K2key) { K2.mood(mood, st); K2key = key; await settle(K2, 1600); }
@@ -570,6 +648,43 @@
     finally { try { k3.deko && k3.deko(null); } catch (e) { } if (m0 && mood !== m0) { try { k3.mood(m0); } catch (e) { } } if (ci) { try { k3.lookAt(ci.pos, ci.target, ci.fov); } catch (e) { } } }
     return { c: out, how: 'main-hq' };
   }
+  /* ---------- Echtoptik „Lichtsammler“ (rt/kp-photo.js): fotorealistisch im selben 3D-Kontext – auch am Handy ---------- */
+  // Viele Bilder mit wandernden Lichtquellen und echten Schatten werden gemittelt → weiche Schatten, Licht wie auf einem Foto.
+  let PHp = null;
+  function loadPhoto() {
+    if (window.PelPhoto) return Promise.resolve(window.PelPhoto);
+    if (PHp) return PHp;
+    const v = (($$('script').find(s => /kp-result\.js/.test(s.src)) || {}).src || '').split('v=')[1] || '1';
+    return PHp = new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'rt/kp-photo.js?v=' + v; s.onload = () => window.PelPhoto ? res(window.PelPhoto) : rej(new Error('photo')); s.onerror = () => { PHp = null; rej(new Error('photo-load')); }; document.head.appendChild(s); });
+  }
+  const PHOTO_OFF = /[?&]ph=0/.test(location.search);
+  async function renderPhoto(view, mood, Wd, Hd, onStep, onPreview, isLive, ultra) {
+    if (PHOTO_OFF) throw new Error('photo-off');
+    const K = KPo(); let host = K && K.k3d && K.k3d();
+    if (!host || typeof host._rt !== 'function') {
+      // ohne laufende Planer-Ansicht: eigene (unsichtbare) 3D-Instanz – nur am PC (Handys: kein zweiter 3D-Kontext)
+      if (isMob()) throw new Error('photo-nohost');
+      await ensureEngine(); if (!window.PelPlanner3D) throw new Error('engine');
+      if (K2 && K2.lost && K2.lost()) { try { K2.dispose(); } catch (e) { } K2 = null; K2key = ''; } if (!K2) { K2host.innerHTML = ''; K2 = window.PelPlanner3D(K2host, { acc: (K && K.acc) || '#c0673f' }); K2key = ''; }
+      const st = K.state3d(), key = JSON.stringify(st) + '|' + mood; if (key !== K2key) { K2.mood(mood, st); K2key = key; await settle(K2, 1600); }
+      host = K2;
+    }
+    onStep && onStep(1);
+    const PH = await loadPhoto();
+    onStep && onStep(2);
+    const restore = typeof host.photoPose === 'function' ? host.photoPose() : null;
+    try {
+      const mob = isMob();
+      const r = await PH.render(host, {
+        w: Wd, h: Hd, view, mood, plan: getPlan(), camera: view === 'hier' ? hereCam : null, lite: mob,
+        frames: ultra ? (mob ? 220 : 480) : (mob ? 52 : 140), maxMs: ultra ? (mob ? 50000 : 45000) : (mob ? 9500 : 7500), minFrames: mob ? 14 : 20,
+        onProgress: (f, cv, n) => { if (onStep && n > 2) onStep(3); if (onPreview) onPreview(f, cv, n); },
+        signal: { get aborted() { return !!(isLive && !isLive()); } },
+      });
+      if (!r) return null;
+      return { c: r.canvas, how: ultra ? 'photo-ultra' : 'photo', frames: r.frames };
+    } finally { if (restore) { try { restore(); } catch (e) { } } }
+  }
   // Nachbearbeitung: warmes Licht, sanfte S-Kurve, Glanz (Bloom), Vignette, feines Korn
   function grade(src, strength = 1) {
     const Wd = src.width, Hd = src.height, c = document.createElement('canvas'); c.width = Wd; c.height = Hd; const g = c.getContext('2d'); g.drawImage(src, 0, 0);
@@ -594,8 +709,9 @@
   /* ---------- Echtoptik per Raytracing (rt/kp-rt.js, three-gpu-pathtracer) ---------- */
   // Fotorealistisch: physikalisches Licht (Himmel, Sonne durchs Fenster, LED, Spots), echte Materialien, Deko.
   // Ältere Geräte ohne WebGL2-Gleitkomma-Puffer bekommen die bisherige Darstellung.
-  // Freischaltung: bis zur Prüfung auf echten Grafikkarten nur mit ?rt=1 (merkt sich der Tab). RT_DEFAULT = true schaltet es für alle ein.
-  const RT_DEFAULT = true;
+  // Freischaltung: nur mit ?rt=1 (merkt sich der Tab). Natan 17.10.: Auf seinem Windows-PC hat das Raytracing (riesiger Shader,
+  // lange Übersetzung im Grafikprozess) den ganzen Browser eingefroren – darum für alle aus; die Echtoptik kommt vom Lichtsammler.
+  const RT_DEFAULT = false;
   const RT_OFF = /[?&]rt=0/.test(location.search) || (!RT_DEFAULT && !(() => { try { if (/[?&]rt=1/.test(location.search)) sessionStorage.setItem('kp-rt', '1'); return sessionStorage.getItem('kp-rt') === '1'; } catch (e) { return /[?&]rt=1/.test(location.search); } })());
   let RTp = null, RTK = null, RThost = null, rtChain = Promise.resolve();
   // Handy/Tablet: wenig Grafikspeicher → leichtes Raytracing, danach alles freigeben
@@ -614,6 +730,7 @@
     if (window.PelRT) return Promise.resolve(window.PelRT);
     if (RTp) return RTp;
     const v = (($$('script').find(s => /kp-result\.js/.test(s.src)) || {}).src || '').split('v=')[1] || '1';
+    try { delete window.__THREE__; } catch (e) { }
     return RTp = new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'rt/kp-rt.js?v=' + v; s.onload = () => window.PelRT ? res(window.PelRT) : rej(new Error('rt')); s.onerror = () => { RTp = null; rej(new Error('rt-load')); }; document.head.appendChild(s); });
   }
   // Fotografischer Feinschliff: neutral-warmer Weißabgleich, sanfte Kurve, Lichthof an hellen Fenstern, leichte Vignette
@@ -657,12 +774,23 @@
       const m = s / n, sd = Math.sqrt(Math.max(0, s2 / n - m * m)); if (!(m > .06 && m < .97 && sd > .03)) throw new Error('rt-implausible ' + m.toFixed(2) + '/' + sd.toFixed(2)); }
     return { canvas: gradeRT(r.canvas), how: 'rt', samples: r.samples };
   }
-  async function renderView(view, mood, onStep) {
+  async function renderView(view, mood, onStep, onPreview, isLive, ultra) {
     const K = KPo(); if (!K) throw new Error('kp');
-    const mob = isMob(), qw = +(new URLSearchParams(location.search).get('qw') || 0), Wd = qw >= 240 ? qw : mob ? 1080 : 1920, Hd = Math.round(Wd * .625);   // qw: Testgröße
-    const key = view + '|' + mood + '|' + Wd + '|' + (view === 'hier' && hereCam ? hereCam.pos.map(v => v.toFixed(2)).join(',') : '') + '|' + JSON.stringify(K.state3d ? K.state3d() : {});
+    const mob = isMob(), qw = +(new URLSearchParams(location.search).get('qw') || 0), Wd = qw >= 240 ? qw : ultra ? (mob ? 1440 : 2400) : mob ? 1080 : 1920, Hd = Math.round(Wd * .625);   // qw: Testgröße
+    const key = (ultra ? 'U|' : '') + view + '|' + mood + '|' + Wd + '|' + (view === 'hier' && hereCam ? hereCam.pos.map(v => v.toFixed(2)).join(',') : '') + '|' + JSON.stringify(K.state3d ? K.state3d() : {});
     if (cache.has(key)) return cache.get(key);
-    let c = null, how = 'own';
+    let c = null, how = 'own', gpuTrouble = false;
+    // 0) Lichtsammler (fotorealistisch, gleicher 3D-Kontext) – fertig benotet
+    try { const r = await renderPhoto(view, mood, Wd, Hd, onStep, onPreview, isLive, ultra); if (r === null && isLive && !isLive()) return null; if (r && r.c) { onStep && onStep(4); const res = { canvas: r.c, how: r.how, frames: r.frames }; cache.set(key, res); if (cache.size > 12) cache.delete(cache.keys().next().value); return res; } }
+    catch (e) { const m = String(e && e.message || e); gpuTrouble = /photo-(lost|stall)/.test(m); if (gpuTrouble) { try { window.PelPhoto && window.PelPhoto.markWeak && window.PelPhoto.markWeak(); } catch (e2) { } } if (!/photo-off/.test(m)) console.info('Echtoptik: Lichtsammler nicht möglich – einfachere Darstellung (' + m + ')'); }
+    if (ultra) throw new Error('ultra');
+    // Grafikkarte überlastet oder zurückgesetzt: nichts Schweres mehr nachschieben (kein zweiter 3D-Kontext) – nur das Bild der Planer-Ansicht
+    // (kein Zugriff mehr auf die Grafikkarte – sie kann noch beschäftigt sein, jeder Auslese-Befehl würde die Seite anhalten)
+    if (gpuTrouble) {
+      if (photoPrev && photoPrev.width) { c = document.createElement('canvas'); c.width = Wd; c.height = Hd; const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(photoPrev, 0, 0, Wd, Hd); how = 'photo-lite'; }
+      else if (startShot) { try { c = await imgToCanvas(startShot); how = 'main'; } catch (e) { c = null; } }
+      if (!c) throw new Error('gpu'); onStep && onStep(4); return { canvas: how === 'main' ? grade(c, 1) : c, how };
+    }
     // 1) eigene Kamera (zweite 3D-Instanz) – nutzt renderHQ der Engine, wenn vorhanden
     if (mob) { try { const r = await renderMain(view, mood, Wd, Hd, onStep); c = r.c; how = r.how; } catch (e) { c = null; } }
     if (!c) { try { const r = await renderOwn(view, mood, Wd, Hd, onStep); c = r.c; how = r.how; } catch (e) { c = null; } }
@@ -692,6 +820,7 @@
     send: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 10l14-6.5-4.5 14-2.8-5.2zM9.7 12.3L17 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
     game: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 7.5h8a4 4 0 0 1 3.9 4.9l-.6 2.4a2 2 0 0 1-3.4.9L12 13.5H8l-1.9 2.2a2 2 0 0 1-3.4-.9l-.6-2.4A4 4 0 0 1 6 7.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.5 10v2.4M5.3 11.2h2.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="13.6" cy="10.4" r=".9" fill="currentColor"/><circle cx="15.2" cy="12" r=".9" fill="currentColor"/></svg>',
     moon: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15.5 12.5A6.5 6.5 0 0 1 7.5 4.5a6.5 6.5 0 1 0 8 8z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+    spark: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.5l1.7 5.1 5.3 1.9-5.3 1.9L10 16.5l-1.7-5.1L3 9.5l5.3-1.9z" fill="currentColor"/><path d="M16 13.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z" fill="currentColor" opacity=".7"/></svg>',
   };
   function build() {
     el = document.createElement('div'); el.className = 'kpr'; el.hidden = true; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-labelledby', 'kpr-t'); el.setAttribute('data-lenis-prevent', '');
@@ -711,6 +840,7 @@
   </nav>
   <div class="kpr-body">
     <section class="kpr-p kpr-foto" id="kpr-p-foto" role="tabpanel" aria-labelledby="kpr-tab-foto" data-p="foto">
+      <div class="kpr-fgrid">
       <div class="kpr-stage" data-stage>
         <div class="kpr-r3d" data-r3d aria-hidden="true"></div>
         <canvas class="kpr-live" data-live aria-hidden="true"></canvas>
@@ -720,18 +850,22 @@
         <div class="kpr-rtp" data-rtp hidden><span class="kpr-rtl"><b data-rtpt>Licht wird berechnet</b><small data-rtps></small></span><span class="kpr-bar"><i data-rtpb></i></span></div>
         <div class="kpr-bgrt" data-bgrt hidden>
           <span class="kpr-bgth"><canvas data-bgthumb width="132" height="83"></canvas><i class="kpr-bgsc" aria-hidden="true"></i></span>
-          <span class="kpr-bgi"><b data-bgtt>Echtoptik wird berechnet</b><small data-bgts>Licht, Spiegelungen, Schatten – wie ein echtes Foto. Sie können weiterklicken.</small></span>
+          <span class="kpr-bgi"><b data-bgtt>Ultra-Qualität wird berechnet</b><small data-bgts>Echte Lichtwege, Spiegelungen, Schatten. Sie können weiterklicken – oder eine Runde spielen.</small></span>
           <span class="kpr-bgr" aria-hidden="true"><svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="19" class="kpr-bgr0"/><circle cx="22" cy="22" r="19" class="kpr-bgr1" data-bgring/></svg><i data-bgtime>…</i></span>
-          <button type="button" class="kpr-bgg" data-game-open>${ICO.game}<span>Mini-Spiel</span></button>
+          <button type="button" class="kpr-bgg" data-game-open>${ICO.game}<span>Spielen</span></button>
         </div>
         <div class="kpr-load" data-load><div class="kpr-pre" data-pre></div><div class="kpr-lc"><div class="kpr-build" data-build aria-hidden="true"></div><div class="kpr-lcap"><b data-lt>Ihre Küche wird gebaut</b><small data-lstep>Raum wird vermessen</small><span class="kpr-bar"><i data-lbar></i></span></div></div></div>
-        <div class="kpr-game" data-game hidden></div>
         <p class="kpr-err" data-ferr hidden></p>
       </div>
+      <div class="kpr-views" role="group" aria-label="Blickwinkel – antippen zum Wechseln">
+        <p class="kpr-vh">Blickwinkel</p>
+        ${VIEWS.map(([k, n]) => `<button type="button" class="kpr-view" data-view="${k}" aria-pressed="false"${VTIP[k] ? ` title="${VTIP[k]}"` : ''}><span class="kpr-vth"><i class="kpr-vpi" aria-hidden="true">${VICO[k]}</i><img alt="" data-vth="${k}" hidden></span><b>${n}</b></button>`).join('')}
+        <button type="button" class="kpr-view kpr-vsu" data-sucher title="Blickwinkel selbst wählen – wie durch den Sucher einer Kamera"><span class="kpr-vth"><i class="kpr-vpi" aria-hidden="true">${VICO.sucher}</i></span><b>Sucher<small>selbst wählen</small></b></button>
+      </div>
+      </div>
       <div class="kpr-fbar">
-        <div class="kpr-seg" role="group" aria-label="Blickwinkel">${VIEWS.map(([k, n]) => `<button type="button" data-view="${k}"${k === 'hier' ? ' title="Genau so, wie Sie die Küche gerade im Planer gedreht haben"' : k === 'oben' ? ' title="Draufsicht wie ein 3D-Grundriss"' : ''}>${n}</button>`).join('')}</div>
         <button type="button" class="kpr-chip" data-mood aria-pressed="false">${ICO.moon}<span>Abendlicht</span></button>
-        <button type="button" class="kpr-chip kpr-gchip" data-game-open>${ICO.game}<span>Küche einräumen</span></button>
+        <button type="button" class="kpr-chip kpr-uchip" data-ultra>${ICO.spark}<span>Ultra-Qualität</span></button>
         <span class="kpr-sp"></span>
         <button type="button" class="kpr-btn kpr-ghost" data-save-foto>${ICO.dl}<span>Bild speichern</span></button>
       </div>
@@ -767,11 +901,13 @@
     el.addEventListener('click', e => {
       if (e.target.closest('[data-x]')) return close();
       const t = e.target.closest('[data-tab]'); if (t) return setTab(t.dataset.tab);
-      const v = e.target.closest('[data-view]'); if (v) { view = v.dataset.view; syncChips(); return showFoto(); }
+      if (e.target.closest('[data-sucher]')) return sucher();
+      const v = e.target.closest('[data-view]'); if (v) { if (v.dataset.view === view && lastFoto) return; view = v.dataset.view; syncChips(); return showFoto(); }
       if (e.target.closest('[data-mood]')) { mood = mood === 'tag' ? 'abend' : 'tag'; syncChips(); return showFoto(); }
       const md = e.target.closest('[data-mode]'); if (md) { mode = md.dataset.mode; syncChips(); return renderSheet(true); }
       if (e.target.closest('[data-save-foto]')) return saveFoto();
-      if (e.target.closest('[data-game-open]')) return Game.open();
+      if (e.target.closest('[data-ultra]')) return startUltra();
+      if (e.target.closest('[data-game-open]')) return Game.open({ title: 'Ultra-Qualität wird berechnet', sub: 'Echte Lichtwege, Spiegelungen und Schatten.', onShow: url => { if (url) swapTo(url, 'rt'); } });
       if (e.target.closest('[data-note-go]')) { hideNote(); if (tab !== 'foto') setTab('foto'); else showFoto(); return; }
       if (e.target.closest('[data-note-x]')) return hideNote();
       if (e.target.closest('[data-save-plan]')) return savePlan();
@@ -803,26 +939,31 @@
     $$('[data-tab]', el).forEach(b => { const on = b.dataset.tab === t; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; if (on && focus) b.focus(); });
     $$('[data-p]', el).forEach(p => { const on = p.dataset.p === t; if (on) { p.hidden = false; if (!RMO && prev !== t) { p.classList.remove('kpr-in'); void p.offsetWidth; p.classList.add('kpr-in'); } } else p.hidden = true; });
     moveInk(); $('.kpr-body', el).scrollTop = 0;
-    if (t === 'foto') showFoto(); if (t === 'plan') renderSheet(true); if (t === 'inst') renderInst(true); if (t === 'liste') renderList();
+    if (t === 'foto') { makeThumbs(); showFoto(); } if (t === 'plan') renderSheet(true); if (t === 'inst') renderInst(true); if (t === 'liste') renderList();
   }
   function subLine() { return `${pd.formName} · Raum ${m2(pd.room.w)} × ${m2(pd.room.d)} m · Arbeitshöhe ${pd.ah} cm`; }
 
   /* ---------- Echtoptik ---------- */
   const STEPS = ['', 'Raum und Materialien werden aufgebaut', 'Licht wird gesetzt', 'Kamera richtet sich aus', 'Feinschliff in Echtoptik'];
   // Schnellbild sofort (mit Bau-Animation), Echtoptik rechnet im Hintergrund weiter – mit Restzeit, Live-Vorschau und Meldung
-  let bgJob = null, firstFoto = true, noteT = 0;
+  let bgJob = null, firstFoto = true, noteT = 0, fotoBusy = false, startShot = null, photoPrev = null;
   const rtKey = (v, m) => 'rt|' + v + '|' + m + '|' + (v === 'hier' && hereCam ? hereCam.pos.map(x => x.toFixed(2)).join(',') : '') + '|' + JSON.stringify(KPo().state3d ? KPo().state3d() : {});
   const fmtT = s => s >= 60 ? `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')} min` : `${Math.max(1, Math.round(s))} s`;
   function hideNote() { const n = $('[data-note]', el); if (!n || n.hidden) return; n.classList.remove('on'); clearTimeout(noteT); setTimeout(() => { n.hidden = true; }, 350); }
   function showNote(url) { const n = $('[data-note]', el); if (!n) return; $('[data-nthumb]', n).style.backgroundImage = `url(${url})`; n.hidden = false; void n.offsetWidth; n.classList.add('on'); clearTimeout(noteT); noteT = setTimeout(hideNote, 12000); }
-  function setBadge(how) { const b = $('[data-badge]', el); if (!b) return; if (!how) { b.hidden = true; return; } b.hidden = false; b.className = 'kpr-badge ' + (how === 'rt' ? 'rt' : 'q'); b.innerHTML = how === 'rt' ? '<i></i>Echtoptik · fotorealistisch' : '<i></i>Schnellansicht' + (bgJob && !bgJob.done ? ' · Echtoptik folgt' : ''); }
+  function setBadge(how) {
+    const b = $('[data-badge]', el); if (!b) return; if (!how) { b.hidden = true; return; } b.hidden = false;
+    const pend = bgJob && !bgJob.done, photo = /^photo/.test(how);
+    b.className = 'kpr-badge ' + (how === 'rt' || how === 'ultra' || how === 'photo-ultra' ? 'rt' : photo ? (pend ? 'q' : 'rt') : 'q');
+    b.innerHTML = how === 'rt' ? '<i></i>Ultra-Qualität · Raytracing' : how === 'ultra' || how === 'photo-ultra' ? '<i></i>Ultra-Qualität' : photo ? '<i></i>Echtoptik' + (pend ? ' · Ultra-Qualität folgt' : '') : '<i></i>Schnellansicht' + (pend ? ' · Echtoptik folgt' : '');
+  }
   function abortBg() { if (bgJob && !bgJob.done) { bgJob.aborted = true; } bgJob = null; const p = el && $('[data-bgrt]', el); if (p) { p.classList.remove('on'); p.hidden = true; } }
   function startBg(v, m) {
     const key = rtKey(v, m); if (bgJob && bgJob.key === key && !bgJob.aborted) return bgJob;
     abortBg();
     const job = bgJob = { key, v, m, aborted: false, done: false, t0: performance.now(), tS: 0, f: 0, cam: hereCam ? JSON.parse(JSON.stringify(hereCam)) : null };
     const pill = $('[data-bgrt]', el), th = $('[data-bgthumb]', el), ring = $('[data-bgring]', el), tt = $('[data-bgtime]', el), tl = $('[data-bgtt]', el);
-    pill.hidden = false; pill.classList.remove('done'); void pill.offsetWidth; pill.classList.add('on'); tl.textContent = 'Echtoptik wird berechnet'; tt.textContent = '…'; ring.style.strokeDashoffset = 119.4; th.getContext('2d').clearRect(0, 0, th.width, th.height); pill.classList.add('prep');
+    pill.hidden = false; pill.classList.remove('done'); void pill.offsetWidth; pill.classList.add('on'); tl.textContent = 'Ultra-Qualität wird berechnet'; tt.textContent = '…'; ring.style.strokeDashoffset = 119.4; th.getContext('2d').clearRect(0, 0, th.width, th.height); pill.classList.add('prep');
     const live = () => !job.aborted && bgJob === job;
     const prev = rtChain; let release; rtChain = new Promise(x => release = x);
     job.p = (async () => {
@@ -832,23 +973,27 @@
           if (!live()) return; if (!job.tS) { job.tS = performance.now(); pill.classList.remove('prep'); }
           job.f = f; ring.style.strokeDashoffset = (119.4 * (1 - f)).toFixed(1);
           const el2 = (performance.now() - job.tS) / 1000, rest = f > .02 ? el2 / f * (1 - f) : null; tt.textContent = rest == null ? '…' : 'noch ' + fmtT(rest);
-          tl.textContent = `Echtoptik ${Math.round(f * 100)} %`; try { th.getContext('2d').drawImage(cv, 0, 0, th.width, th.height); } catch (e) { }
+          tl.textContent = `Ultra-Qualität ${Math.round(f * 100)} %`; try { th.getContext('2d').drawImage(cv, 0, 0, th.width, th.height); } catch (e) { }
+          if (Game.isOpen()) Game.progress(f, cv, rest);
         }, live, job.cam);
         if (!r || !live()) return null;
         cache.set(key, r); if (cache.size > 12) cache.delete(cache.keys().next().value);
         return r;
-      } catch (e) { console.warn('Echtoptik-Raytracing nicht möglich – Schnellansicht bleibt', e); return null; }
+      } catch (e) { console.info('Echtoptik: Raytracing auf diesem Gerät zu langsam bzw. nicht möglich – die Schnellansicht bleibt (' + (e && e.message || e) + ')'); return null; }
       finally { release(); }
     })();
     job.p.then(r => {
       job.done = true; if (!live()) return;
-      if (!r) { pill.classList.remove('on'); setTimeout(() => { pill.hidden = true; }, 400); setBadge('q'); const b = $('[data-badge]', el); if (b) b.innerHTML = '<i></i>Schnellansicht'; return; }
+      if (!r) { pill.classList.remove('on'); setTimeout(() => { pill.hidden = true; }, 400); setBadge(el.dataset.how || 'q'); if (Game.isOpen()) { if (tab === 'foto' && view === v && mood === m) showFoto({ ultra: true }); else Game.fail(); } return; }
       const url = r.canvas.toDataURL('image/jpeg', .92);
-      pill.classList.add('done'); tl.textContent = 'Echtoptik fertig'; tt.textContent = '✓'; ring.style.strokeDashoffset = 0;
+      pill.classList.add('done'); tl.textContent = 'Ultra-Qualität fertig'; tt.textContent = '✓'; ring.style.strokeDashoffset = 0;
       setTimeout(() => { pill.classList.remove('on'); setTimeout(() => { pill.hidden = true; }, 400); }, 1600);
       const sameView = tab === 'foto' && view === v && mood === m && !el.hidden;
-      if (sameView && !Game.isOpen()) swapTo(url, 'rt');
-      else { job.url = url; showNote(url); }
+      job.url = url;
+      if (Game.isOpen()) Game.done(url);
+      else if (sameView) swapTo(url, 'rt');
+      else showNote(url);
+      syncUltra();
     });
     return job;
   }
@@ -858,42 +1003,87 @@
     x.src = url; const go = () => { x.classList.add('on', 'flash'); setTimeout(() => { img.src = url; img.classList.add('on'); x.classList.remove('on', 'flash'); setBadge(how); }, 1100); };
     if (x.decode) x.decode().then(go, go); else go();
   }
-  async function showFoto() {
+  async function showFoto(opt = {}) {
+    const ultra = !!opt.ultra;
     const tok = ++renderTok, load = $('[data-load]', el), img = $('[data-img]', el), bar = $('[data-lbar]', el), ls = $('[data-lstep]', el), err = $('[data-ferr]', el), pre = $('[data-pre]', el), lt = $('[data-lt]', el);
     err.hidden = true; hideNote();
     const rtOK = rtSupported(), kRT = rtKey(view, mood);
     // schon fertig berechnet? → direkt zeigen
-    if (rtOK && cache.has(kRT)) { abortBg(); const r = cache.get(kRT); load.hidden = true; const url = r.canvas.toDataURL('image/jpeg', .92); img.src = url; lastFoto = url; el.dataset.how = 'rt'; img.classList.add('on'); setBadge('rt'); return; }
+    if (!ultra && rtOK && cache.has(kRT)) { abortBg(); const r = cache.get(kRT); load.hidden = true; const url = r.canvas.toDataURL('image/jpeg', .92); img.src = url; lastFoto = url; el.dataset.how = 'rt'; img.classList.add('on'); setBadge('rt'); syncUltra(); return; }
     if (rtOK && bgJob && bgJob.key !== kRT) abortBg();
-    const withBuild = firstFoto && !RMO; firstFoto = false;
-    load.hidden = false; load.classList.remove('out'); img.classList.remove('on'); setBadge(null);
-    try { const k3 = KPo().k3d && KPo().k3d(); if (k3 && k3.snapshot && !lastFoto) pre.style.backgroundImage = `url(${k3.snapshot()})`; else if (lastFoto) pre.style.backgroundImage = `url(${lastFoto})`; } catch (e) { }
+    const withBuild = firstFoto && !RMO && !ultra; firstFoto = false;
+    load.hidden = false; load.classList.remove('out'); setBadge(null);
+    if (!ultra) img.classList.remove('on');
+    // Startbild der Planer-Ansicht: klein und im Hintergrund kodiert (blockiert nicht) – dient auch als Ersatz, falls die Grafik streikt
+    try { const k3 = KPo().k3d && KPo().k3d(); if (lastFoto) pre.style.backgroundImage = `url(${lastFoto})`; else if (k3 && k3.snapshotAsync) k3.snapshotAsync(960).then(u => { if (!u) return; if (startShot) try { URL.revokeObjectURL(startShot); } catch (e) { } startShot = u; if (tok === renderTok && !lastFoto) pre.style.backgroundImage = `url(${u})`; }); else if (k3 && k3.snapshot) pre.style.backgroundImage = `url(${k3.snapshot()})`; } catch (e) { }
     const build = $('[data-build]', el); let fx = null;
     if (withBuild) { try { fx = BuildFX.mount(build, getPlan(), { fast: !isMob() }); load.classList.add('kpr-lbuild'); } catch (e) { fx = null; } } else { build.innerHTML = ''; load.classList.remove('kpr-lbuild'); }
     const BSTEPS = ['Raum wird vermessen', 'Schränke kommen an die Wand', 'Arbeitsplatte wird aufgelegt', 'Geräte werden eingebaut', 'Licht an – Kamera richtet sich aus'];
-    lt.textContent = withBuild ? 'Ihre Küche wird gebaut' : 'Neue Ansicht wird berechnet';
+    lt.textContent = ultra ? 'Ultra-Qualität wird vorbereitet' : withBuild ? 'Ihre Küche wird gebaut' : 'Neue Ansicht wird berechnet';
     const step = i => { if (tok !== renderTok) return; ls.textContent = withBuild ? BSTEPS[Math.min(4, Math.round(i))] : (STEPS[i] || STEPS[2]); bar.style.width = (i / 4 * 100) + '%'; };
     step(.4);
     const t0 = performance.now(), live = $('[data-live]', el), rtp = $('[data-rtp]', el);
     live.classList.remove('on'); rtp.hidden = true;
+    // Bau-Animation darf zu Ende laufen; danach sieht man das Foto sich „entwickeln“
+    const minT = withBuild && fx ? fx.dur : RMO ? 0 : 450;
+    let shown = false, lastCv = null;
+    const reveal = () => { if (shown || tok !== renderTok) return; shown = true; live.classList.add('on'); load.classList.add('out'); setTimeout(() => { if (tok === renderTok && shown) { load.hidden = true; if (fx) fx.destroy(); } }, 700); rtp.hidden = false; rtp.classList.toggle('ultra', ultra); };
+    // Natan 17.10.: Dauert das Echtfoto länger, geht das Mini-Spiel auf (fertig → Spiel geht von selbst aus bzw. fragt nach)
+    let lastF2 = 0; clearTimeout(showFoto.gT);
+    if (!ultra && !RMO) showFoto.gT = setTimeout(() => { if (tok !== renderTok || Game.isOpen() || el.hidden || tab !== 'foto') return; if (lastF2 > .6) return; Game.open({ title: 'Ihr Echtfoto entsteht', sub: 'Spielen Sie solange eine Runde.', onShow: () => { } }); }, Math.max(minT + 900, 6500));
+    const onPrev = (f, cv, n) => {
+      if (tok !== renderTok) return;
+      lastCv = cv; lastF2 = f; photoPrev = cv;
+      try { if (live.width !== cv.width || live.height !== cv.height) { live.width = cv.width; live.height = cv.height; } live.getContext('2d').drawImage(cv, 0, 0); } catch (e) { return; }
+      $('[data-rtpt]', el).textContent = ultra ? 'Ultra-Qualität – Licht wird gesammelt' : 'Licht wird gesammelt';
+      $('[data-rtps]', el).textContent = `${Math.round(f * 100)} % · ${n} Lichtdurchgänge`;
+      $('[data-rtpb]', el).style.width = Math.round(f * 100) + '%';
+      if (Game.isOpen()) Game.progress(f, cv);
+      if (performance.now() - t0 >= minT) reveal(); else if (!reveal.t) reveal.t = setTimeout(() => { reveal.t = 0; if (tok === renderTok) reveal(); }, minT - (performance.now() - t0));
+    };
     try {
-      const r = await renderView(view, mood, step);
+      fotoBusy = true; photoPrev = null;
+      const r = await renderView(view, mood, step, onPrev, () => tok === renderTok, ultra).finally(() => { fotoBusy = false; });
+      clearTimeout(reveal.t); reveal.t = 0; clearTimeout(showFoto.gT); setTimeout(makeThumbs, 300);
+      if (tok !== renderTok || !r) return;
+      const min = minT - (performance.now() - t0); if (min > 0 && !shown) { step(4); await wait(min); }
       if (tok !== renderTok) return;
-      const minT = withBuild && fx ? fx.dur : RMO ? 0 : 500, min = minT - (performance.now() - t0); if (min > 0) { step(4); await wait(min); }
-      if (tok !== renderTok) return;
-      const url = r.canvas.toDataURL('image/jpeg', .92); img.src = url; lastFoto = url; el.dataset.how = r.how;
+      const url = r.canvas.toDataURL('image/jpeg', .93);
+      if (ultra && Game.isOpen()) { Game.done(url); lastFoto = url; el.dataset.how = r.how; img.src = url; img.classList.add('on'); live.classList.remove('on'); rtp.hidden = true; load.hidden = true; setBadge('ultra'); syncUltra(); return; }
+      if (shown && !ultra) { img.classList.add('on'); swapTo(url, r.how); } else { img.src = url; }
+      lastFoto = url; el.dataset.how = r.how;
+      if (!ultra && Game.isOpen()) Game.done(url);
       await (img.decode ? img.decode().catch(() => { }) : Promise.resolve());
       if (tok !== renderTok) return;
       if (fx) fx.finish();
-      img.classList.add('on'); load.classList.add('out'); setTimeout(() => { if (tok === renderTok) { load.hidden = true; if (fx) fx.destroy(); } }, fx ? 900 : 700);
-      // Echtoptik im Hintergrund – man kann solange weiterklicken
-      if (rtOK) { const job = startBg(view, mood); setBadge('q'); if (job && job.done && job.url && view === job.v && mood === job.m) swapTo(job.url, 'rt'); }
-      else setBadge(null);
+      img.classList.add('on'); load.classList.add('out'); live.classList.remove('on'); rtp.hidden = true;
+      setTimeout(() => { if (tok === renderTok) { load.hidden = true; if (fx) fx.destroy(); } }, fx ? 900 : 700);
+      if (ultra) { setBadge('ultra'); syncUltra(); return; }
+      // PC: Raytracing rechnet im Hintergrund weiter – man kann solange weiterklicken
+      if (rtOK) { const job = startBg(view, mood); setBadge(r.how); if (job && job.done && job.url && view === job.v && mood === job.m) swapTo(job.url, 'rt'); }
+      else setBadge(r.how);
+      syncUltra();
     } catch (e) {
-      if (tok !== renderTok) return; load.hidden = true; if (fx) fx.destroy(); err.hidden = false; err.textContent = 'Das Bild in Echtoptik konnte auf diesem Gerät nicht berechnet werden. Der Maßplan und die Übersicht stehen trotzdem bereit.';
+      clearTimeout(reveal.t); reveal.t = 0; clearTimeout(showFoto.gT);
+      if (tok !== renderTok) return; load.hidden = true; live.classList.remove('on'); rtp.hidden = true; if (fx) fx.destroy();
+      if (Game.isOpen()) Game.fail(ultra ? 'Ultra-Qualität ist auf diesem Gerät nicht möglich' : 'Echtoptik ist auf diesem Gerät gerade nicht möglich', ultra && lastFoto ? 'Ihr Echtoptik-Bild bleibt erhalten.' : 'Maßplan und Übersicht stehen bereit.');
+      if (ultra && lastFoto) { setBadge(el.dataset.how); return; }
+      err.hidden = false; err.textContent = 'Das Bild in Echtoptik konnte auf diesem Gerät nicht berechnet werden. Der Maßplan und die Übersicht stehen trotzdem bereit.';
     }
   }
-
+  // Ultra-Qualität: PC → Raytracing (echte Lichtwege), Handy → Lichtsammler mit vielen Durchgängen. Dazu das Wartezeit-Spiel.
+  function startUltra() {
+    if (tab !== 'foto') setTab('foto');
+    const rtOK = rtSupported();
+    Game.open({ title: 'Ihr Ultra-Bild entsteht', sub: rtOK ? 'Licht, Spiegelungen und Schatten werden Strahl für Strahl berechnet.' : 'Tausende Lichtwege werden gesammelt – wie bei einer Langzeitbelichtung.', onShow: url => { if (url) swapTo(url, rtOK ? 'rt' : 'ultra'); } });
+    if (rtOK) {
+      let job = bgJob && bgJob.key === rtKey(view, mood) ? bgJob : null;
+      if (job && job.done && !job.url) { abortBg(); job = null; }   // Raytracing war auf diesem Gerät nicht möglich → Lichtsammler-Ultra
+      else { job = startBg(view, mood); if (job && job.done && job.url) Game.done(job.url); if (job && !(job.done && !job.url)) return; }
+    }
+    showFoto({ ultra: true });
+  }
+  function syncUltra() { const b = el && $('[data-ultra]', el); if (!b) return; const how = el.dataset.how || ''; const done = how === 'rt' || how === 'photo-ultra' || how === 'ultra'; b.classList.toggle('done', done); b.querySelector('span').textContent = done ? 'Ultra-Qualität ✓' : 'Ultra-Qualität'; }
   /* ---------- Bau-Animation: Ihre Küche entsteht isometrisch aus dem eigenen Plan ---------- */
   function isoScene(pd) {
     const W = pd.room.w, D = pd.room.d, kw = pd.kw || [], flip = kw.includes('E') && !kw.includes('W');
@@ -987,94 +1177,33 @@
     return { svg, mount };
   })();
 
-  /* ---------- Mini-Spiel „Küche einräumen“ – die fünf Zonen einer guten Küche ---------- */
+  /* ---------- Wartezeit-Spiel „Schnippeljagd“ (assets/kp-game.js – wird erst bei Bedarf geladen) ---------- */
   const Game = (() => {
-    const ZN = { vorrat: 'Vorrat', geschirr: 'Geschirr', spuele: 'Spülen', vorbereiten: 'Vorbereiten', kochen: 'Kochen' };
-    const ITEMS = [
-      { k: 'teller', n: 'Teller & Gläser', z: ['geschirr'], i: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5"/>', tip: 'Geschirr gehört direkt neben die Spülmaschine – ausräumen, ohne einen Schritt zu gehen.' },
-      { k: 'topf', n: 'Töpfe & Pfannen', z: ['kochen'], i: '<path d="M4 10h16v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z"/><path d="M2 10h20M9 7h6"/>', tip: 'Töpfe in breite Auszüge unter oder neben dem Kochfeld – vom Schrank auf die Platte in einer Bewegung.' },
-      { k: 'gewuerz', n: 'Gewürze', z: ['kochen', 'vorbereiten'], i: '<path d="M8 8h8v11a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2z"/><path d="M9 4h6v4H9z"/>', tip: 'Gewürze im schmalen Auszug neben dem Kochfeld: griffbereit, aber nicht direkt im Dampf.' },
-      { k: 'messer', n: 'Messer & Brett', z: ['vorbereiten'], i: '<path d="M4 18L15 7l3 3L8 20z"/><path d="M15 7l3-3"/>', tip: 'Die beste Arbeitsfläche liegt zwischen Spüle und Kochfeld – mindestens 60, ideal 90 cm frei.' },
-      { k: 'muell', n: 'Mülltrenner', z: ['spuele'], i: '<path d="M6 7h12l-1 13H7z"/><path d="M4 7h16M10 4h4"/>', tip: 'Der Mülltrenner sitzt unter der Spüle: Schalen direkt vom Brett in den Eimer.' },
-      { k: 'vorrat', n: 'Nudeln & Konserven', z: ['vorrat'], i: '<rect x="5" y="6" width="6" height="14" rx="1.5"/><rect x="13" y="10" width="6" height="10" rx="1.5"/>', tip: 'Vorräte in den Hochschrank mit Innenauszügen – alles im Blick, nichts verschwindet hinten.' },
-      { k: 'putz', n: 'Spülmittel', z: ['spuele'], i: '<path d="M9 9h6l1 11H8z"/><path d="M11 4h2v5h-2zM13 5h3"/>', tip: 'Spülmittel und Schwämme unter die Spüle – mit Kindersicherung, wenn Kleine im Haus sind.' },
-    ];
-    let host = null, st = null;
-    const isOpen = () => !!(host && !host.hidden);
-    function open() {
-      if (!el) return; if (tab !== 'foto') setTab('foto');
-      host = $('[data-game]', el); const r = BuildFX.svg(getPlan(), { fast: true }); st = { done: new Set(), pick: null, zones: r.zones, vb: r.vb, score: 0, tries: 0 };
-      const pin = (k, p) => `<button type="button" class="kpr-gz" data-gz="${k}" style="left:${((p[0] - r.vb[0]) / r.vb[2] * 100).toFixed(2)}%;top:${((p[1] - r.vb[1]) / r.vb[3] * 100).toFixed(2)}%"><i></i><span>${ZN[k]}</span></button>`;
-      host.innerHTML = `<div class="kpr-gw"><header class="kpr-gh"><b>Räumen Sie Ihre Küche ein</b><small>Ziehen Sie jedes Teil in seine Zone – oder antippen und dann die Zone antippen.</small><span class="kpr-gs" data-gscore>0 / ${ITEMS.length}</span><button type="button" class="kpr-gx" data-gclose aria-label="Spiel schließen">${ICO.x}</button></header>
-        <div class="kpr-gstage"><div class="kpr-gart">${r.html.replace('class="kpr-iso"', 'class="kpr-iso go done still"')}${Object.keys(ZN).map(k => st.zones[k] ? pin(k, st.zones[k]) : '').join('')}</div></div>
-        <p class="kpr-gtip" data-gtip aria-live="polite">Fünf Zonen, kurze Wege: So planen Profis eine Küche, in der man gern kocht.</p>
-        <div class="kpr-gtray">${ITEMS.map(it => `<button type="button" class="kpr-gi" data-gi="${it.k}"><svg viewBox="0 0 24 24" aria-hidden="true">${it.i}</svg><span>${it.n}</span></button>`).join('')}</div></div>`;
-      host.hidden = false; void host.offsetWidth; host.classList.add('on');
-      host.onclick = onClick; host.onpointerdown = onDown;
-      requestAnimationFrame(() => requestAnimationFrame(() => { fit(); spread(); }));
-      if (!onRz) { onRz = () => { if (isOpen()) { fit(); spreadReset(); } }; addEventListener('resize', onRz); }
+    let p = null, want = false, lastCv = null, lastF = 0, pendDone, pendFail = false;
+    const G = () => window.KPGame || null;
+    const load = () => {
+      if (G()) return Promise.resolve(G()); if (p) return p;
+      const v = (($$('script').find(s => /kp-result\.js/.test(s.src)) || {}).src || '').split('v=')[1] || '1';
+      return p = new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'assets/kp-game.js?v=' + v; s.onload = () => G() ? res(G()) : rej(new Error('game')); s.onerror = () => { p = null; rej(new Error('game-load')); }; document.head.appendChild(s); });
+    };
+    function open(o = {}) {
+      if (!el) return; want = true; pendDone = undefined; pendFail = false;
+      load().then(K => {
+        if (!want) return;
+        K.open({ host: $('.kpr-win', el), acc: (KPo() && KPo().acc) || '#c0673f', title: o.title, sub: o.sub, progressCanvas: lastCv, bgUrl: lastFoto,
+          onShow: url => { want = false; if (o.onShow) o.onShow(url); }, onClose: () => { want = false; } });
+        if (lastCv) K.progress(lastF, lastCv);
+        if (pendDone !== undefined) K.done(pendDone); else if (pendFail) K.fail();
+      }).catch(() => { want = false; });
     }
-    let onRz = null;
-    // Bild so groß wie möglich, ohne Verzerrung – die Punkte sitzen in Prozent darauf
-    function fit() { const gs = $('.kpr-gstage', host), art = $('.kpr-gart', host); if (!gs || !art) return; const ratio = st.vb[2] / st.vb[3], W = gs.clientWidth, H = gs.clientHeight; art.style.width = Math.max(120, Math.min(W, H * ratio)) + 'px'; art.style.height = Math.max(80, Math.min(W, H * ratio) / ratio) + 'px'; }
-    function spreadReset() { const art = $('.kpr-gart', host); if (!art) return; $$('.kpr-gz', art).forEach(b => { const k = b.dataset.gz, p = st.zones[k]; b.style.left = ((p[0] - st.vb[0]) / st.vb[2] * 100).toFixed(2) + '%'; b.style.top = ((p[1] - st.vb[1]) / st.vb[3] * 100).toFixed(2) + '%'; }); spread(); }
-    // Zonen-Punkte, die zu dicht liegen, auseinanderschieben – mit Linie zum eigentlichen Ort
-    function spread() {
-      const art = $('.kpr-gart', host); if (!art) return; const R = art.getBoundingClientRect(), pins = $$('.kpr-gz', art); if (!R.width) return;
-      const P = pins.map(b => { const x = parseFloat(b.style.left) / 100 * R.width, y = parseFloat(b.style.top) / 100 * R.height; return { b, x0: x, y0: y, x, y, w: b.offsetWidth || 80, h: b.offsetHeight || 40 }; });
-      for (let it = 0; it < 80; it++) { let moved = false;
-        for (let i = 0; i < P.length; i++) for (let j = i + 1; j < P.length; j++) { const a = P[i], c = P[j], dx = c.x - a.x, dy = c.y - a.y, nx = (a.w + c.w) / 2 + 6 - Math.abs(dx), ny = (a.h + c.h) / 2 + 4 - Math.abs(dy); if (nx > 0 && ny > 0) { moved = true; if (ny < nx) { const m = ny / 2 * (dy >= 0 ? 1 : -1); a.y -= m; c.y += m; } else { const m = nx / 2 * (dx >= 0 ? 1 : -1); a.x -= m; c.x += m; } } }
-        P.forEach(p => { p.x = Math.max(p.w / 2, Math.min(R.width - p.w / 2, p.x)); p.y = Math.max(p.h / 2, Math.min(R.height - p.h / 2, p.y)); }); if (!moved) break; }
-      let ln = '', an = '';
-      P.forEach(p => { p.b.style.left = (p.x / R.width * 100).toFixed(2) + '%'; p.b.style.top = (p.y / R.height * 100).toFixed(2) + '%'; if (Math.hypot(p.x - p.x0, p.y - p.y0) > 14) { ln += `<line x1="${p.x0.toFixed(1)}" y1="${p.y0.toFixed(1)}" x2="${p.x.toFixed(1)}" y2="${p.y.toFixed(1)}"/>`; an += `<i class="kpr-ga" style="left:${p.x0.toFixed(1)}px;top:${p.y0.toFixed(1)}px"></i>`; } });
-      const old = $('.kpr-gl', art); if (old) old.remove(); $$('.kpr-ga', art).forEach(x => x.remove());
-      art.insertAdjacentHTML('afterbegin', `<svg class="kpr-gl" aria-hidden="true">${ln}</svg>${an}`);
-    }
-    function close() { if (!host) return; host.classList.remove('on'); setTimeout(() => { host.hidden = true; host.innerHTML = ''; }, 300); if (bgJob && bgJob.done && bgJob.url && view === bgJob.v && mood === bgJob.m) { swapTo(bgJob.url, 'rt'); hideNote(); } }
-    function tip(t, cls) { const p = $('[data-gtip]', host); p.className = 'kpr-gtip ' + (cls || ''); p.textContent = t; }
-    function judge(k, z) {
-      const it = ITEMS.find(x => x.k === k), b = $(`[data-gi="${k}"]`, host), zb = $(`[data-gz="${z}"]`, host); if (!it || !b || st.done.has(k)) return;
-      st.tries++;
-      if (it.z.includes(z)) {
-        st.done.add(k); st.score++; b.classList.add('ok'); b.disabled = true; zb.classList.remove('bad'); void zb.offsetWidth; zb.classList.add('good'); zb.dataset.n = (+zb.dataset.n || 0) + 1;
-        tip('✓ ' + it.tip, 'ok'); $('[data-gscore]', host).textContent = `${st.score} / ${ITEMS.length}`;
-        if (st.score === ITEMS.length) setTimeout(win, 900);
-      } else { b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); zb.classList.remove('bad'); void zb.offsetWidth; zb.classList.add('bad'); tip(`Fast! ${it.n} gehören eher zu „${ZN[it.z[0]]}“ – denken Sie an kurze Wege.`, 'no'); }
-      st.pick = null; $$('.kpr-gi.sel', host).forEach(x => x.classList.remove('sel'));
-    }
-    function win() {
-      const perfect = st.tries === ITEMS.length, w = document.createElement('div'); w.className = 'kpr-gwin';
-      let conf = ''; for (let i = 0; i < 26; i++) conf += `<i style="--x:${(Math.random() * 2 - 1).toFixed(2)};--r:${Math.round(Math.random() * 360)}deg;--d:${(Math.random() * .3).toFixed(2)}s;--c:${['#c0673f', '#e8b04b', '#7d8a4e', '#4f7fa8', '#b4467e'][i % 5]}"></i>`;
-      w.innerHTML = `<div class="kpr-gconf" aria-hidden="true">${conf}</div><b>${perfect ? 'Perfekt eingeräumt!' : 'Alles an seinem Platz!'}</b><p>${perfect ? 'Ohne einen Fehlgriff – Sie denken wie ein Küchenplaner.' : `Geschafft in ${st.tries} Zügen.`} Genau so planen wir mit Ihnen: jede Zone dort, wo sie Wege spart.</p><div><button type="button" data-gagain>Nochmal</button><button type="button" data-gclose class="pri">${bgJob && bgJob.done && bgJob.url ? 'Echtoptik ansehen' : 'Zurück zum Bild'}</button></div>`;
-      $('.kpr-gw', host).appendChild(w);
-    }
-    function onClick(e) {
-      if (e.target.closest('[data-gclose]')) return close();
-      if (e.target.closest('[data-gagain]')) return open();
-      if (drag && drag.moved) return;
-      const gi = e.target.closest('[data-gi]'); if (gi && !gi.disabled) { const was = gi.classList.contains('sel'); $$('.kpr-gi.sel', host).forEach(x => x.classList.remove('sel')); st.pick = was ? null : gi.dataset.gi; if (!was) { gi.classList.add('sel'); tip(`Und wohin mit „${ITEMS.find(x => x.k === st.pick).n}“? Zone antippen.`); } return; }
-      const gz = e.target.closest('[data-gz]'); if (gz && st.pick) judge(st.pick, gz.dataset.gz);
-    }
-    let drag = null;
-    function onDown(e) {
-      const gi = e.target.closest('[data-gi]'); if (!gi || gi.disabled || e.button > 0) return;
-      const r = gi.getBoundingClientRect(); drag = { k: gi.dataset.gi, x0: e.clientX, y0: e.clientY, moved: false, ghost: null, src: gi, ox: e.clientX - r.left, oy: e.clientY - r.top };
-      const mv = ev => {
-        if (!drag) return; const dx = ev.clientX - drag.x0, dy = ev.clientY - drag.y0;
-        if (!drag.moved && Math.hypot(dx, dy) < 7) return;
-        if (!drag.moved) { drag.moved = true; const g = drag.src.cloneNode(true); g.classList.add('kpr-gghost'); g.style.width = r.width + 'px'; document.body.appendChild(g); drag.ghost = g; drag.src.classList.add('lift'); }
-        ev.preventDefault(); drag.ghost.style.transform = `translate(${ev.clientX - drag.ox}px,${ev.clientY - drag.oy}px) rotate(${Math.max(-8, Math.min(8, dx / 30))}deg)`;
-        const z = zoneAt(ev.clientX, ev.clientY); $$('.kpr-gz', host).forEach(b => b.classList.toggle('hot', b === z));
-      };
-      const up = ev => {
-        removeEventListener('pointermove', mv); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
-        const d = drag; if (!d) return; if (d.ghost) d.ghost.remove(); d.src.classList.remove('lift'); $$('.kpr-gz.hot', host).forEach(b => b.classList.remove('hot'));
-        if (d.moved) { const z = zoneAt(ev.clientX, ev.clientY); if (z) judge(d.k, z.dataset.gz); else tip('Ziehen Sie das Teil auf einen der Punkte in der Küche.'); setTimeout(() => { drag = null; }, 0); } else drag = null;
-      };
-      addEventListener('pointermove', mv, { passive: false }); addEventListener('pointerup', up); addEventListener('pointercancel', up);
-    }
-    function zoneAt(x, y) { let best = null, bd = 64; $$('.kpr-gz', host).forEach(b => { const r = b.getBoundingClientRect(), d = Math.hypot(r.left + r.width / 2 - x, r.top + 12 - y); if (d < bd) { bd = d; best = b; } }); return best; }
-    return { open, close, isOpen };
+    return {
+      open,
+      isOpen: () => want && (!G() || G().isOpen()),
+      progress: (f, cv, rest) => { lastCv = cv || lastCv; lastF = f; if (G() && G().isOpen()) G().progress(f, cv, rest); },
+      done: url => { if (G() && G().isOpen()) G().done(url); else pendDone = url; },
+      fail: (t1, t2) => { if (G() && G().isOpen()) G().fail(t1, t2); else pendFail = true; },
+      close: () => { want = false; if (G()) G().close(true); },
+    };
   })();
 
   async function saveFoto() {
@@ -1374,29 +1503,44 @@
     inst: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 3v4.2M15.5 3v4.2M6 7.2h12v3.8a6 6 0 0 1-12 0zM12 17v4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     list: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6.5h12M8 12h12M8 17.5h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="4.2" cy="6.5" r="1.2" fill="currentColor"/><circle cx="4.2" cy="12" r="1.2" fill="currentColor"/><circle cx="4.2" cy="17.5" r="1.2" fill="currentColor"/></svg>',
     img: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v11M7.5 10l4.5 4.5 4.5-4.5M4 17.5v3h16v-3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    cmp: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15M17 4.5v15M3.5 8L7 4.5 10.5 8M13.5 16l3.5 3.5 3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     save: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>',
   };
   const SKEY = 'kp-meine-kuechen:' + location.pathname;
   const lsGet = () => { try { return JSON.parse(localStorage.getItem(SKEY) || '[]') || []; } catch (e) { return []; } };
   const lsSet = a => { try { localStorage.setItem(SKEY, JSON.stringify(a)); return true; } catch (e) { return false; } };
-  function thumb() { try { const k3 = KPo() && KPo().k3d && KPo().k3d(); const src = k3 && k3.capture ? k3.capture(480, 300) : null; if (!src) return null; const c = document.createElement('canvas'); c.width = 240; c.height = 150; c.getContext('2d').drawImage(src, 0, 0, 240, 150); return c.toDataURL('image/jpeg', .72); } catch (e) { return null; } }
+  function thumb() { try { const k3 = KPo() && KPo().k3d && KPo().k3d(); const src = k3 && k3.capture ? k3.capture(720, 450) : null; if (!src) return null; const c = document.createElement('canvas'); c.width = 360; c.height = 225; c.getContext('2d').drawImage(src, 0, 0, 360, 225); return c.toDataURL('image/jpeg', .76); } catch (e) { return null; } }
   function saveKitchen(btn) {
     const K = KPo(); if (!K || !K.hash) return; const h = K.hash(); if (!/^#k=/.test(h)) return;
     const link = location.href.split('#')[0] + h, list = lsGet().filter(x => x.h !== h);
-    const pd0 = getPlan(), name = pd0 ? `${pd0.formName} · ${m2(pd0.room.w)} × ${m2(pd0.room.d)} m` : 'Mein Entwurf';
-    list.unshift({ h, t: Date.now(), name, img: thumb() }); while (list.length > 8) list.pop();
+    const pd0 = getPlan(), sub = pd0 ? `${pd0.formName} · ${m2(pd0.room.w)} × ${m2(pd0.room.d)} m` : 'Mein Entwurf';
+    const old = lsGet().find(x => x.h === h), nums = lsGet().map(x => +((/^Variante (\d+)$/.exec(x.name || '') || [])[1] || 0)), name = old ? old.name : `Variante ${Math.max(0, ...nums) + 1}`;
+    list.unshift({ h, t: Date.now(), name, sub, img: thumb() }); while (list.length > 8) list.pop();
     let ok = lsSet(list); if (!ok) { list.forEach(x => { x.img = null; }); ok = lsSet(list); }
     try { navigator.clipboard && navigator.clipboard.writeText(link).catch(() => { }); } catch (e) { }
-    if (K.toast) K.toast(ok ? 'Gespeichert ✓ – unter „Meine Küchen“ jederzeit wieder da. Der Link ist kopiert.' : 'Der Link ist kopiert – damit kommen Sie jederzeit zu diesem Entwurf zurück.');
+    if (K.toast) K.toast(ok ? `Gespeichert als „${esc(name)}“ ✓ – unter „Meine Küchen“ jederzeit wieder da${list.length > 1 ? ' und mit anderen Varianten vergleichbar' : ''}. Der Link ist kopiert.` : 'Der Link ist kopiert – damit kommen Sie jederzeit zu diesem Entwurf zurück.');
     if (btn) { btn.classList.add('done'); setTimeout(() => btn.classList.remove('done'), 1800); }
     renderMine();
   }
   function renderMine() {
-    const box = $('[data-kpx-mine]'); if (!box) return; const list = lsGet();
-    box.hidden = !list.length; if (!list.length) return;
+    const box = $('[data-kpx-mine]'); if (!box) return; const list = lsGet(), K = KPo(), cur = K && K.hash ? K.hash() : '';
+    box.hidden = !list.length; if (!list.length) { box.classList.remove('open'); return; }
     box.querySelector('[data-kpx-mn]').textContent = list.length;
-    box.querySelector('[data-kpx-ml]').innerHTML = list.map((x, i) => `<li><button type="button" data-kpx-load="${i}">${x.img ? `<img src="${x.img}" alt="">` : '<i></i>'}<span><b>${esc(x.name)}</b><small>${new Date(x.t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })} · ${new Date(x.t).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</small></span></button><button type="button" class="x" data-kpx-del="${i}" aria-label="Entwurf löschen">×</button></li>`).join('');
+    const cb = box.querySelector('[data-kpx-cmp]'); if (cb) cb.hidden = list.length + (/^#k=/.test(cur) && !list.some(x => x.h === cur) ? 1 : 0) < 2;
+    box.querySelector('[data-kpx-ml]').innerHTML = list.map((x, i) => `<li${x.h === cur ? ' class="kpx-now"' : ''}><button type="button" data-kpx-load="${i}">${x.img ? `<img src="${x.img}" alt="">` : '<i></i>'}<span><b>${esc(x.name)}</b><small>${esc(x.sub || '')}${x.sub ? ' · ' : ''}${new Date(x.t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}, ${new Date(x.t).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}${x.h === cur ? ' · <em>offen</em>' : ''}</small></span></button><button type="button" class="x rn" data-kpx-ren="${i}" aria-label="„${esc(x.name)}“ umbenennen">✎</button><button type="button" class="x" data-kpx-del="${i}" aria-label="„${esc(x.name)}“ löschen">×</button></li>`).join('');
   }
+  function renameKitchen(i) {
+    const li = $$('[data-kpx-ml] li')[i], x = lsGet()[i]; if (!li || !x) return;
+    const lb = li.querySelector('[data-kpx-load]'); if (!lb) return;
+    // Eingabefeld nicht im Knopf (Firefox fokussiert dort nicht) – der Knopf wird kurz durch ein Feld ersetzt
+    const wrap = document.createElement('div'); wrap.className = 'kpx-ren'; wrap.innerHTML = (x.img ? `<img src="${x.img}" alt="">` : '<i></i>');
+    const inp = document.createElement('input'); inp.className = 'kpx-rin'; inp.value = x.name; inp.maxLength = 40; inp.setAttribute('aria-label', 'Neuer Name für diese Küche'); wrap.appendChild(inp);
+    lb.replaceWith(wrap); inp.focus(); inp.select();
+    let done = false; const fin = ok2 => { if (done) return; done = true; const v = inp.value.trim().slice(0, 40); if (ok2 && v) { const L = lsGet(); if (L[i]) { L[i].name = v; lsSet(L); } } renderMine(); };
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); fin(true); } else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fin(false); } });
+    inp.addEventListener('blur', () => fin(true)); inp.addEventListener('click', e => e.stopPropagation());
+  }
+
   function addBar() {
     const build = $('.kp-build'), stage = $('.kp-stage'); if (!build || !stage || $('.kpx')) return;
     const bar = document.createElement('div'); bar.className = 'kpx'; bar.setAttribute('role', 'toolbar'); bar.setAttribute('aria-label', 'Ihre Küche ansehen und speichern');
@@ -1410,7 +1554,7 @@
   <button type="button" data-kpx="img">${XI.img}<span>Bild speichern</span></button>
   <button type="button" data-kpx="save">${XI.save}<span>Küche speichern</span></button>
 </div>
-<div class="kpx-mine" data-kpx-mine hidden><button type="button" class="kpx-mt" data-kpx-mt aria-expanded="false">Meine Küchen <i data-kpx-mn>0</i></button><ul data-kpx-ml></ul></div>`;
+<div class="kpx-mine" data-kpx-mine hidden><button type="button" class="kpx-mt" data-kpx-mt aria-expanded="false">Meine Küchen <i data-kpx-mn>0</i></button><div class="kpx-mp"><div class="kpx-mh"><b>Meine Küchen</b><button type="button" class="kpx-cmp" data-kpx-cmp hidden>${XI.cmp}<span>Vergleichen</span></button><button type="button" class="kpx-mx" data-kpx-mx aria-label="Liste schließen">×</button></div><ul data-kpx-ml></ul><p class="kpx-mf">Gespeichert in diesem Browser · ✎ benennt um</p></div></div>`;
     build.insertBefore(bar, build.firstChild);
     bar.addEventListener('click', e => {
       const b = e.target.closest('[data-kpx]');
@@ -1423,13 +1567,95 @@
         if (k === 'img') { const s2 = $('[data-ksend="img"]'); if (s2) s2.click(); return; }
         if (k === 'save') return saveKitchen(b);
       }
-      const mt = e.target.closest('[data-kpx-mt]'); if (mt) { const box = mt.parentNode, on = !box.classList.contains('open'); box.classList.toggle('open', on); mt.setAttribute('aria-expanded', on); return; }
+      if (e.target.closest('[data-kpx-mx]') || e.target.matches('.kpx-mine.open')) { const box = $('[data-kpx-mine]'); box.classList.remove('open'); box.querySelector('[data-kpx-mt]').setAttribute('aria-expanded', 'false'); return; }
+      const mt = e.target.closest('[data-kpx-mt]'); if (mt) { const box = mt.parentNode, on = !box.classList.contains('open'); if (on) { const ts = document.querySelector('.kp-toast.on'); if (ts) ts.classList.remove('on'); } box.classList.toggle('open', on); mt.setAttribute('aria-expanded', on); return; }
       const ld = e.target.closest('[data-kpx-load]'); if (ld) { const x = lsGet()[+ld.dataset.kpxLoad]; const K = KPo(); if (x && K && K.applyPlan) { try { K.applyPlan(decodeURIComponent(escape(atob(x.h.slice(3).replace(/-/g, '+').replace(/_/g, '/'))))); if (K.toast) K.toast(`„${x.name}“ ist wieder da.`); } catch (er) { } } $('[data-kpx-mine]').classList.remove('open'); return; }
+      const rn = e.target.closest('[data-kpx-ren]'); if (rn) { renameKitchen(+rn.dataset.kpxRen); return; }
+      if (e.target.closest('[data-kpx-cmp]')) { const box = $('[data-kpx-mine]'); box.classList.remove('open'); box.querySelector('[data-kpx-mt]').setAttribute('aria-expanded', 'false'); openCompare(); return; }
       const dl = e.target.closest('[data-kpx-del]'); if (dl) { const list = lsGet(); list.splice(+dl.dataset.kpxDel, 1); lsSet(list); renderMine(); return; }
     });
+    document.addEventListener('pointerdown', e => { const box = $('[data-kpx-mine]'); if (box && box.classList.contains('open') && !box.contains(e.target)) { box.classList.remove('open'); box.querySelector('[data-kpx-mt]').setAttribute('aria-expanded', 'false'); } });
+    document.addEventListener('keydown', e => { const box = $('[data-kpx-mine]'); if (e.key === 'Escape' && box && box.classList.contains('open') && !(cmpEl && !cmpEl.hidden)) { box.classList.remove('open'); const t = box.querySelector('[data-kpx-mt]'); t.setAttribute('aria-expanded', 'false'); t.focus(); } });
     renderMine();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(addBar, 0)); else setTimeout(addBar, 0);
 
-  window.KPResult = { open, close, plan: () => getPlan(), version: '1.1' };
+  /* ---------- Varianten vergleichen (Natan 17.10.): zwei Entwürfe nebeneinander – Bild, echte Zahlen, wer wo vorne liegt ---------- */
+  const unbH = h => decodeURIComponent(escape(atob(h.slice(3).replace(/-/g, '+').replace(/_/g, '/'))));
+  let cmpEl = null, cmpBack = null; const cmpPick = [0, 1];
+  function cmpSources() {
+    const K = KPo(), cur = K && K.hash ? K.hash() : '', list = lsGet(), out = [];
+    if (/^#k=/.test(cur) && !list.some(x => x.h === cur)) out.push({ name: 'Aktueller Entwurf', sub: 'noch nicht gespeichert', h: cur, now: 1 });
+    list.forEach(x => out.push({ name: x.name, sub: x.sub || '', h: x.h, img: x.img, now: x.h === cur }));
+    return out;
+  }
+  const CROWS = [
+    ['free', 'Freie Arbeitsfläche', 'hi', v => m2(v) + ' m'], ['best', 'Größte Fläche am Stück', 'hi', v => m2(v) + ' m'],
+    ['vol', 'Stauraum', 'hi', v => String(v).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' l'], ['upLen', 'Hängeschränke', 'hi', v => m2(v) + ' m'],
+    ['tallW', 'Hochschränke', 'hi', v => m2(v) + ' m'], ['tri', 'Laufweg Spüle · Herd · Kühlschrank', 'tri', v => v == null ? '–' : m2(v) + ' m'],
+    ['nCab', 'Schränke', 'none', v => String(v)], ['ah', 'Arbeitshöhe', 'none', v => v + ' cm'], ['warn', 'Offene Hinweise', 'lo', v => String(v)],
+  ];
+  function cmpWin(k, mode, a, b) {
+    const x = a[k], y = b[k]; if (mode === 'none' || x == null || y == null) return -1;
+    if (mode === 'hi') return Math.abs(x - y) <= Math.max(3, Math.max(x, y) * .03) ? -1 : x > y ? 0 : 1;
+    if (mode === 'lo') return x === y ? -1 : x < y ? 0 : 1;
+    const ia = x >= 360 && x <= 800, ib = y >= 360 && y <= 800; if (ia !== ib) return ia ? 0 : 1; return Math.abs(x - y) < 30 ? -1 : x < y ? 0 : 1;   // Arbeitsdreieck: ideal 3,6–8 m, kürzer ist besser
+  }
+  function openCompare() {
+    const src = cmpSources(); if (src.length < 2) { const K = KPo(); if (K && K.toast) K.toast('Speichern Sie zuerst zwei Varianten – dann können Sie sie hier vergleichen.'); return; }
+    if (!cmpEl) {
+      cmpEl = document.createElement('div'); cmpEl.className = 'kpv'; cmpEl.hidden = true; cmpEl.setAttribute('role', 'dialog'); cmpEl.setAttribute('aria-modal', 'true'); cmpEl.setAttribute('aria-labelledby', 'kpv-t');
+      cmpEl.innerHTML = `<div class="kpv-bg" data-kpv-x></div><div class="kpv-box" tabindex="-1">
+  <div class="kpv-top"><p class="kpv-k">${XI.cmp}<span>Vergleich</span></p><h2 id="kpv-t">Welche Variante passt besser?</h2><button type="button" class="kpv-x" data-kpv-x aria-label="Vergleich schließen">×</button></div>
+  <div class="kpv-heads">${[0, 1].map(i => `<div class="kpv-col" data-col="${i}"><label class="kpv-sel"><span class="sr">Variante ${i + 1} wählen</span><select data-kpv-sel="${i}"></select></label><figure class="kpv-img" data-kpv-img="${i}"></figure><p class="kpv-sub" data-kpv-sb="${i}"></p></div>`).join('<div class="kpv-vs" aria-hidden="true"><i>VS</i></div>')}</div>
+  <p class="kpv-sum" data-kpv-sum aria-live="polite"></p>
+  <div class="kpv-rows" data-kpv-rows></div>
+  <div class="kpv-sec"><p class="kpv-l">Geräte</p><div class="kpv-two" data-kpv-dev></div></div>
+  <div class="kpv-sec"><p class="kpv-l">Farben &amp; Material</p><div class="kpv-two" data-kpv-sty></div></div>
+  <div class="kpv-acts">${[0, 1].map(i => `<button type="button" class="kpv-load" data-kpv-load="${i}"></button>`).join('')}</div>
+  <p class="kpv-fine">Stauraum geschätzt aus Schrankgrößen und -art · Laufweg: Summe der Wege zwischen Spüle, Kochfeld und Kühlschrank (ideal 3,6–8 m).</p>
+</div>`;
+      document.body.appendChild(cmpEl);
+      cmpEl.addEventListener('click', e => { if (e.target.closest('[data-kpv-x]')) return closeCompare(); const ld = e.target.closest('[data-kpv-load]'); if (ld) return loadCmp(+ld.dataset.kpvLoad); });
+      cmpEl.addEventListener('change', e => { const sl = e.target.closest('[data-kpv-sel]'); if (!sl) return; const i = +sl.dataset.kpvSel; cmpPick[i] = +sl.value; if (cmpPick[0] === cmpPick[1]) cmpPick[1 - i] = (cmpPick[i] + 1) % cmpSources().length; renderCompare(true); });
+      cmpEl.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); closeCompare(); } if (e.key === 'Tab') { const f = $$('button:not([hidden]), select', cmpEl).filter(x => x.offsetParent !== null); if (!f.length) return; const a = f[0], z = f[f.length - 1]; if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); } else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); } } });
+    }
+    // Vorauswahl: aktueller Entwurf gegen die zuletzt gespeicherte Variante – sonst die zwei neuesten
+    cmpPick[0] = 0; cmpPick[1] = 1;
+    cmpBack = document.activeElement; cmpEl.hidden = false; document.documentElement.classList.add('kpv-on');
+    requestAnimationFrame(() => { cmpEl.classList.add('in'); const bx = $('.kpv-box', cmpEl); bx && bx.focus({ preventScroll: true }); });
+    renderCompare(false);
+  }
+  function closeCompare() { if (!cmpEl || cmpEl.hidden) return; cmpEl.classList.remove('in'); document.documentElement.classList.remove('kpv-on'); setTimeout(() => { cmpEl.hidden = true; }, 220); if (cmpBack && cmpBack.focus) try { cmpBack.focus({ preventScroll: true }); } catch (e) { } }
+  function loadCmp(i) {
+    const src = cmpSources()[cmpPick[i]], K = KPo(); if (!src || !K || !K.applyPlan) return;
+    try { K.applyPlan(unbH(src.h)); closeCompare(); if (K.toast) K.toast(`„${esc(src.name)}“ ist geöffnet – „Rückgängig“ führt zurück.`); } catch (e) { }
+  }
+  function renderCompare(changed) {
+    const src = cmpSources(), K = KPo(), S = [0, 1].map(i => src[cmpPick[i]] || src[i]);
+    const M = S.map(x => { try { return K && K.metricsOf ? K.metricsOf(unbH(x.h)) : null; } catch (e) { return null; } });
+    $$('[data-kpv-sel]', cmpEl).forEach((sl, i) => { sl.innerHTML = src.map((x, k) => `<option value="${k}"${k === cmpPick[i] ? ' selected' : ''}>${esc(x.name)}${x.now && !/^Aktueller/.test(x.name) ? ' (offen)' : ''}</option>`).join(''); });
+    S.forEach((x, i) => {
+      const fig = $(`[data-kpv-img="${i}"]`, cmpEl); let url = null;
+      try { const c = K && K.shot ? K.shot(unbH(x.h), 640, 400) : null; if (c) url = c.toDataURL('image/jpeg', .86); } catch (e) { url = null; }
+      url = url || x.img; fig.innerHTML = url ? `<img src="${url}" alt="3D-Ansicht: ${esc(x.name)}">` : '<span class="kpv-noimg">Kein Bild</span>'; fig.classList.remove('pop'); void fig.offsetWidth; fig.classList.add('pop');
+      $(`[data-kpv-sb="${i}"]`, cmpEl).textContent = M[i] ? `${M[i].formName} · ${m2(M[i].raum[0])} × ${m2(M[i].raum[1])} m` : (x.sub || '');
+      const lb = $(`[data-kpv-load="${i}"]`, cmpEl); lb.textContent = x.now ? `„${x.name}“ ist offen` : `„${x.name}“ öffnen`; lb.disabled = !!x.now;
+    });
+    const rows = $('[data-kpv-rows]', cmpEl);
+    if (!M[0] || !M[1]) { rows.innerHTML = '<p class="kpv-sum">Die Zahlen ließen sich nicht berechnen.</p>'; return; }
+    const pro = [[], []];
+    rows.innerHTML = CROWS.map(([k, lab, mode, fmt], r) => {
+      const a = M[0][k], b = M[1][k], w = cmpWin(k, mode, M[0], M[1]), mx = Math.max(1, a || 0, b || 0, mode === 'tri' ? 900 : 0);
+      if (w >= 0) { const d = Math.abs((a || 0) - (b || 0)); const t = k === 'tri' ? `kürzerer Laufweg (${fmt(M[w][k])} statt ${fmt(M[1 - w][k])})` : k === 'warn' ? 'weniger offene Hinweise' : k === 'vol' ? `+${fmt(d)} Stauraum` : k === 'free' ? `+${m2(d)} m Arbeitsfläche` : k === 'best' ? `+${m2(d)} m Fläche am Stück` : k === 'upLen' ? `+${m2(d)} m Hängeschränke` : `+${m2(d)} m Hochschränke`; pro[w].push(t); }
+      return `<div class="kpv-r${w >= 0 ? ' w' + w : ''}" style="--d:${r * 55}ms"><p class="kpv-rl">${lab}</p><span class="kpv-v a">${fmt(a)}${w === 0 ? '<i aria-label="vorne">▲</i>' : ''}</span><span class="kpv-bar a"><i style="--w:${(a == null ? 0 : a / mx * 100).toFixed(1)}%"></i></span><span class="kpv-bar b"><i style="--w:${(b == null ? 0 : b / mx * 100).toFixed(1)}%"></i></span><span class="kpv-v b">${w === 1 ? '<i aria-label="vorne">▲</i>' : ''}${fmt(b)}</span></div>`;
+    }).join('');
+    const nm = i => `„${esc(S[i].name)}“`;
+    $('[data-kpv-sum]', cmpEl).innerHTML = !pro[0].length && !pro[1].length ? 'Bei den Zahlen liegen beide gleichauf – entscheiden Sie nach Gefühl und Optik.' : [0, 1].filter(i => pro[i].length).map(i => `<b>${nm(i)}</b>: ${pro[i].slice(0, 3).join(' · ')}`).join('<br>');
+    const dv = M.map(m => m.geraete || []);
+    $('[data-kpv-dev]', cmpEl).innerHTML = [0, 1].map(i => `<div>${dv[i].map(g => `<span class="${dv[1 - i].includes(g) ? '' : 'only'}">${esc(g)}</span>`).join('') || '<span>–</span>'}</div>`).join('');
+    $('[data-kpv-sty]', cmpEl).innerHTML = M.map(m => `<div><span class="kpv-sw"><i style="--c:${m.frontHex || '#eee'}"></i>${esc(m.front)}</span><span class="kpv-sw"><i style="--c:${m.platteHex || '#b98a5c'}"></i>Platte ${esc(m.platte)}</span><span>Griffe ${esc(m.griffe)}</span></div>`).join('');
+    if (changed) rows.classList.remove('go'); requestAnimationFrame(() => requestAnimationFrame(() => rows.classList.add('go')));
+  }
+  window.KPResult = { open, close, plan: () => getPlan(), compare: () => openCompare(), version: '1.2' };
 })();
