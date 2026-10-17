@@ -1435,8 +1435,35 @@
     setAttach: a => { attach = a; syncAttach(); }, getAttach: () => attach,
     toSend: () => { go(3); setTimeout(() => { const c = $('[data-kpf-card]'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 120); },
     // Fertigen Plan (Hash-Format) übernehmen – ohne Neuladen, mit Rückgängig; bei Fehler bleibt der alte Entwurf
-    applyPlan: j => { const keep = P; try { des(typeof j === 'string' ? j : JSON.stringify(j)); if (!P || !P.room || !FORMS[P.form]) throw new Error('Plan ungültig'); } catch (e) { P = keep; throw e; } if (!P.cx.length && keep && keep.cx && keep.cx.length) { P.cx = keep.cx.map(c => ({ ...c })); P.cx.forEach(c => { c.s = clampCx(c, c.s); }); } { const wq = P.cx.find(c => c.t === 'wasser'); if (wq) try { moveApp(['sp'], wq); } catch (e) { } } sel = null; selOp = null; selCx = null; eqSel = null; disarm(); pop.hidden = true; openNow.clear(); xfade(); change(); renderPal(); if (K && K.view) { K.view('perspektive'); $$('[data-cam]').forEach(x => x.classList.toggle('on', x.dataset.cam === 'perspektive')); } return lastHash; },
+    applyPlan: j => { const keep = P; try { des(typeof j === 'string' ? j : JSON.stringify(j)); if (!P || !P.room || !FORMS[P.form]) throw new Error('Plan ungültig'); } catch (e) { P = keep; throw e; } if (!P.cx.length && keep && keep.cx && keep.cx.length) { P.cx = keep.cx.map(c => ({ ...c })); P.cx.forEach(c => { c.s = clampCx(c, c.s); }); const wq = P.cx.find(c => c.t === 'wasser'); if (wq) try { moveApp(['sp'], wq); } catch (e) { } } sel = null; selOp = null; selCx = null; eqSel = null; disarm(); pop.hidden = true; openNow.clear(); xfade(); change(); renderPal(); if (K && K.view) { K.view('perspektive'); $$('[data-cam]').forEach(x => x.classList.toggle('on', x.dataset.cam === 'perspektive')); } return lastHash; },
     hash: () => lastHash,
+    // KI-Planung „Entwurf ändern“: gezielte Änderungen am laufenden Entwurf – jede mit Rückgängig (Verlauf)
+    edit: {
+      walls: () => FORMS[P.form].walls.slice(), form: () => P.form, len: w => wallLen(w), ah: () => P.ah || 90,
+      ops: () => P.op.map(o => ({ id: o.id, t: o.t, wall: o.wall, s: o.s, w: o.w })),
+      cxs: () => (P.cx || []).map(c => ({ id: c.id, t: c.t, wall: c.wall, s: c.s })),
+      sink: () => { for (const w in P.rows) { const i = P.rows[w].findIndex(m => m.t === 'sp'); if (i >= 0) { const L = locate(w, i); return { wall: w, s: L.x0 + L.w / 2, w: L.w }; } } return null; },
+      room: (w, d) => { w = Math.round(Math.max(240, Math.min(800, w)) / 10) * 10; d = Math.round(Math.max(240, Math.min(700, d)) / 10) * 10; rw.value = w; rd.value = d; roomIn(); change(); return { w: P.room.w, d: P.room.d }; },
+      setAh: v => { v = Math.max(84, Math.min(106, Math.round(v))); P.ah = v; syncRoomOut(); change(); return v; },
+      op: (id, ch) => {
+        const o = opById(id); if (!o) return null;
+        if (ch.del) { P.op = P.op.filter(x => x !== o); selOp = null; selCx = null; change(); return { del: true }; }
+        if (ch.wall && WN[ch.wall]) o.wall = ch.wall;
+        if (ch.w) { const ws = OPW[o.t]; o.w = ws.reduce((b, x) => Math.abs(x - ch.w) < Math.abs(b - ch.w) ? x : b, ws[0]); if (o.w > wallLen(o.wall) - 20) o.w = ws.filter(v => v <= wallLen(o.wall) - 20).pop() || o.w; }
+        o.s = clampOp(o, ch.s != null ? ch.s : o.s); change(); return { wall: o.wall, s: o.s, w: o.w };
+      },
+      cook: () => { for (const w in P.rows) { const i = P.rows[w].findIndex(m => m.t === 'kf' || m.t === 'ko'); if (i >= 0) { const L = locate(w, i); return { wall: w, s: L.x0 + L.w / 2, w: L.w }; } } return null; },
+      addOp: (t, wall, s, w) => { if (!OPW[t] || !WN[wall]) return null; const ws = OPW[t], tw = w || (t === 'tuer' ? 90 : t === 'balkon' ? 120 : 120), ow = ws.reduce((b, x) => Math.abs(x - tw) < Math.abs(b - tw) ? x : b, ws[0]); const o = { id: uid++, t, wall, w: Math.min(ow, wallLen(wall) - 30), s: 0 }; o.s = clampOp(o, s != null ? s - o.w / 2 : (wallLen(wall) - o.w) / 2); P.op.push(o); change(); return { wall: o.wall, s: o.s, w: o.w }; },
+      cx: (t, wall, s, quiet) => {
+        if (!CXN[t] || !WN[wall]) return null; P.cx = P.cx || [];
+        let c = t === 'dose' ? null : P.cx.find(x => x.t === t); if (!c) { c = { id: uid++, t, wall, s: 0 }; P.cx.push(c); }
+        c.wall = wall; c.s = clampCx(c, s != null ? s : wallLen(wall) / 2); change();
+        let r = null; if (t === 'wasser' || t === 'herd') { r = moveApp(t === 'wasser' ? ['sp'] : ['kf', 'ko'], c); if (r.ok && !r.same) change(); }
+        return { wall: c.wall, s: c.s, moved: !!(r && r.ok && !r.same), msg: r && !r.ok ? r.msg : '' };
+      },
+      sinkTo: (wall, s) => { const r = moveApp(['sp'], { wall, s }); if (r.ok && !r.same) change(); return r; },
+      cookTo: (wall, s) => { const r = moveApp(['kf', 'ko'], { wall, s }); if (r.ok && !r.same) change(); return r; },
+    },
   };
   document.addEventListener('click', e => { const b = e.target.closest('[data-kpf-open]'); if (!b) return; e.preventDefault(); openFoto({ sample: b.hasAttribute('data-kpf-sample') }); });
 

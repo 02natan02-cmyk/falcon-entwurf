@@ -59,8 +59,22 @@
   }
 
   /* ================= 1) Text verstehen ================= */
+  // Zahlwörter und „3 auf 4 Meter“ in Ziffern bzw. „3 x 4“ übersetzen
+  const NW = { ein: 1, eins: 1, eine: 1, einen: 1, zwei: 2, drei: 3, vier: 4, fünf: 5, sechs: 6, sieben: 7, acht: 8, neun: 9, zehn: 10, elf: 11, zwölf: 12 };
+  const NWR = Object.keys(NW).sort((a, b) => b.length - a.length).join('|');
+  function normNum(t) {
+    const nv = x => NW[x] != null ? NW[x] : x;
+    t = t.replace(new RegExp(`\\b(${NWR})einhalb\\b`, 'g'), (a, w) => String(NW[w] + .5).replace('.', ','));
+    t = t.replace(/\b(ein(?:en)?\s+)?halbe[nr]?\s+meter\b/g, '0,5 meter');
+    t = t.replace(new RegExp(`\\b(${NWR}|\\d+)\\s+komma\\s+(${NWR}|\\d+)\\b`, 'g'), (a, x, y) => `${nv(x)},${nv(y)}`);
+    t = t.replace(new RegExp(`\\b(${NWR})(?=\\s*(meter|metern|m\\b|zentimeter|cm\\b|auf\\b|x\\b|bei\\b))`, 'g'), (a, w) => String(NW[w]));
+    t = t.replace(new RegExp(`\\b(auf|x|bei)\\s+(${NWR})\\b`, 'g'), (a, q, w) => `${q} ${NW[w]}`);
+    t = t.replace(/(\d+(?:[.,]\d+)?)\s*(cm|m|meter|metern)?\s+(?:auf|bei)\s+(\d+(?:[.,]\d+)?)/g, (a, x, u, y) => `${x}${u ? ' ' + u : ''} x ${y}`);
+    return t;
+  }
+  const normText = raw => normNum(' ' + String(raw || '').toLowerCase().replace(/[×*]/g, ' x ').replace(/\bmal\b/g, ' x ').replace(/ae/g, 'ä').replace(/oe/g, 'ö').replace(/ue/g, 'ü').replace(/zentimeter/g, 'cm').replace(/\s+/g, ' ') + ' ');
   function parse(raw, cur) {
-    let t = ' ' + String(raw || '').toLowerCase().replace(/[×*]/g, ' x ').replace(/\bmal\b/g, ' x ').replace(/ae/g, 'ä').replace(/oe/g, 'ö').replace(/ue/g, 'ü').replace(/\s+/g, ' ') + ' ';
+    let t = normText(raw);
     // Millimeter → Zentimeter („3200 x 2400 mm", „3.200 mm")
     t = t.replace(/(\d+(?:[.,]\d+)?)(\s*(?:mm|millimeter)\b)?(\s*x\s*)(\d+(?:[.,]\d+)?)\s*(?:mm|millimeter)\b/g, (a, n1, u1, xx, n2) => mmcm(n1) + ' cm x ' + mmcm(n2) + ' cm').replace(/(\d+(?:[.,]\d+)?)\s*(?:mm|millimeter)\b/g, (a, n) => mmcm(n) + ' cm');
     const has = re => re.test(t);
@@ -151,6 +165,9 @@
     if (has(/gro(?:ß|ss)\w*\s+fenster|bodentief|panorama/)) b.win.w = Math.max(b.win.w, 160);
     const dc = clauses.find(c => /(tür|eingang)/.test(c) && !/(balkon|terrass|schrank|glas)tür/.test(c) && wallOf(c)); if (dc) { const x = wallOf(dc); b.door.wall = /lang|kurz/.test(x) ? null : x; }
     if (has(/(balkon|terrass|garten)\w*tür|zum balkon|zur terrass|zum garten|auf die terrass/)) b.balkon = true;
+    // Anschlüsse: „Wasser kommt links aus der Wand“, „Starkstrom an der Rückwand“
+    const wc = clauses.find(c => /wasser|abfluss|abwasser/.test(c) && wallOf(c)); if (wc) b.water = { wall: wallOf(wc) };
+    const hc = clauses.find(c => /starkstrom|herdanschluss|drehstrom|400 ?v(olt)?\b/.test(c) && wallOf(c)); if (hc) b.herdcx = { wall: wallOf(hc) };
     // Stil
     const st = b.style;
     if ((m = t.match(/grifflos|ohne griff\w*|griffleiste|push.?to.?open|tip.?on/))) { st.handle = 'grifflos'; blank(m); }
@@ -222,6 +239,7 @@
     if (W.mulde) g.push('Muldenlüfter'); if (W.storage) g.push('Viel Stauraum'); if (W.noDw) g.push('Ohne Spülmaschine'); if (W.muell) g.push('Mülltrenner');
     if (W.besen) g.push('Besenschrank'); if (W.vitrine) g.push('Vitrine'); if (W.noUp) g.push('Ohne Hängeschränke'); if (W.bigSink) g.push('Große Spüle'); if (W.bigHob) g.push('Großes Kochfeld'); if (W.herd) g.push('Herd mit Backofen unten');
     if (b.balkon) g.push('Balkontür');
+    if (b.water) g.push('Wasser ' + ({ lang: 'an der langen Wand', kurz: 'an der kurzen Wand', W: 'links', E: 'rechts', S: 'gegenüber', N: 'an der Rückwand' })[b.water.wall]);
     if (b.look) g.push({ landhaus: 'Landhaus', skandi: 'Skandinavisch', dunkel: 'Elegant dunkel', modern: 'Modern' }[b.look]);
     if (st.front) g.push((FRONTS.find(f => f[1] === st.front) || ['Farbe'])[0]); if (st.wood) g.push(st.wood === 'nuss' ? 'Nussbaum' : 'Eiche-Fronten');
     if (st.handle) g.push({ grifflos: 'Grifflos', gold: 'Messinggriffe', schwarz: 'Schwarze Griffe', bar: 'Edelstahlgriffe', knopf: 'Knopfgriffe' }[st.handle]);
@@ -320,6 +338,7 @@
     if (f === 'zwei' && ww === 'S') sinkWall = 'S';
     if (opt.altSink && f === 'l') sinkWall = sinkWall === 'W' ? 'N' : 'W';
     if (opt.altSink && f === 'zwei') sinkWall = sinkWall === 'S' ? 'N' : 'S';
+    if (opt.wsink && walls.includes(opt.wsink) && (f === 'l' || f === 'zwei')) sinkWall = opt.wsink;   // Wasser bestimmt die Spülenwand
     const isl = f === 'insel' ? { w: 180, v: b.isl.v } : null;
     if (isl) { const mx = Math.min(b.isl.big ? 270 : 240, room.w - 180); isl.w = b.isl.w ? snap(ISW, b.isl.w) : (ISW.filter(v => v <= mx).pop() || 120); if (isl.w > room.w - 140) isl.w = ISW.filter(v => v <= room.w - 140).pop() || 120; }
     const talls = ['kue'], islCook = !!(isl && isl.v === 'kochfeld'), herd = !islCook && (W.herd || !!opt.herd);
@@ -379,7 +398,13 @@
     walls.forEach(w => plan.tp[w] = (w === 'N' || f === 'zwei' || W.upAll || (W.storage && f !== 'u')) ? 1 : 0);
     if (W.noUp) walls.forEach(w => plan.tp[w] = 0);
     placeOps(plan, b, ww, sinkWall);
+    // Im Raum-Schritt bestätigt: Fenster und Türen stehen genau dort
+    if (Array.isArray(b.fixOps) && b.fixOps.length) plan.op = b.fixOps.filter(o => OPW[o[0]] && ['N', 'E', 'S', 'W'].includes(o[1])).map(([t, w, s0, ow]) => { const L = wlen(plan, w), mg = t === 'fenster' ? 10 : 5, wd = Math.min(ow, L - 2 * mg); return [t, w, Math.round(clamp(s0, mg, L - wd - mg) / 5) * 5, wd]; });
+    if (b.water && ['N', 'E', 'S', 'W'].includes(b.water.wall)) plan.cx = [['wasser', b.water.wall, Math.round(b.water.s != null ? b.water.s : wlen(plan, b.water.wall) / 2)]];
     plan.s = buildStyle(b, cur);
+    // … und die Spüle rückt zum Wasser bzw. unters Fenster – nur wenn es insgesamt besser wird
+    if (plan.cx) { try { sinkToWater(plan, { wall: plan.cx[0][1], s: plan.cx[0][2] }); } catch (e) { } }
+    else if (Array.isArray(b.fixOps) && b.fixOps.length) { const fw = plan.op.find(o => o[0] === 'fenster' && plan.rw[o[1]]); if (fw) try { sinkToWater(plan, { wall: fw[1], s: fw[2] + fw[3] / 2 }); } catch (e) { } }
     if (W.mulde && Object.values(plan.rw).some(r => r.some(m => m[0] === 'kf' || m[0] === 'ko'))) plan.s.hobV = 'dd';
     // Ehrliche Hinweise: was gewünscht war, aber nicht hineinpasst
     const all = [].concat(...walls.map(w => rows[w].map(m => m[0]))), cnt = t => all.filter(x => x === t).length;
@@ -396,6 +421,29 @@
     if (b.budget) notes.push(b.budget < 10000 ? `Für ca. ${eur(b.budget)} € ist alles bewusst schlicht geplant${cnt('eb') && !W.corner ? ' (Blindecke statt Le-Mans-Auszug)' : ''} – Geräte und Fronten stimmt ${person()} mit Ihnen auf das Budget ab.` : `Ihr Budget von ca. ${eur(b.budget)} € geht mit Ihrer Anfrage mit – die genaue Kalkulation macht ${person()} mit Ihnen.`);
     return { plan, notes: notes.filter(Boolean), ctx, sinkWall, ww, opt };
   }
+  // Spüle (samt Spülmaschine daneben) an eine Stelle rücken – nur übernehmen, wenn es nicht mehr Hinweise gibt als vorher
+  const tipW = t => { let m = /Nur (\d+) cm Platz zwischen Spüle/.exec(t); if (m) return +m[1] < 30 ? 9 : 4; if (/nicht an der Wand mit dem Wasser/.test(t)) return 14; m = /Spüle steht (\d+,\d) m neben dem Wasser/.exec(t); if (m) { const v = parseFloat(m[1].replace(',', '.')); return v <= 1.2 ? 4 : v <= 2 ? 7 : 10; } return 6; };
+  const warnN = p => { try { return window.KP && KP.tipsOf ? (KP.tipsOf(p) || []).reduce((a, t) => a + tipW(t), 0) : 0; } catch (e) { return 0; } };
+  function sinkToWater(plan, tg) {
+    const ws = FORMS[plan.f].walls; if (!plan.rw[tg.wall]) return false;
+    const fw = ws.find(w => (plan.rw[w] || []).some(m => m[0] === 'sp')); if (!fw) return false;
+    const dist = p => { const sp = spans(p, tg.wall).find(x => x.t === 'sp'); return sp ? Math.abs(sp.x + sp.w / 2 - tg.s) : 1e4; };
+    let best = { rw: plan.rw, d: dist(plan), wn: warnN(plan) };
+    const r0 = plan.rw[fw], i0 = r0.findIndex(m => m[0] === 'sp'); let grp = [i0];
+    if (r0[i0 + 1] && r0[i0 + 1][0] === 'gs') grp = [i0, i0 + 1]; else if (r0[i0 - 1] && r0[i0 - 1][0] === 'gs') grp = [i0 - 1, i0];
+    const g = grp.map(i => r0[i]), n = plan.rw[tg.wall].length - (fw === tg.wall ? grp.length : 0);
+    for (let k = 0; k <= n; k++) for (const flip of grp.length > 1 ? [false, true] : [false]) {
+      const p = JSON.parse(JSON.stringify(plan)); p.rw[fw] = p.rw[fw].filter((m, i) => !grp.includes(i)); const row = p.rw[tg.wall];
+      if ((k === 0 && row[0] && M[row[0][0]].c) || (k === row.length && row.length && M[row[row.length - 1][0]].c)) continue;
+      row.splice(k, 0, ...(flip ? g.slice().reverse() : g).map(m => m.slice()));
+      let bad = false;
+      if (fw !== tg.wall) for (const w of [fw, tg.wall]) { const L = usableOf(w, { N: (p.rw.N || []).map(m => ({ t: m[0] })) }, p.f, p.r), r = fitRow(p.rw[w], L, true); if (!r) { bad = true; break; } p.rw[w] = r; }
+      if (bad || !valid(p)) continue;
+      const d = dist(p); if (d >= best.d - 1) continue; const wn = warnN(p);
+      if (wn <= best.wn) best = { rw: p.rw, d, wn };
+    }
+    if (best.rw !== plan.rw) { plan.rw = best.rw; return true; } return false;
+  }
   function mmcm(n) { const s = String(n); const v = /^\d{1,2}\.\d{3}$/.test(s) ? +s.replace('.', '') : parseFloat(s.replace(',', '.')); return Math.round(v / 10); }
   const eur = n => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   const person = () => { const p = (window.KP && KP.person) || ''; return p && p !== 'Wir' ? p : 'das Studio'; };
@@ -403,17 +451,18 @@
   function score(res, b) {
     let s = 0; const W = b.W, o = res.opt || {}, p = res.plan;
     let warns = []; try { if (window.KP && KP.tipsOf) warns = KP.tipsOf(p) || []; } catch (e) { warns = []; }
-    warns.forEach(t => { const m = /Nur (\d+) cm Platz zwischen Spüle/.exec(t); s += m ? (+m[1] < 30 ? 9 : 4) : 6; });
+    warns.forEach(t => { s += tipW(t); });
     s += res.notes.filter(n => !/^Bei dieser Wandlänge sitzt der Backofen/.test(n)).length * 5;
     if (o.noDw) s += 3;
     if (o.herd) s += 3;
-    if (o.altSink && (b.win.wall || /spüle\s+(unter|am|vor)\s+(dem\s+)?fenster/.test(b.raw || ''))) s += 3;
+    if ((o.altSink || o.wsink) && !b.water && (b.win.wall || /spüle\s+(unter|am|vor)\s+(dem\s+)?fenster/.test(b.raw || ''))) s += 3;
     if (!b.win.none && !p.op.some(x => x[0] === 'fenster')) s += 3;
     return s;
   }
   function generateBest(b, cur) {
     const W = b.W, V = [{}];
     if (b.form === 'l' || b.form === 'zwei') V.push({ altSink: 1 });
+    if (b.water && FORMS[b.form].walls.includes(b.water.wall) && (b.form === 'l' || b.form === 'zwei')) V.push({ wsink: b.water.wall });
     if (!W.herd && !W.ovenHigh && !(b.form === 'insel' && b.isl.v === 'kochfeld')) V.slice().forEach(v => V.push(Object.assign({}, v, { herd: 1 })));
     if (!W.noDw) V.slice().forEach(v => V.push(Object.assign({}, v, { noDw: 1 })));
     let best = null, bs = Infinity;
@@ -633,6 +682,26 @@
       if (!r.ok) return null; return await r.text();
     } catch (e) { return null; } finally { clearTimeout(tm); }
   }
+  function localPlanB(b, cur) {
+    let res = generateBest(b, cur);
+    if (!res && b.form !== 'l') { const b2 = JSON.parse(JSON.stringify(b)); b2.form = 'l'; b2.notes.push('Mit dieser Form passte nicht alles hinein – darum über Eck geplant.'); res = generateBest(b2, cur); }
+    if (!res) return null;
+    return { plan: res.plan, why: whyOf(res, b), notes: res.notes, got: b.got, brief: b, src: 'local' };
+  }
+  async function planB(b, text, cur) {
+    const loc = localPlanB(b, cur);
+    const items = (b.fixOps || []).map(o => `${o[0]} ${o[1]} ab ${o[2]} cm, ${o[3]} cm breit`).join('; ');
+    const raw = await askServer(`${text}\n[Vom Kunden bestätigt: Raum ${b.room.w} × ${b.room.d} cm, Form ${b.form}${items ? ', Öffnungen: ' + items : ''}${b.water ? `, Wasser ${b.water.wall} bei ${b.water.s} cm` : ''}]`, Object.assign({}, cur, { room: b.room, form: b.form }));
+    if (raw) {
+      const rp = repair(raw, b, cur);
+      if (rp && valid(rp.plan)) {
+        if ((b.fixOps || []).length) rp.plan.op = b.fixOps.map(o => o.slice());
+        if (b.water) rp.plan.cx = [['wasser', b.water.wall, b.water.s]];
+        if (valid(rp.plan)) return { plan: rp.plan, why: rp.why || (loc ? loc.why : ''), notes: [], got: b.got, src: 'server' };
+      }
+    }
+    return loc;
+  }
   let srvCount = 0;
   async function plan(text, cur) {
     const loc = localPlan(text, cur);
@@ -666,8 +735,9 @@
       if (w === 'W') { x1 = 0; y1 = D - s; x2 = 0; y2 = D - s - ow; } if (w === 'E') { x1 = W; y1 = s; x2 = W; y2 = s + ow; }
       return `<line class="kpai-op ${t}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
     }).join('');
+    const cxs = (p.cx || []).map(([t, w, s0]) => { const [x, y] = { N: [s0, 22], S: [W - s0, D - 22], W: [22, D - s0], E: [W - 22, s0] }[w] || [0, 0]; return `<circle class="kpai-cx" cx="${x}" cy="${y}" r="13"/>`; }).join('');
     const dim = `<g class="kpai-dim"><text x="${W / 2}" y="${-14}">${mtr(W)} m</text><text x="${-14}" y="${D / 2}" transform="rotate(-90 ${-14} ${D / 2})">${mtr(D)} m</text></g>`;
-    return `<svg class="kpai-plan" viewBox="${-pad} ${-pad} ${W + 2 * pad} ${D + 2 * pad}" role="img" aria-label="Grundriss des Entwurfs"><rect class="kpai-floor" x="0" y="0" width="${W}" height="${D}"/>${out.join('')}<rect class="kpai-wall" x="0" y="0" width="${W}" height="${D}"/>${ops}${dim}</svg>`;
+    return `<svg class="kpai-plan" viewBox="${-pad} ${-pad} ${W + 2 * pad} ${D + 2 * pad}" role="img" aria-label="Grundriss des Entwurfs"><rect class="kpai-floor" x="0" y="0" width="${W}" height="${D}"/>${out.join('')}<rect class="kpai-wall" x="0" y="0" width="${W}" height="${D}"/>${ops}${cxs}${dim}</svg>`;
   }
 
   /* ================= 6) Oberfläche ================= */
@@ -675,6 +745,8 @@
     spark: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z" opacity=".7"/></svg>',
     mic: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
   };
+  const EXE = 'Fenster 30 cm nach links, Raum 3,20 × 4,00 m, Wasser an der linken Wand, Spüle unters Fenster';
+  const CHIPS_E = ['Fenster 30 cm nach links', 'Fenster an die linke Wand', 'Raum 3,20 × 4,00 m', 'Wasser an der linken Wand', 'Spüle unters Fenster', 'Tür nach rechts', 'Fenster breiter', 'Arbeitshöhe 95 cm', 'Fronten in Salbei'];
   const EX = 'L-Küche, Raum 3,80 × 2,60 m, Fenster an der langen Wand, Spüle unter dem Fenster, großer Kühlschrank, Backofen auf Augenhöhe, viel Stauraum, Kochinsel wäre toll, grifflos in Sandgrau mit Eiche';
   const CHIPS_F = [['Küchenzeile', 'Küchenzeile'], ['L-Küche', 'L-Küche'], ['U-Küche', 'U-Küche'], ['Zweizeilig', 'zweizeilig'], ['Kochinsel', 'Kochinsel']];
   const CHIPS_W = [['Apothekerschrank', 'Apothekerschrank'], ['Backofen hoch', 'Backofen auf Augenhöhe'], ['Großer Kühlschrank', 'großer Kühlschrank'], ['Muldenlüfter', 'Muldenlüfter'], ['Viel Stauraum', 'viel Stauraum'], ['Mülltrenner', 'Mülltrenner'], ['Landhaus', 'Landhausstil'], ['Grifflos', 'grifflos'], ['Dunkel & elegant', 'dunkel und elegant'], ['Hell & Holz', 'weiß mit Eiche'], ['Ohne Hängeschränke', 'keine Hängeschränke']];
@@ -690,15 +762,41 @@
 <div class="kpai-box" data-lenis-prevent>
   <button type="button" class="kpai-x" data-kpai-x aria-label="Schließen">×</button>
   <section class="kpai-s on" data-s="in">
-    <p class="kpai-k">${ICO.spark}<span>KI-Planung</span></p>
-    <h2 class="kpai-h" id="kpai-t">Erzählen Sie uns von Ihrer Küche.<em>Wir planen sie ein.</em></h2>
-    <p class="kpai-p">Raum, Fenster, Wünsche, Farben – ganz in Ihren Worten. Sekunden später steht ein durchdachter Entwurf im Planer, den Sie danach nur noch nach Lust und Laune verfeinern.</p>
+    <div class="kpai-top"><p class="kpai-k">${ICO.spark}<span>KI-Planung</span></p><div class="kpai-mode" role="group" aria-label="Was möchten Sie tun?"><button type="button" data-mode="neu" class="on" aria-pressed="true">Neu planen</button><button type="button" data-mode="edit" aria-pressed="false">Entwurf ändern</button></div></div>
+    <h2 class="kpai-h" id="kpai-t"><span class="kpai-mn">Erzählen Sie uns von Ihrer Küche.<em>Wir planen sie ein.</em></span><span class="kpai-me">Was soll sich ändern?<em>Einfach sagen – wir setzen es um.</em></span></h2>
+    <p class="kpai-p"><span class="kpai-mn">Raum, Fenster, Wünsche, Farben – ganz in Ihren Worten. Zuerst prüfen wir mit Ihnen die Raummaße, dann steht ein durchdachter Entwurf im Planer, den Sie nur noch verfeinern.</span><span class="kpai-me">Fenster verschieben, Raummaße korrigieren, Wasseranschluss eintragen, Spüle unters Fenster … – Ihr Entwurf bleibt, nur das Gesagte ändert sich. Jede Änderung lässt sich rückgängig machen.</span></p>
     <div class="kpai-ta"><textarea maxlength="${MAXLEN}" rows="5" placeholder="z. B. ${esc(EX)}" aria-label="Ihre Küche in eigenen Worten"></textarea>
       <div class="kpai-tab">${SR ? `<button type="button" class="kpai-mic" aria-pressed="false">${ICO.mic}<span>Einsprechen</span></button>` : ''}<button type="button" class="kpai-ex">Beispiel einsetzen</button><span class="kpai-cnt">0 / ${MAXLEN}</span></div></div>
-    <p class="kpai-l">Form</p><div class="kpai-chips" data-g="f">${CHIPS_F.map(([n, s]) => `<button type="button" data-ph="${esc(s)}">${n}</button>`).join('')}</div>
-    <p class="kpai-l">Wünsche – einfach antippen</p><div class="kpai-chips">${CHIPS_W.map(([n, s]) => `<button type="button" data-ph="${esc(s)}">${n}</button>`).join('')}</div>
-    <div class="kpai-go"><button type="button" class="kpai-btn" data-kpai-run>${ICO.spark}<span>Küche planen lassen</span></button><p class="kpai-fine">Kostenlos und unverbindlich. Ihre Beschreibung wird nur für diesen Entwurf verwendet – bitte keine persönlichen Daten eingeben.</p></div>
+    <div class="kpai-mn"><p class="kpai-l">Form</p><div class="kpai-chips" data-g="f">${CHIPS_F.map(([n, s]) => `<button type="button" data-ph="${esc(s)}">${n}</button>`).join('')}</div>
+    <p class="kpai-l">Wünsche – einfach antippen</p><div class="kpai-chips">${CHIPS_W.map(([n, s]) => `<button type="button" data-ph="${esc(s)}">${n}</button>`).join('')}</div></div>
+    <div class="kpai-me"><p class="kpai-l">Beispiele – antippen und anpassen</p><div class="kpai-chips">${CHIPS_E.map(s => `<button type="button" data-ph="${esc(s)}">${esc(s)}</button>`).join('')}</div></div>
+    <div class="kpai-go"><button type="button" class="kpai-btn" data-kpai-run>${ICO.spark}<span class="kpai-mn">Weiter: Raum prüfen</span><span class="kpai-me">Änderung ausführen</span></button><p class="kpai-fine">Kostenlos und unverbindlich. Ihre Beschreibung wird nur für diesen Entwurf verwendet – bitte keine persönlichen Daten eingeben.</p></div>
     <p class="kpai-err" aria-live="polite"></p>
+  </section>
+  <section class="kpai-s" data-s="room">
+    <p class="kpai-k">${ICO.spark}<span>Schritt 1 von 2 · Raum prüfen</span></p>
+    <h2 class="kpai-h">Stimmt Ihr Raum so?<em>Erst die Maße, dann die Küche.</em></h2>
+    <p class="kpai-p kpai-rq" data-rq></p>
+    <div class="kpai-rg2">
+      <div class="kpai-rbox"><div class="kpai-rsvg" data-rsvg></div><div class="kpai-rmenu" data-rmenu hidden></div><p class="kpai-rhelp">Wand antippen: Fenster, Tür oder Wasser genau dort einsetzen · Symbole anfassen und verschieben</p></div>
+      <div class="kpai-rctl">
+        <div class="kpai-dim"><span>Breite<small>Rückwand (oben)</small></span><div class="kpai-stp"><button type="button" data-rd="w-" aria-label="Breite 10 cm weniger">−</button><label><input data-rin="w" inputmode="decimal" aria-label="Breite in Metern"><i>m</i></label><button type="button" data-rd="w+" aria-label="Breite 10 cm mehr">+</button></div></div>
+        <div class="kpai-dim"><span>Tiefe<small>Seitenwände</small></span><div class="kpai-stp"><button type="button" data-rd="d-" aria-label="Tiefe 10 cm weniger">−</button><label><input data-rin="d" inputmode="decimal" aria-label="Tiefe in Metern"><i>m</i></label><button type="button" data-rd="d+" aria-label="Tiefe 10 cm mehr">+</button></div></div>
+        <button type="button" class="kpai-rrot" data-rrot>⟳ Raum drehen <small>Küche an eine andere Wand</small></button>
+        <p class="kpai-l">Form</p><div class="kpai-chips sm" data-rform>${Object.keys(FN).map(k => `<button type="button" data-rf="${k}">${FN[k]}</button>`).join('')}</div>
+        <ul class="kpai-ritems" data-ritems></ul>
+        <ul class="kpai-rwarn" data-rwarn></ul>
+      </div>
+    </div>
+    <div class="kpai-go row"><button type="button" class="kpai-btn" data-kpai-plan>${ICO.spark}<span>Passt – Küche planen</span></button><button type="button" class="kpai-ghost" data-kpai-back>Text ändern</button></div>
+    <p class="kpai-fine">Nur zum Ausprobieren? Einfach „Passt“ tippen – alles lässt sich später im Planer ändern.</p>
+  </section>
+  <section class="kpai-s" data-s="done">
+    <p class="kpai-k">${ICO.spark}<span>Erledigt</span></p>
+    <h2 class="kpai-h">Ihr Entwurf ist angepasst.<em>Schauen Sie mal.</em></h2>
+    <ul class="kpai-dl" data-dl></ul>
+    <div class="kpai-go row"><button type="button" class="kpai-btn" data-kpai-x>${ICO.spark}<span>Ansehen</span></button><button type="button" class="kpai-ghost" data-kpai-more>Noch etwas ändern</button><button type="button" class="kpai-ghost" data-kpai-undo>Rückgängig</button></div>
+    <p class="kpai-fine" data-dfine></p>
   </section>
   <section class="kpai-s" data-s="run" aria-live="polite">
     <div class="kpai-sk" aria-hidden="true"><svg viewBox="0 0 320 230"><defs><pattern id="kpai-g" width="16" height="16" patternUnits="userSpaceOnUse"><path d="M16 0H0V16" fill="none" stroke="currentColor" stroke-opacity=".09"/></pattern></defs>
@@ -739,12 +837,24 @@
       if (e.target.closest('[data-kpai-run]')) return run();
       if (e.target.closest('[data-kpai-back]')) return show('in');
       if (e.target.closest('[data-kpai-apply]')) return apply();
+      const md = e.target.closest('[data-mode]'); if (md) return setMode(md.dataset.mode, true);
+      if (e.target.closest('[data-kpai-plan]')) return planConfirmed();
+      if (e.target.closest('[data-kpai-more]')) { setMode('edit'); const ta2 = el.querySelector('textarea'); ta2.value = ''; ta2.dispatchEvent(new Event('input')); return show('in'); }
+      if (e.target.closest('[data-kpai-undo]')) { undoEdits(); return; }
+      const rd = e.target.closest('[data-rd]'); if (rd && rc) { const k = rd.dataset.rd[0], st = rd.dataset.rd[1] === '+' ? 10 : -10; setDim(k, rc[k] + st); return; }
+      const rf = e.target.closest('[data-rf]'); if (rf && rc) { rc.form = rf.dataset.rf; rc.menu = null; renderRoom(); return; }
+      if (e.target.closest('[data-rrot]') && rc) { rotateRoom(); return; }
+      const rx = e.target.closest('[data-rx]'); if (rx && rc) { rc.items.splice(+rx.dataset.rx, 1); rc.menu = null; renderRoom(); return; }
+      const ra = e.target.closest('[data-ra]'); if (ra && rc) { roomMenuAct(ra.dataset.ra); return; }
     });
     el.addEventListener('keydown', e => {
       if (e.key === 'Escape') { e.preventDefault(); close(); }
       if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && el.querySelector('[data-s="in"].on')) run();
-      if (e.key === 'Tab') { const f = [...el.querySelectorAll('.kpai-s.on button, .kpai-s.on textarea, .kpai-x')].filter(x => x.offsetParent); if (!f.length) return; const a = f[0], z = f[f.length - 1]; if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); } else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); } }
+      if (e.key === 'Enter' && e.target.matches && e.target.matches('[data-rin]')) { e.preventDefault(); e.target.blur(); }
+      if (e.key === 'Tab') { const f = [...el.querySelectorAll('.kpai-s.on button, .kpai-s.on textarea, .kpai-s.on input, .kpai-x')].filter(x => x.offsetParent); if (!f.length) return; const a = f[0], z = f[f.length - 1]; if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); } else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); } }
     });
+    el.querySelectorAll('[data-rin]').forEach(inp => inp.addEventListener('change', () => { if (!rc) return; let v = parseFloat(String(inp.value).replace(',', '.')); if (!isFinite(v)) return renderRoom(); if (v < 15) v *= 100; setDim(inp.dataset.rin, v); }));
+    roomPointer(el.querySelector('[data-rsvg]'));
     // Mikrofon
     const mic = el.querySelector('.kpai-mic');
     if (mic && SR) {
@@ -770,33 +880,53 @@
     const box = ov_.querySelector('.kpai-box'); box.scrollTop = 0;
     if (s === 'in') setTimeout(() => ov_.querySelector('textarea').focus(), 30);
     if (s === 'res') setTimeout(() => ov_.querySelector('[data-kpai-apply]').focus(), 30);
+    if (s === 'room') setTimeout(() => ov_.querySelector('[data-kpai-plan]').focus({ preventScroll: true }), 30);
+    if (s === 'done') setTimeout(() => ov_.querySelector('.kpai-s[data-s="done"] [data-kpai-x]').focus({ preventScroll: true }), 30);
   }
-  function open(pre) {
+  function open(pre, mode) {
     if (!ov_) ov_ = build(); accent();
     lastFocus = document.activeElement; ov_.hidden = false; document.documentElement.classList.add('kpai-lock'); try { window.__lenis && window.__lenis.stop(); } catch (e) { }
     requestAnimationFrame(() => ov_.classList.add('in'));
+    let used = false; try { used = !!sessionStorage.getItem('kpai-used'); } catch (e) { }
+    setMode(mode || (used ? 'edit' : 'neu'));
     if (pre) { const ta = ov_.querySelector('textarea'); ta.value = pre; ta.dispatchEvent(new Event('input')); }
     show('in');
+  }
+  let mode = 'neu';
+  function setMode(m, focus) {
+    mode = m === 'edit' ? 'edit' : 'neu'; const sec = ov_.querySelector('[data-s="in"]'); sec.classList.toggle('edit', mode === 'edit');
+    ov_.querySelectorAll('[data-mode]').forEach(b => { const on = b.dataset.mode === mode; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+    const ta = ov_.querySelector('textarea'); ta.placeholder = 'z. B. ' + (mode === 'edit' ? EXE : EX); ov_.querySelector('.kpai-err').textContent = '';
+    if (focus) ta.focus();
   }
   function close() {
     if (!ov_ || ov_.hidden) return; ov_.classList.remove('in'); document.documentElement.classList.remove('kpai-lock'); try { window.__lenis && window.__lenis.start(); } catch (e) { }
     setTimeout(() => { ov_.hidden = true; }, RMO ? 0 : 260); if (lastFocus && lastFocus.focus) lastFocus.focus();
   }
-  let busy = false;
-  async function run() {
+  let busy = false, rc = null;
+  function run() {
     if (busy) return; const ta = ov_.querySelector('textarea'), err = ov_.querySelector('.kpai-err'); const text = ta.value.trim().slice(0, MAXLEN);
-    if (text.length < 4) { err.textContent = 'Beschreiben Sie kurz Ihren Raum oder Ihre Wünsche – oder tippen Sie ein paar Wünsche an.'; ta.focus(); return; }
-    err.textContent = ''; busy = true; show('run');
+    if (text.length < 4) { err.textContent = mode === 'edit' ? 'Was soll sich ändern? Zum Beispiel: „Fenster 30 cm nach links“.' : 'Beschreiben Sie kurz Ihren Raum oder Ihre Wünsche – oder tippen Sie ein paar Wünsche an.'; ta.focus(); return; }
+    err.textContent = '';
+    if (mode === 'edit' || looksLikeEdit(text)) return runEdit(text);
+    const cur = current(); let b = null; try { b = parse(text, cur); } catch (e) { b = null; }
+    if (!b) { err.textContent = 'Das hat leider nicht geklappt – bitte etwas anders formulieren.'; return; }
+    let pre = null; try { pre = generateBest(JSON.parse(JSON.stringify(b)), cur); } catch (e) { pre = null; }
+    rc = makeRC(b, pre, text); renderRoom(); show('room');
+  }
+  async function planConfirmed() {
+    if (busy || !rc) return; const err = ov_.querySelector('.kpai-err'); busy = true; show('run');
+    const text = rc.text, b = briefFromRC(rc);
     const st = ov_.querySelector('.kpai-st'), bar = ov_.querySelector('.kpai-bar i'); let k = 0; st.textContent = STAT[0];
     const iv = setInterval(() => { k = Math.min(STAT.length - 1, k + 1); st.textContent = STAT[k]; }, 650);
     const t0 = Date.now(); bar.style.transitionDuration = (RMO ? 0.6 : MINWAIT / 1000 + 1.5) + 's'; requestAnimationFrame(() => bar.style.width = '92%');
     let res = null; const cur = current();
-    try { res = await plan(text, cur); } catch (e) { res = null; }
-    if (!res) try { res = localPlan(text, cur); } catch (e) { res = null; }
+    try { res = await planB(b, text, cur); } catch (e) { res = null; }
+    if (!res) try { res = localPlanB(b, cur); } catch (e) { res = null; }
     const wait = (RMO ? 500 : MINWAIT) - (Date.now() - t0); if (wait > 0) await new Promise(r => setTimeout(r, wait));
     clearInterval(iv); bar.style.transitionDuration = '.25s'; bar.style.width = '100%'; busy = false;
     setTimeout(() => { bar.style.transitionDuration = '0s'; bar.style.width = '0'; }, 400);
-    if (!res) { show('in'); err.textContent = 'Das hat leider nicht geklappt – bitte etwas anders formulieren.'; return; }
+    if (!res) { show('room'); const wl = ov_.querySelector('[data-rwarn]'); wl.innerHTML = '<li class="bad">Mit diesen Maßen ließ sich keine Küche planen – bitte Raum oder Form prüfen.</li>'; return; }
     res.text = text; result = res; renderResult(res);
     show('res');
   }
@@ -815,6 +945,7 @@
       let prev = ''; try { prev = (KP.hash && KP.hash()) || location.hash || ''; } catch (e) { prev = ''; }
       let ok = false; try { KP.applyPlan(JSON.parse(JSON.stringify(p))); ok = true; } catch (e) { ok = false; }
       if (ok) {
+        try { sessionStorage.setItem('kpai-used', '1'); } catch (e) { }
         toForm(result.text);
         close(); done({ why: result.why, prev: /^#k=/.test(prev) ? prev : '' });
         if (innerWidth < 1000) setTimeout(toStage, 300);
@@ -847,7 +978,7 @@
     const stage = document.querySelector('.kp-stage') || document.querySelector('[data-kp]'); if (!stage) return;
     document.querySelectorAll('.kpai-done').forEach(x => x.remove());
     const d = document.createElement('div'); d.className = 'kpai-done'; d.setAttribute('role', 'status');
-    d.innerHTML = `<div class="kpai-dh">${ICO.spark}<div><b>Ihre KI-Küche steht.</b><span>Jetzt nach Herzenslust anpassen – Schränke antippen, ziehen, tauschen.</span></div><button type="button" class="kpai-dx" aria-label="Hinweis schließen">×</button></div>${info.why ? `<details><summary>Warum so geplant?</summary><p>${esc(info.why)}</p></details>` : ''}<div class="kpai-da">${info.prev ? '<button type="button" data-kpai-prev>Alten Entwurf zurück</button>' : ''}<button type="button" data-kpai-again>Neu beschreiben</button></div>`;
+    d.innerHTML = `<div class="kpai-dh">${ICO.spark}<div><b>Ihre KI-Küche steht.</b><span>Jetzt nach Herzenslust anpassen – Schränke antippen, ziehen, tauschen. Oder der KI sagen, was sich ändern soll.</span></div><button type="button" class="kpai-dx" aria-label="Hinweis schließen">×</button></div>${info.why ? `<details><summary>Warum so geplant?</summary><p>${esc(info.why)}</p></details>` : ''}<div class="kpai-da"><button type="button" data-kpai-edit>Mit KI ändern</button>${info.prev ? '<button type="button" data-kpai-prev>Alten Entwurf zurück</button>' : ''}<button type="button" data-kpai-again>Neu beschreiben</button></div>`;
     stage.appendChild(d); requestAnimationFrame(() => d.classList.add('in'));
     const rm = () => { d.classList.remove('in'); setTimeout(() => d.remove(), 300); };
     d.querySelector('.kpai-dx').onclick = rm;
@@ -856,8 +987,228 @@
       if (window.KP && typeof KP.applyPlan === 'function') { try { KP.applyPlan(unb64(info.prev.slice(3))); rm(); if (KP.toast) KP.toast('Ihr vorheriger Entwurf ist wieder da.'); return; } catch (e) { } }
       history.replaceState(null, '', info.prev); location.reload();
     };
-    d.querySelector('[data-kpai-again]').onclick = () => { rm(); open(); };
+    d.querySelector('[data-kpai-again]').onclick = () => { rm(); open('', 'neu'); };
+    d.querySelector('[data-kpai-edit]').onclick = () => { rm(); open('', 'edit'); };
     setTimeout(() => { if (d.isConnected && !d.matches(':hover') && !d.querySelector('details[open]')) d.classList.add('mini'); }, innerWidth < 1000 ? 9000 : 14000);
+  }
+
+  /* ================= 6b) Raum prüfen (vor dem Planen) ================= */
+  const WLAB = { N: 'Rückwand', W: 'linke Wand', E: 'rechte Wand', S: 'Wand gegenüber' }, WAN2 = { N: 'an der Rückwand', W: 'an der linken Wand', E: 'an der rechten Wand', S: 'an der Wand gegenüber' };
+  const ITN = { fenster: 'Fenster', balkon: 'Balkontür', tuer: 'Tür', wasser: 'Wasseranschluss' };
+  const rlen = (w, r) => (w === 'N' || w === 'S') ? r.w : r.d;
+  const resolveWall = (x, r) => x === 'lang' ? (r.w >= r.d ? 'N' : 'W') : x === 'kurz' ? (r.w < r.d ? 'N' : 'W') : x;
+  function makeRC(b, pre, text) {
+    const r = pre ? { w: pre.plan.r.w, d: pre.plan.r.d } : { w: b.room.w, d: b.room.d }, form = pre ? pre.plan.f : b.form, items = [];
+    (pre ? pre.plan.op : []).forEach(([t, w, s0, ow]) => items.push({ t, wall: w, c: s0 + ow / 2, w: ow }));
+    if (!pre && !b.win.none) items.push({ t: 'fenster', wall: resolveWall(b.win.wall, r) || 'N', c: r.w / 2, w: b.win.w || 120 });
+    if (b.water) { const w = resolveWall(b.water.wall, r) || 'N'; items.push({ t: 'wasser', wall: w, c: rlen(w, r) / 2, w: 0 }); }
+    return { b, text, w: r.w, d: r.d, form, items, given: !!b.roomGiven, menu: null };
+  }
+  function briefFromRC(c) {
+    const b = JSON.parse(JSON.stringify(c.b)); b.room = { w: c.w, d: c.d }; b.roomGiven = true; b.form = c.form; b.formSaid = true;
+    b.isl.want = c.form === 'insel'; b.notes = (b.notes || []).filter(n => !/Kochinsel braucht/.test(n)); b.islDropped = false;
+    const wins = c.items.filter(i => i.t === 'fenster'), door = c.items.find(i => i.t === 'tuer'), bal = c.items.find(i => i.t === 'balkon'), wat = c.items.find(i => i.t === 'wasser');
+    b.win = { wall: wins[0] ? wins[0].wall : null, w: wins[0] ? wins[0].w : 120, none: !wins.length };
+    b.door = { wall: door ? door.wall : null, w: door ? door.w : 90 }; b.balkon = !!bal;
+    b.fixOps = c.items.filter(i => i.t !== 'wasser').map(i => [i.t, i.wall, Math.round(i.c - i.w / 2), i.w]);
+    b.water = wat ? { wall: wat.wall, s: Math.round(wat.c) } : null;
+    b.got = (b.got || []).filter(g => !/^Raum |^Küchenzeile|^L-Küche|^U-Küche|^Zweizeil|^Küche mit|^Kochinsel|^Wasser /.test(g));
+    b.got.unshift(`Raum ${mm(c.w, c.d)} · bestätigt`, FORMS[c.form].n.replace(/^k/, 'K')); if (wat) b.got.push('Wasser ' + WAN2[wat.wall].replace(/^an der /, ''));
+    return b;
+  }
+  function setDim(k, v) { rc[k] = clamp(r10(v), 240, k === 'w' ? 800 : 700); rc.items.forEach(i => clampItem(i)); rc.menu = null; renderRoom(); }
+  function clampItem(i) { const L = rlen(i.wall, rc); if (i.w > L - 30) i.w = (OPW[i.t] || [0]).filter(v => v <= L - 30).pop() || i.w; const h = i.w / 2 + (i.t === 'fenster' ? 10 : i.t === 'wasser' ? 8 : 5); i.c = Math.round(clamp(i.c, h, L - h) / 5) * 5; }
+  function rotateRoom() { const R = { N: 'E', E: 'S', S: 'W', W: 'N' }; const w = rc.w; rc.w = rc.d; rc.d = w; rc.items.forEach(i => { i.wall = R[i.wall]; clampItem(i); }); rc.menu = null; renderRoom(); }
+  function roomSvg() {
+    const W = rc.w, D = rc.d, pad = Math.max(46, Math.round(Math.max(W, D) * .11)), kw = FORMS[rc.form].walls, out = [];
+    out.push(`<rect class="kpai-floor" x="0" y="0" width="${W}" height="${D}"/>`);
+    const band = { N: [0, 0, W, 60], S: [0, D - 60, W, 60], W: [0, 0, 60, D], E: [W - 60, 0, 60, D] };
+    kw.forEach(w => { const [x, y, bw, bh] = band[w]; out.push(`<rect class="kpai-rk" x="${x}" y="${y}" width="${bw}" height="${bh}"/>`); });
+    if (rc.form === 'insel') out.push(`<rect class="kpai-rk isl" x="${W / 2 - 90}" y="${Math.max(210, Math.min(D - 120, 225)) - 50}" width="180" height="100" rx="6"/>`);
+    if (kw.length) { const k0 = kw.includes('N') ? 'N' : kw[0], [x, y, bw, bh] = band[k0], wat = rc.items.find(i => i.t === 'wasser' && i.wall === k0), L0 = rlen(k0, rc); let f = .5; if (wat) f = wat.c / L0 < .5 ? .76 : .24; const tx = bw > bh ? x + bw * f : x + bw / 2, ty = bw > bh ? y + bh / 2 : y + bh * (1 - f); out.push(`<text class="kpai-rkt" x="${tx}" y="${ty}" dy=".35em"${bw > bh ? '' : ` transform="rotate(-90 ${tx} ${ty})"`}>Küche</text>`); }
+    out.push(`<rect class="kpai-wall" x="0" y="0" width="${W}" height="${D}"/>`);
+    // Wand-Trefferflächen
+    [['N', 0, 0, W, 0], ['S', 0, D, W, D], ['W', 0, 0, 0, D], ['E', W, 0, W, D]].forEach(([k, x1, y1, x2, y2]) => out.push(`<line class="kpai-rhit" data-rw="${k}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`));
+    const P = (w, a, o = 0) => ({ N: [a, o], S: [W - a, D - o], W: [o, D - a], E: [W - o, a] })[w];
+    rc.items.forEach((it, i) => {
+      const on = rc.menu && rc.menu.item === i ? ' on' : '';
+      if (it.t === 'wasser') { const [x, y] = P(it.wall, it.c, 26); out.push(`<g class="kpai-ri w${on}" data-ri="${i}"><circle cx="${x}" cy="${y}" r="17"/><path d="M${x} ${y - 10}c6 7 8 11 8 15a8 8 0 0 1-16 0c0-4 2-8 8-15z" fill="#fff"/><circle cx="${x}" cy="${y}" r="34" fill="transparent"/></g>`); return; }
+      const [x1, y1] = P(it.wall, it.c - it.w / 2), [x2, y2] = P(it.wall, it.c + it.w / 2), hit = `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="transparent" stroke-width="56"/>`;
+      if (it.t === 'tuer') { const [nx, ny] = { N: [0, 1], S: [0, -1], W: [1, 0], E: [-1, 0] }[it.wall], ex = x2 + nx * it.w, ey = y2 + ny * it.w, sw = ((ex - x2) * (y1 - y2) - (ey - y2) * (x1 - x2)) > 0 ? 1 : 0; out.push(`<g class="kpai-ri d${on}" data-ri="${i}"><line class="gap" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/><line class="leaf" x1="${x2}" y1="${y2}" x2="${ex}" y2="${ey}"/><path class="arc" d="M${ex} ${ey}A${it.w} ${it.w} 0 0 ${sw} ${x1} ${y1}"/>${hit}</g>`); }
+      else out.push(`<g class="kpai-ri ${it.t === 'balkon' ? 'b' : 'f'}${on}" data-ri="${i}"><line class="gap" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/><line class="glass" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>${hit}</g>`);
+    });
+    if (rc.menu && rc.menu.wall) { const [x, y] = P(rc.menu.wall, rc.menu.a, 0); out.push(`<circle class="kpai-rtap" cx="${x}" cy="${y}" r="16"/>`); }
+    const f = Math.max(15, Math.round(Math.max(W, D) * .036));
+    out.push(`<g class="kpai-rlab" style="font-size:${f}px"><text x="${W / 2}" y="${-pad * .42}">Rückwand · ${mtr(W)} m</text><text x="${W / 2}" y="${D + pad * .62}">gegenüber</text><text transform="translate(${-pad * .42} ${D / 2}) rotate(-90)">links · ${mtr(D)} m</text><text transform="translate(${W + pad * .42} ${D / 2}) rotate(90)">rechts</text></g>`);
+    return `<svg class="kpai-rplan" viewBox="${-pad} ${-pad} ${W + 2 * pad} ${D + 2 * pad}" role="img" aria-label="Raum von oben: Wände antippen">${out.join('')}</svg>`;
+  }
+  function renderRoom() {
+    if (!ov_ || !rc) return;
+    const q = ov_.querySelector('[data-rq]');
+    q.innerHTML = rc.given ? `Verstanden: <b>${mm(rc.w, rc.d)}</b>. Die Küche steht an der Rückwand oben. Stimmt das? Sonst Maße ändern oder den Raum drehen.` : `Sie haben keine Raummaße genannt – angenommen sind <b>${mm(rc.w, rc.d)}</b>. Bitte die echten Maße eintragen, sonst passt die Planung nicht.`;
+    ov_.querySelector('[data-rsvg]').innerHTML = roomSvg();
+    ov_.querySelectorAll('[data-rin]').forEach(i => { if (document.activeElement !== i) i.value = mtr(rc[i.dataset.rin]); });
+    ov_.querySelectorAll('[data-rf]').forEach(b => { const on = b.dataset.rf === rc.form; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+    ov_.querySelector('[data-ritems]').innerHTML = rc.items.length ? rc.items.map((it, i) => `<li><i class="kpai-rdot ${it.t}"></i><span><b>${ITN[it.t]}</b> ${WAN2[it.wall]}<small>${it.w ? `${mtr(it.w)} m breit · ` : ''}Mitte ${mtr(it.c)} m von links</small></span><button type="button" data-rx="${i}" aria-label="${ITN[it.t]} entfernen">×</button></li>`).join('') : '<li class="none">Keine Fenster oder Türen – Wand antippen, um sie einzuzeichnen.</li>';
+    const kw = FORMS[rc.form].walls, warn = [], door = rc.items.find(i => i.t === 'tuer' || i.t === 'balkon'), wat = rc.items.find(i => i.t === 'wasser');
+    rc.items.filter(i => i.t === 'tuer' || i.t === 'balkon').forEach(i => { if (kw.includes(i.wall)) warn.push(`Die ${ITN[i.t]} liegt an einer Küchenwand – dort wird die Küche unterbrochen. Besser an eine freie Wand ziehen, den Raum drehen oder eine andere Form wählen.`); });
+    if (!door) warn.push('Noch keine Tür eingezeichnet – Wand antippen und „Tür“ wählen.');
+    if (wat && !kw.includes(wat.wall)) warn.push('Das Wasser kommt an einer Wand ohne Küche – die Leitungen müssten verlegt werden. Tipp: Raum drehen oder Form ändern.');
+    if (rc.form === 'insel' && Math.min(rc.w, rc.d) < 380) warn.push('Für eine Kochinsel sollte der Raum mindestens 3,80 m tief sein – rundherum braucht es gut 1 m Laufweg.');
+    if (rc.form === 'zwei' && rc.d < 240) warn.push('Für zwei Zeilen ist der Raum sehr schmal – 1,20 m Gang sind ideal.');
+    ov_.querySelector('[data-rwarn]').innerHTML = warn.map(w => `<li>${esc(w)}</li>`).join('');
+    const mn = ov_.querySelector('[data-rmenu]');
+    if (!rc.menu) { mn.hidden = true; mn.innerHTML = ''; return; }
+    mn.hidden = false;
+    if (rc.menu.wall) mn.innerHTML = `<p><b>${WLAB[rc.menu.wall]}</b> · ${mtr(rc.menu.a)} m von links – was ist hier?</p><div class="kpai-chips sm"><button type="button" data-ra="fenster">Fenster</button><button type="button" data-ra="tuer">Tür</button><button type="button" data-ra="balkon">Balkontür</button><button type="button" data-ra="wasser">Wasser</button><button type="button" data-ra="x" class="ghost">Abbrechen</button></div>`;
+    else { const it = rc.items[rc.menu.item]; if (!it) { rc.menu = null; mn.hidden = true; return; } mn.innerHTML = `<p><b>${ITN[it.t]}</b> ${WAN2[it.wall]}${it.w ? ` · ${mtr(it.w)} m breit` : ''} – zum Verschieben anfassen und ziehen.</p><div class="kpai-chips sm">${it.w ? '<button type="button" data-ra="w-">− schmaler</button><button type="button" data-ra="w+">breiter +</button>' : ''}<button type="button" data-ra="del" class="del">Entfernen</button><button type="button" data-ra="x" class="ghost">Fertig</button></div>`; }
+  }
+  function roomMenuAct(a) {
+    const m = rc.menu; if (!m) return;
+    if (a === 'x') { rc.menu = null; return renderRoom(); }
+    if (m.wall) {
+      const t = a, w0 = t === 'tuer' ? 90 : t === 'balkon' ? 120 : t === 'fenster' ? 120 : 0;
+      if (t === 'tuer' || t === 'wasser') rc.items = rc.items.filter(i => i.t !== t);
+      if (t === 'fenster' && rc.items.filter(i => i.t === 'fenster').length >= 4) { rc.menu = null; return renderRoom(); }
+      const it = { t, wall: m.wall, c: m.a, w: w0 }; clampItem(it); rc.items.push(it); rc.menu = null; return renderRoom();
+    }
+    const it = rc.items[m.item]; if (!it) { rc.menu = null; return renderRoom(); }
+    if (a === 'del') { rc.items.splice(m.item, 1); rc.menu = null; return renderRoom(); }
+    if (a === 'w-' || a === 'w+') { const ws = OPW[it.t]; let i = ws.indexOf(it.w); if (i < 0) i = ws.findIndex(v => v >= it.w); i = clamp(i + (a === 'w+' ? 1 : -1), 0, ws.length - 1); if (ws[i] <= rlen(it.wall, rc) - 30) it.w = ws[i]; clampItem(it); return renderRoom(); }
+  }
+  // Antippen und Ziehen im Raum-Grundriss
+  function roomPointer(host) {
+    let dr = null;
+    const pt = e => { const svg = host.querySelector('svg'); if (!svg) return null; const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); };
+    const nearest = p => { const W = rc.w, D = rc.d, d = { N: Math.abs(p.y), S: Math.abs(p.y - D), W: Math.abs(p.x), E: Math.abs(p.x - W) }; const wall = Object.keys(d).sort((a, b) => d[a] - d[b])[0]; return { wall, a: clamp(Math.round({ N: p.x, S: W - p.x, W: D - p.y, E: p.y }[wall] / 5) * 5, 0, rlen(wall, rc)), dist: d[wall] }; };
+    host.addEventListener('pointerdown', e => {
+      if (!rc) return; const g = e.target.closest('[data-ri]'), p = pt(e); if (!p) return;
+      dr = { x0: e.clientX, y0: e.clientY, item: g ? +g.dataset.ri : null, moved: false, id: e.pointerId };
+      if (g) { try { host.setPointerCapture(e.pointerId); } catch (er) { } e.preventDefault(); }
+    });
+    host.addEventListener('pointermove', e => {
+      if (!dr || dr.item == null || !rc) return; if (!dr.moved && Math.hypot(e.clientX - dr.x0, e.clientY - dr.y0) < 6) return; dr.moved = true;
+      const it = rc.items[dr.item], p = pt(e); if (!it || !p) return; const n = nearest(p); it.wall = n.wall; it.c = n.a; clampItem(it); rc.menu = { item: dr.item }; renderRoom(); e.preventDefault();
+    });
+    const up = e => {
+      if (!dr || !rc) { dr = null; return; } const d = dr; dr = null; if (d.moved) return;
+      if (d.item != null) { rc.menu = rc.menu && rc.menu.item === d.item ? null : { item: d.item }; return renderRoom(); }
+      const p = pt(e); if (!p) return; const n = nearest(p), pad = Math.max(rc.w, rc.d) * .16;
+      if (n.dist > pad && p.x > 0 && p.y > 0 && p.x < rc.w && p.y < rc.d) { rc.menu = null; return renderRoom(); }
+      rc.menu = { wall: n.wall, a: n.a }; renderRoom();
+    };
+    host.addEventListener('pointerup', up); host.addEventListener('pointercancel', () => { dr = null; });
+  }
+
+  /* ================= 6c) Entwurf ändern – Sätze in gezielte Änderungen übersetzen ================= */
+  const EDV = /(verschieb|versetz|nach links|nach rechts|weiter links|weiter rechts|breiter|schmaler|größer|kleiner|entfern|\bweg\b|lösch|statt|ändern|änder|tausch|rück|mittig|in die mitte|unters fenster|unter das fenster|anschluss|ist (an|auf|links|rechts|hinten)|kommt (an|links|rechts|aus)|arbeitshöhe)/;
+  function looksLikeEdit(text) {
+    const t = normText(text); if (t.length > 160) return false;
+    const plan = /(küchenzeile|l-küche|u-küche|zweizeil|kochinsel|insel|apotheker|kühlschrank|backofen|stauraum|grifflos|landhaus|skandi|hängeschr|budget)/.test(t);
+    const strong = /(verschieb|versetz|nach links|nach rechts|weiter links|weiter rechts|breiter|schmaler|entfern|\bweg\b|lösch|tausch|änder|unters fenster|unter das fenster)/.test(t);
+    return strong && !plan && parseEdit(text).length > 0;
+  }
+  function parseEdit(raw) {
+    const t = normText(raw), acts = [];
+    const num = (v, u) => { const x = parseFloat(String(v).replace(',', '.')); return u && u[0] === 'c' ? x : (u || x < 15 ? (x < 15 ? x * 100 : x) : x); };
+    const wallIn = c => { c = c.replace(/(nach|weiter|von|ab) (links|rechts)/g, ' '); return /\blink/.test(c) ? 'W' : /\brecht/.test(c) ? 'E' : /gegenüber|vorne?\b/.test(c) ? 'S' : /rückwand|hinten|hinter/.test(c) ? 'N' : null; };
+    const by = c => { const m = c.match(/(?:um\s+)?(\d+(?:[.,]\d+)?)\s*(cm|m|meter|metern)\b(?=[^.]*?(nach|weiter) (links|rechts))/) || c.match(/(?:nach|weiter) (?:links|rechts)\s+(?:um\s+)?(\d+(?:[.,]\d+)?)\s*(cm|m|meter|metern)\b/); return m ? Math.round(num(m[1], m[2])) : null; };
+    const at = c => { const m = c.match(/(?:bei|ab|auf)\s+(\d+(?:[.,]\d+)?)\s*(cm|m|meter|metern)?(?:\s+(?:von links|ab links|von der linken))?/) || c.match(/(\d+(?:[.,]\d+)?)\s*(cm|m|meter|metern)\s+(?:von links|ab links|von der linken)/); return m ? Math.round(num(m[1], m[2] || 'm')) : null; };
+    const wid = c => { const m = c.match(/(\d+(?:[.,]\d+)?)\s*(cm|m|meter|metern)?\s*breit/); return m ? Math.round(num(m[1], m[2] || (+m[1].replace(',', '.') < 15 ? 'm' : 'cm'))) : null; };
+    const clauses = t.split(/[.;!?\n]| und |, (?=[a-zäöü])/).map(c => ' ' + c.trim() + ' ').filter(c => c.trim());
+    for (const c of clauses) {
+      let m;
+      // Raummaße
+      if ((m = c.match(/(\d+(?:[.,]\d+)?)\s*(cm|m|meter|metern)?\s*x\s*(\d+(?:[.,]\d+)?)\s*(cm|m|meter|metern)?/)) && !/fenster|tür|insel/.test(c)) { const u = m[4] || m[2] || 'm', a = num(m[1], m[2] || u), b2 = num(m[3], u); if (a >= 150 && b2 >= 150) { acts.push({ k: 'room', w: Math.round(a), d: Math.round(b2) }); continue; } }
+      if (/(raum|zimmer|küche ist|rückwand|seitenw)/.test(c) && (m = c.match(/(\d+(?:[.,]\d+)?)\s*(cm|m|meter|metern)?\s*(breit|lang|tief)?/)) && (m[2] || m[3])) { const v = Math.round(num(m[1], m[2] || (+m[1].replace(',', '.') < 15 ? 'm' : 'cm'))); if (v >= 150) { acts.push({ k: 'room', [/tief|seitenw/.test(c) ? 'd' : 'w']: v }); continue; } }
+      if ((m = c.match(/arbeitshöhe\D{0,14}(\d{2,3})/))) { acts.push({ k: 'ah', v: +m[1] }); continue; }
+      // Anschlüsse
+      if (/wasser|abfluss|abwasser/.test(c) && !/spülmaschine/.test(c)) { acts.push({ k: 'cx', t: 'wasser', wall: wallIn(c), s: at(c) }); continue; }
+      if (/starkstrom|herdanschluss|drehstrom|400 ?v/.test(c)) { acts.push({ k: 'cx', t: 'herd', wall: wallIn(c), s: at(c) }); continue; }
+      // Spüle / Kochfeld
+      const dev = /spüle|becken/.test(c) && !/spülmaschine/.test(c) ? 'sinkTo' : /kochfeld|\bherd\b|ceran/.test(c) ? 'cookTo' : null;
+      if (dev) { const a = { k: dev }; if (/fenster/.test(c)) a.ref = 'fenster'; else { const w = wallIn(c); if (w) a.wall = w; if (/nach links|weiter links/.test(c)) a.dx = -(by(c) || 60); if (/nach rechts|weiter rechts/.test(c)) a.dx = by(c) || 60; const s0 = at(c); if (s0 != null) a.s = s0; } if (a.ref || a.wall || a.dx || a.s != null) { acts.push(a); continue; } }
+      // Fenster / Türen
+      const ot = /balkon|terrass/.test(c) ? 'balkon' : /fenster/.test(c) ? 'fenster' : /\btür\b|eingang/.test(c) ? 'tuer' : null;
+      if (ot) {
+        if (/(kein|ohne|entfern|\bweg\b|raus\b|lösch)/.test(c)) { acts.push({ k: 'op', t: ot, del: true }); continue; }
+        const a = { k: 'op', t: ot }, w = wallIn(c);
+        if (/(dazu|hinzu|zusätzlich|noch ein|weiteres|zweites|neue[sr]?\b|einsetzen|einbauen)/.test(c)) { acts.push({ k: 'opAdd', t: ot, wall: w, s: at(c), w: wid(c) }); continue; }
+        if (/nach links|weiter links|links rüber/.test(c)) a.dx = -(by(c) || 30); else if (/nach rechts|weiter rechts|rechts rüber/.test(c)) a.dx = by(c) || 30;
+        if (/mittig|in die mitte|zentriert/.test(c)) a.center = true;
+        if (w) { if (/\b(an|auf) der\b/.test(c) && !/\b(an|auf) die\b|\bzur\b|\bist\b|\bsoll\b|\bgehört\b/.test(c)) a.from = w; else if (/\b(an|auf|zur|zu|in|ist|soll|gehört)\b/.test(c)) a.wall = w; }
+        const ww = wid(c); if (ww) a.w = ww; else if (/breiter|größer/.test(c)) a.dw = 1; else if (/schmaler|kleiner/.test(c)) a.dw = -1;
+        const s0 = at(c); if (s0 != null && !a.dx) a.s = s0;
+        if (a.dx || a.center || a.wall || a.w || a.dw || a.s != null) acts.push(a);
+      }
+    }
+    return acts;
+  }
+  let editMark = 0, editBefore = '';
+  function runEdit(text) {
+    const E = window.KP && KP.edit, err = ov_.querySelector('.kpai-err');
+    if (!E) { err.textContent = 'Der Planer ist noch nicht bereit – bitte kurz warten.'; return; }
+    const acts = parseEdit(text), out = [];
+    let st = null; try { const b = parse(text, current()); if (Object.keys(b.style).length || b.look) st = b; } catch (e) { st = null; }
+    if (!acts.length && !st) { err.innerHTML = 'Das habe ich nicht verstanden. Zum Beispiel: „Fenster 30 cm nach links“, „Raum 3,20 × 4,00 m“, „Wasser an der linken Wand“ oder „Spüle unters Fenster“.'; return; }
+    editMark = 0; editBefore = ''; try { editBefore = (KP.hash && KP.hash()) || ''; } catch (e) { } const OPN2 = { fenster: 'Fenster', tuer: 'Tür', balkon: 'Balkontür' };
+    const did = (ok, msg) => { out.push({ ok, msg }); if (ok) editMark++; };
+    for (const a of acts) {
+      try {
+        if (a.k === 'room') { const R = KP.room(); const r = E.room(a.w || R.w, a.d || R.d); did(1, `Raum jetzt ${mm(r.w, r.d)} – die Küche passt sich an.`); }
+        else if (a.k === 'ah') { const v = E.setAh(a.v); did(1, `Arbeitshöhe jetzt ${v} cm.`); }
+        else if (a.k === 'op' || a.k === 'opAdd') {
+          const list = E.ops().filter(o => o.t === a.t), o = (a.from && list.find(x => x.wall === a.from)) || list[0];
+          if (a.k === 'opAdd' || !o) {
+            if (a.del) { did(0, `Es gibt keine ${OPN2[a.t]} zum Entfernen.`); continue; }
+            const ws = E.walls(), free = ['N', 'E', 'S', 'W'].filter(w => !ws.includes(w)), wall = a.wall || (a.t === 'fenster' ? 'N' : free[0] || 'S');
+            const r = E.addOp(a.t, wall, a.s != null ? a.s : null, a.w); if (r) did(1, `${OPN2[a.t]} ${WAN2[r.wall]} eingesetzt (${mtr(r.w)} m breit).`); else did(0, `Die ${OPN2[a.t]} ließ sich dort nicht einsetzen.`); continue;
+          }
+          if (a.del) { E.op(o.id, { del: true }); did(1, `${OPN2[a.t]} ${WAN2[o.wall]} entfernt.`); continue; }
+          const ch = {}; let wall = o.wall;
+          if (a.wall && a.wall !== o.wall) { ch.wall = wall = a.wall; ch.s = (E.len(wall) - o.w) / 2; }
+          if (a.w) ch.w = a.w; else if (a.dw) { const ws = OPW[a.t], i = ws.indexOf(o.w); ch.w = ws[clamp((i < 0 ? ws.findIndex(v => v >= o.w) : i) + a.dw, 0, ws.length - 1)]; }
+          const nw = ch.w || o.w;
+          if (a.center) ch.s = (E.len(wall) - nw) / 2;
+          if (a.s != null) ch.s = a.s;
+          if (a.dx) ch.s = (ch.s != null ? ch.s : o.s) + a.dx;
+          if (ch.w && ch.s == null) ch.s = o.s + (o.w - nw) / 2;
+          const r = E.op(o.id, ch); if (!r) { did(0, `${OPN2[a.t]} ließ sich nicht ändern.`); continue; }
+          const parts = [];
+          if (r.wall !== o.wall) parts.push(`sitzt jetzt ${WAN2[r.wall]}`);
+          if (a.dx && r.wall === o.wall) { const mv = r.s - o.s; parts.push(mv === 0 ? 'geht nicht weiter – die Wand ist zu Ende' : `${Math.abs(mv)} cm nach ${mv < 0 ? 'links' : 'rechts'} gerückt`); }
+          if (r.w !== o.w) parts.push(`jetzt ${mtr(r.w)} m breit`);
+          if ((a.center || a.s != null) && !a.dx && r.wall === o.wall) parts.push(`beginnt jetzt bei ${mtr(r.s)} m`);
+          did(1, `${OPN2[a.t]}: ${parts.join(', ') || 'unverändert'}.`);
+        }
+        else if (a.k === 'cx') {
+          const sp = E.sink(), wall = a.wall || (a.t === 'wasser' ? (sp && sp.wall) : ((E.cook() || {}).wall)) || 'N', r = E.cx(a.t, wall, a.s);
+          const nm = a.t === 'wasser' ? 'Wasseranschluss' : 'Herdanschluss';
+          did(1, `${nm} ${WAN2[r.wall]} bei ${mtr(r.s)} m eingetragen` + (r.moved ? (a.t === 'wasser' ? ' – die Spüle ist mitgerückt.' : ' – das Kochfeld ist mitgerückt.') : r.msg ? ` – ${r.msg}` : '.'));
+        }
+        else if (a.k === 'sinkTo' || a.k === 'cookTo') {
+          const nm = a.k === 'sinkTo' ? 'Spüle' : 'Kochfeld', cur0 = a.k === 'sinkTo' ? E.sink() : E.cook(); if (!cur0) { did(0, `Es ist noch keine ${nm} geplant.`); continue; }
+          let wall = cur0.wall, s0 = cur0.s;
+          if (a.ref === 'fenster') { const ws = E.walls(), f = E.ops().filter(o => o.t === 'fenster' && ws.includes(o.wall)).sort((p, q) => (p.wall === cur0.wall ? 0 : 1) - (q.wall === cur0.wall ? 0 : 1))[0]; if (!f) { did(0, 'An den Küchenwänden ist kein Fenster.'); continue; } wall = f.wall; s0 = f.s + f.w / 2; }
+          else { if (a.wall) { wall = a.wall; s0 = E.len(wall) / 2; } if (a.s != null) s0 = a.s; if (a.dx) s0 = cur0.s + a.dx; }
+          const r = a.k === 'sinkTo' ? E.sinkTo(wall, s0) : E.cookTo(wall, s0);
+          if (r.same) did(0, `Die ${nm} sitzt schon dort.`); else if (r.ok) did(1, `${nm} ${a.ref === 'fenster' ? 'sitzt jetzt unter dem Fenster' : 'ist verschoben'}${r.dist > 40 ? ` – so nah, wie es passt (${Math.round(r.dist)} cm daneben)` : ''}.`); else did(0, r.msg || `Die ${nm} passt dort nicht hin.`);
+        }
+      } catch (e) { did(0, 'Diese Änderung hat leider nicht geklappt.'); }
+    }
+    if (st) {
+      try { const h = location.hash.slice(1), o = h.startsWith('k=') ? JSON.parse(unb64(h.slice(2))) : null; if (o) { o.s = buildStyle(st, current()); KP.applyPlan(o); did(1, 'Farben und Stil angepasst: ' + st.got.filter(g => !/^(Küchenzeile|L-Küche|U-Küche|Zweizeil|Küche mit|Kochinsel)/.test(g)).slice(0, 5).join(', ') + '.'); } } catch (e) { did(0, 'Der Stil ließ sich nicht übernehmen.'); }
+    }
+    try { sessionStorage.setItem('kpai-used', '1'); } catch (e) { }
+    ov_.querySelector('[data-dl]').innerHTML = out.map(x => `<li class="${x.ok ? 'ok' : 'no'}"><i>${x.ok ? '✓' : '!'}</i>${esc(x.msg)}</li>`).join('');
+    ov_.querySelector('[data-kpai-undo]').hidden = !editMark;
+    ov_.querySelector('[data-dfine]').textContent = mode === 'edit' ? 'Alles bleibt im Planer frei veränderbar – jeder Schritt lässt sich rückgängig machen.' : 'Das klang nach einer Änderung – darum wurde Ihr aktueller Entwurf angepasst statt neu geplant. Für einen ganz neuen Entwurf oben „Neu planen“ wählen.';
+    show('done');
+  }
+  function undoEdits() {
+    let ok = false; if (/^#k=/.test(editBefore) && window.KP && KP.applyPlan) { try { KP.applyPlan(unb64(editBefore.slice(3))); ok = true; } catch (e) { ok = false; } }
+    if (!ok) return;
+    editMark = 0; ov_.querySelector('[data-dl]').innerHTML = '<li class="ok"><i>✓</i>Änderungen zurückgenommen.</li>'; ov_.querySelector('[data-kpai-undo]').hidden = true;
   }
 
   /* ================= 7) Einhängen ================= */
@@ -887,5 +1238,5 @@
   function boot() { let n = 0; (function wait() { if (window.KP || n++ > 60) inject(); else setTimeout(wait, 100); })(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
   // Für Tests und Erweiterungen
-  window.KPAI = { open, close, parse: (t) => parse(t, current()), local: (t) => localPlan(t, current()), repair: (raw, t) => { const c = current(); return repair(raw, parse(t || '', c), c); }, valid, svg: planSvg, b64, hook: HOOK };
+  window.KPAI = { open, close, parseEdit, normText, room: () => rc, _dbg: { sinkToWater, generateBest, generate, score, briefFromRC, valid, fitRow, usableOf, warnN, spans }, parse: (t) => parse(t, current()), local: (t) => localPlan(t, current()), repair: (raw, t) => { const c = current(); return repair(raw, parse(t || '', c), c); }, valid, svg: planSvg, b64, hook: HOOK };
 })();
