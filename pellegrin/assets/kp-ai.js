@@ -10,18 +10,18 @@
   const MAXLEN = 1500, MAXREQ = 3, MAXSESS = 8, TIMEOUT = 25000, MINWAIT = 2600;
 
   /* ================= Katalog (Spiegel von kp.js – nur lesen) ================= */
-  const HT = [145, 195, 216, 230], HU = [36, 54, 72, 90], W30 = [30, 40, 45, 50, 60], WALL = [30, 40, 45, 50, 60, 80, 90, 100, 120];
+  const HT = [145, 195, 216, 230], HU = [36, 54, 72, 90, 108], W30 = [30, 40, 45, 50, 60], WALL = [30, 40, 45, 50, 60, 80, 90, 100, 120];
   const M = {
-    us: { ws: WALL, h: 'b' }, ut: { ws: W30, h: 'b' }, u1: { ws: W30, h: 'b' }, u2: { ws: [60, 80, 90, 100, 120], h: 'b' },
-    s2: { ws: WALL, h: 'b' }, s4: { ws: WALL, h: 'b' }, ui: { ws: [45, 50, 60, 80, 90, 100, 120], h: 'b' }, ur: { ws: [15, 20, 30, 40, 45, 50, 60], h: 'b' },
-    fa: { ws: [15, 20, 30], h: 'b' }, ap: { ws: [15, 20, 30, 40], h: 'b' }, mt: { ws: [45, 50, 60], h: 'b' },
-    sp: { ws: [60, 80, 90, 100, 120], h: 'b' }, kf: { ws: [60, 80, 90, 120], h: 'b' }, ko: { ws: [60, 90], h: 'b' }, gs: { ws: [45, 60], h: 'b' },
+    us: { ws: WALL, h: 'b' }, ut: { ws: W30, h: 'b' }, u1: { ws: W30, h: 'b' }, u2: { ws: [60, 70, 80, 90, 100, 120], h: 'b' },
+    s2: { ws: WALL, h: 'b' }, s4: { ws: WALL, h: 'b' }, ui: { ws: [30, 40, 45, 50, 60, 80, 90, 100, 120], h: 'b' }, ur: { ws: [15, 20, 30, 40, 45, 50, 60], h: 'b' },
+    fa: { ws: [15, 20, 30], h: 'b' }, ap: { ws: [15, 20, 30, 40], h: 'b' }, mt: { ws: [30, 40, 45, 50, 60, 80, 90], h: 'b' },
+    sp: { ws: [40, 45, 50, 60, 80, 90, 100, 120], h: 'b' }, kf: { ws: [60, 80, 90, 100, 120], h: 'b' }, ko: { ws: [60, 90], h: 'b' }, gs: { ws: [45, 60], h: 'b' },
     ek: { ws: [90], h: 'b', c: 1 }, el: { ws: [100, 110, 120], h: 'b', c: 1 }, eb: { ws: [90, 100, 110, 120], h: 'b', c: 1 },
     bo: { ws: [60], h: 't', hs: HT }, bm: { ws: [60], h: 't', hs: [195, 216, 230] }, kue: { ws: [60], h: 't', hs: [195, 216, 230] },
     vo: { ws: W30, h: 't', hs: HT }, ah: { ws: [15, 20, 30, 40, 45], h: 't', hs: HT }, bs: { ws: W30, h: 't', hs: [195, 216, 230] }, vg: { ws: [40, 45, 50, 60], h: 't', hs: HT },
-    h1: { ws: W30, h: 'u', hs: HU }, h2: { ws: [60, 80, 90, 100, 120], h: 'u', hs: HU }, hk: { ws: [45, 50, 60, 80, 90, 100, 120], h: 'u', hs: HU },
-    hs: { ws: [45, 50, 60, 80, 90, 100, 120], h: 'u', hs: [36, 54, 72] }, hf: { ws: [60, 80, 90, 100, 120], h: 'u', hs: [72, 90] },
-    hg: { ws: [40, 45, 50, 60, 80, 90, 100], h: 'u', hs: HU }, ho: { ws: WALL, h: 'u', hs: HU }, he: { ws: [55, 60, 65, 70, 80], h: 'u', hs: HU }, dh: { ws: [60, 90, 120], h: 'u' },
+    h1: { ws: W30, h: 'u', hs: HU }, h2: { ws: [60, 80, 90, 100, 120], h: 'u', hs: HU }, hk: { ws: [40, 45, 50, 60, 80, 90, 100, 120], h: 'u', hs: [36, 54, 72, 90] },
+    hs: { ws: [40, 45, 50, 60, 80, 90, 100, 120], h: 'u', hs: [36, 54, 72] }, hf: { ws: [60, 80, 90, 100, 120], h: 'u', hs: [72, 90] },
+    hg: { ws: [40, 45, 50, 60, 80, 90, 100, 120], h: 'u', hs: HU }, ho: { ws: WALL, h: 'u', hs: HU }, he: { ws: [55, 60, 65, 70, 80], h: 'u', hs: HU }, dh: { ws: [60, 90, 120], h: 'u' },
   };
   const NM = { us: 'Schubladen', ut: 'Unterschrank', u1: 'Unterschrank', u2: 'Unterschrank', s2: 'Auszüge', s4: 'Schubladen', ui: 'Innenschubladen', ur: 'Regal', fa: 'Flaschenauszug', ap: 'Apotheker klein', mt: 'Mülltrenner', sp: 'Spüle', kf: 'Kochfeld', ko: 'Herd', gs: 'Spülmaschine', ek: 'Eckschrank', el: 'Eckschrank', eb: 'Eckschrank', bo: 'Backofen', bm: 'Backofen + Mikrowelle', kue: 'Kühlschrank', vo: 'Vorratsschrank', ah: 'Apothekerschrank', bs: 'Besenschrank', vg: 'Vitrine' };
   const FORMS = { zeile: { n: 'Küchenzeile', walls: ['N'] }, l: { n: 'L-Küche', walls: ['W', 'N'] }, u: { n: 'U-Küche', walls: ['W', 'N', 'E'] }, zwei: { n: 'zweizeilige Küche', walls: ['N', 'S'] }, insel: { n: 'Küche mit Kochinsel', walls: ['N'], island: 1 } };

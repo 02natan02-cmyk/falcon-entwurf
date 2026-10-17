@@ -10,21 +10,23 @@
 
   /* ---------------- Bausteine ---------------- */
   // h: b = Unterschrank, t = Hochschrank, u = Hängeschrank · hs: wählbare Höhen (cm) · hinge: Türanschlag wählbar · corner: sitzt in der Ecke
-  const HT = [145, 195, 216, 230], HU = [36, 54, 72, 90], W30 = [30, 40, 45, 50, 60], WALL = [30, 40, 45, 50, 60, 80, 90, 100, 120];
+  const HT = [145, 195, 216, 230], HU = [36, 54, 72, 90, 108], W30 = [30, 40, 45, 50, 60], WALL = [30, 40, 45, 50, 60, 80, 90, 100, 120];
+  // Aufsatzschrank auf Hochschränken (Höhe in cm) – nur was unter die Decke passt (Raumhöhe 260)
+  const AX = [36, 54, 72], AXMAX = 258;
   const M = {
     us: { n: 'Unterschrank', s: 'Schubladen', v: '3 Schubladen', w: 60, ws: WALL, h: 'b' },
     ut: { n: 'Unterschrank', s: 'mit Tür', v: 'Schublade + Tür', w: 60, ws: W30, h: 'b', hinge: 1 },
     u1: { n: 'Unterschrank', s: 'Tür', v: 'Tür', w: 50, ws: W30, h: 'b', hinge: 1 },
-    u2: { n: 'Unterschrank', s: '2 Türen', v: '2 Türen', w: 80, ws: [60, 80, 90, 100, 120], h: 'b' },
+    u2: { n: 'Unterschrank', s: '2 Türen', v: '2 Türen', w: 80, ws: [60, 70, 80, 90, 100, 120], h: 'b' },
     s2: { n: 'Unterschrank', s: '2 große Auszüge', v: '2 große Auszüge', w: 60, ws: WALL, h: 'b' },
     s4: { n: 'Unterschrank', s: '4 Schubladen', v: '4 Schubladen', w: 60, ws: WALL, h: 'b' },
-    ui: { n: 'Unterschrank', s: 'Auszüge mit Innenschubladen', v: 'Innenschubladen', w: 80, ws: [45, 50, 60, 80, 90, 100, 120], h: 'b' },
+    ui: { n: 'Unterschrank', s: 'Auszüge mit Innenschubladen', v: 'Innenschubladen', w: 80, ws: [30, 40, 45, 50, 60, 80, 90, 100, 120], h: 'b' },
     ur: { n: 'Offenes Regal', s: 'unten, ohne Front', w: 30, ws: [15, 20, 30, 40, 45, 50, 60], h: 'b' },
     fa: { n: 'Flaschenauszug', s: 'schmal, für Öl & Flaschen', w: 20, ws: [15, 20, 30], h: 'b' },
     ap: { n: 'Apothekerschrank klein', s: 'Unterschrank-Auszug', w: 30, ws: [15, 20, 30, 40], h: 'b' },
-    mt: { n: 'Mülltrenner', s: 'Auszug mit Eimern', w: 60, ws: [45, 50, 60], h: 'b' },
-    sp: { n: 'Spüle', s: 'mit Armatur', w: 80, ws: [60, 80, 90, 100, 120], h: 'b' },
-    kf: { n: 'Kochfeld', s: 'Auszüge darunter', w: 80, ws: [60, 80, 90, 120], h: 'b' },
+    mt: { n: 'Mülltrenner', s: 'Auszug mit Eimern', w: 60, ws: [30, 40, 45, 50, 60, 80, 90], h: 'b' },
+    sp: { n: 'Spüle', s: 'mit Armatur', w: 80, ws: [40, 45, 50, 60, 80, 90, 100, 120], h: 'b' },
+    kf: { n: 'Kochfeld', s: 'Auszüge darunter', w: 80, ws: [60, 80, 90, 100, 120], h: 'b' },
     ko: { n: 'Herd', s: 'Kochfeld + Backofen', w: 60, ws: [60, 90], h: 'b' },
     gs: { n: 'Spülmaschine', s: 'vollintegriert', w: 60, ws: [45, 60], h: 'b' },
     ek: { n: 'Eckschrank', s: 'mit Karussell', w: 90, ws: [90], h: 'b', corner: 1 },
@@ -39,16 +41,16 @@
     vg: { n: 'Vitrinenschrank', s: 'hoch, oben mit Glastür', v: 'Glastür oben', w: 60, ws: [40, 45, 50, 60], h: 't', hs: HT, hinge: 1 },
     h1: { n: 'Hängeschrank', s: 'Tür', v: 'Tür', w: 60, ws: W30, h: 'u', hs: HU, hinge: 1 },
     h2: { n: 'Hängeschrank', s: '2 Türen', v: '2 Türen', w: 80, ws: [60, 80, 90, 100, 120], h: 'u', hs: HU },
-    hk: { n: 'Hängeschrank', s: 'Klappe kippt nach oben', v: 'Klappe kippt nach oben', w: 60, ws: [45, 50, 60, 80, 90, 100, 120], h: 'u', hs: HU },
-    hs: { n: 'Hängeschrank', s: 'Klappe schwenkt ganz hoch', v: 'Klappe schwenkt ganz hoch', w: 60, ws: [45, 50, 60, 80, 90, 100, 120], h: 'u', hs: [36, 54, 72] },
+    hk: { n: 'Hängeschrank', s: 'Klappe kippt nach oben', v: 'Klappe kippt nach oben', w: 60, ws: [40, 45, 50, 60, 80, 90, 100, 120], h: 'u', hs: [36, 54, 72, 90] },
+    hs: { n: 'Hängeschrank', s: 'Klappe schwenkt ganz hoch', v: 'Klappe schwenkt ganz hoch', w: 60, ws: [40, 45, 50, 60, 80, 90, 100, 120], h: 'u', hs: [36, 54, 72] },
     hf: { n: 'Hängeschrank', s: 'Klappe knickt in der Mitte', v: 'Faltklappe – knickt in der Mitte', w: 80, ws: [60, 80, 90, 100, 120], h: 'u', hs: [72, 90] },
-    hg: { n: 'Glasvitrine', s: 'Hängeschrank mit Glastür', v: 'Glastür', w: 50, ws: [40, 45, 50, 60, 80, 90, 100], h: 'u', hs: HU, hinge: 1 },
+    hg: { n: 'Glasvitrine', s: 'Hängeschrank mit Glastür', v: 'Glastür', w: 50, ws: [40, 45, 50, 60, 80, 90, 100, 120], h: 'u', hs: HU, hinge: 1 },
     ho: { n: 'Wandregal', s: 'offen', v: 'offen', w: 60, ws: WALL, h: 'u', hs: HU },
     he: { n: 'Eck-Hängeschrank', s: 'mit Drehboden', w: 65, ws: [55, 60, 65, 70, 80], h: 'u', hs: HU, hinge: 1, a: 'r' },
     dh: { n: 'Dunstabzug', s: 'Wandhaube', w: 90, ws: [60, 90, 120], h: 'u' },
   };
   const CATS = [['unten', 'Unten'], ['geraete', 'Spüle & Herd'], ['ecke', 'Ecke'], ['oben', 'Oben'], ['hoch', 'Hoch']];
-  const CATH = { unten: 'Unterschränke unter der Arbeitsplatte. Antippen oder in die Wand ziehen – Breite und Türanschlag danach in der Wand antippen.', geraete: 'Spüle, Kochfeld, Herd und Spülmaschine – mit passenden Schränken darunter.', ecke: 'Eckschränke setzen sich automatisch in die Ecke einer L- oder U-Küche und nutzen den Platz hinter der Ecke.', oben: 'Hängeschränke hängen über der Arbeitsplatte. Antippen oder genau an die Stelle ziehen – Höhe 36 bis 90 cm, mit Tür, Klappe, Glas oder als Eckschrank.', hoch: 'Hochschränke vom Boden bis oben. Nach dem Einsetzen antippen: Höhe 145 bis 230 cm und Türanschlag.' };
+  const CATH = { unten: 'Unterschränke unter der Arbeitsplatte. Antippen oder in die Wand ziehen – Breite und Türanschlag danach in der Wand antippen.', geraete: 'Spüle, Kochfeld, Herd und Spülmaschine – mit passenden Schränken darunter.', ecke: 'Eckschränke setzen sich automatisch in die Ecke einer L- oder U-Küche und nutzen den Platz hinter der Ecke.', oben: 'Hängeschränke hängen über der Arbeitsplatte. Antippen oder genau an die Stelle ziehen – Höhe 36 bis 90 cm, mit Tür, Klappe, Glas oder als Eckschrank.', hoch: 'Hochschränke vom Boden bis oben. Nach dem Einsetzen antippen: Höhe 145 bis 230 cm, Türanschlag und ein Aufsatzschrank obendrauf – bis unter die Decke.' };
   const PAL = [
     ['unten', 'us', 0, '3 Schubladen', 'Unterschrank'], ['unten', 's2', 0, '2 Auszüge', 'Unterschrank'], ['unten', 's4', 0, '4 Schubladen', 'Unterschrank'], ['unten', 'ut', 0, 'Schublade + Tür', 'Unterschrank'],
     ['unten', 'u1', { a: 'l' }, 'Tür links', 'öffnet nach links'], ['unten', 'u1', { a: 'r' }, 'Tür rechts', 'öffnet nach rechts'], ['unten', 'u2', 0, '2 Türen', 'Unterschrank'], ['unten', 'ui', 0, 'Innen\u00adschubladen', 'Auszüge mit Innenschub'],
@@ -114,8 +116,10 @@
   // Modul: {id, t, w, h?, a?} · Hängeschrank (frei platziert): {id, t, s (cm ab Wandanfang), w, h?, a?}
   let P = null, uid = 1;
   const HDEF = t => M[t].h === 't' ? 216 : M[t].h === 'u' ? 72 : 0;
-  const mk = (t, w, o) => { const m = { id: uid++, t, w: w || M[t].w }; if (o && o.h && M[t].hs && M[t].hs.includes(+o.h)) m.h = +o.h; if (o && (o.a === 'l' || o.a === 'r') && M[t].hinge) m.a = o.a; return m; };
+  const mk = (t, w, o) => { const m = { id: uid++, t, w: w || M[t].w }; if (o && o.h && M[t].hs && M[t].hs.includes(+o.h)) m.h = +o.h; if (o && (o.a === 'l' || o.a === 'r') && M[t].hinge) m.a = o.a; if (o && o.ax && M[t].h === 't' && AX.includes(+o.ax)) m.ax = +o.ax; return m; };
   const hOf = m => (M[m.t].hs && m.h) || HDEF(m.t);
+  const axOf = m => (M[m.t].h === 't' && m.ax && hOf(m) + m.ax <= AXMAX) ? m.ax : 0;   // Aufsatzschrank (cm), 0 = keiner
+  const axFront = (m, ax) => ax <= 40 ? [{ k: 'flap', p: 1 }] : spec({ t: m.w > 60 ? 'h2' : 'h1', w: m.w, a: m.a || 'r', h: ax }).fr;
   const isUp = t => M[t].h === 'u';
   function fresh(form, keep) {
     const f = FORMS[form], old = keep || {};
@@ -412,11 +416,11 @@
       const cols = sp.cols || [{ fr: sp.fr }], fixedW = cols.reduce((a, k) => a + (k.cm || 0), 0), flex = cols.filter(k => !k.cm).length || 1;
       let cx = x; cols.forEach(k => { const cw = k.cm || (w - fixedW) / flex; s += k.blind ? hatch(cx, FL - 86, cw, 76, CNAME[m.t] || 'Ecke') : stack2d(cx, FL - 86, cw, 76, k.fr, 'b'); cx += cw; });
       s += `<rect x="${x - .3}" y="${FL - 90}" width="${w + .6}" height="4" fill="${topCol()}" stroke="rgba(0,0,0,.25)" stroke-width=".4"/>`;
-      if (sp.app === 'sp') { const cx2 = x + w / 2, sc = sinkCol(), tc = tapCol(); s += `<g data-eq="sp"><rect x="${cx2 - 22}" y="${FL - 91.6}" width="44" height="2" rx=".8" fill="${sc}" stroke="rgba(0,0,0,.3)" stroke-width=".3"/><path d="M${cx2 - 3} ${FL - 90}v-20q0-7 7-7h4q5 0 5 5v4" fill="none" stroke="${tc}" stroke-width="2.4" stroke-linecap="round"/><path d="M${cx2 - 3.6} ${FL - 108}q0-3 2-4.5" fill="none" stroke="rgba(255,255,255,.55)" stroke-width=".6" stroke-linecap="round"/><rect x="${cx2 - 6}" y="${FL - 93.2}" width="6" height="2.2" rx=".6" fill="${tc}"/></g>`; }
+      if (sp.app === 'sp') { const cx2 = x + w / 2, sc = sinkCol(), tc = tapCol(); s += `<g data-eq="sp"><rect x="${cx2 - Math.min(22, w / 2 - 3)}" y="${FL - 91.6}" width="${Math.min(44, w - 6)}" height="2" rx=".8" fill="${sc}" stroke="rgba(0,0,0,.3)" stroke-width=".3"/><path d="M${cx2 - 3} ${FL - 90}v-20q0-7 7-7h4q5 0 5 5v4" fill="none" stroke="${tc}" stroke-width="2.4" stroke-linecap="round"/><path d="M${cx2 - 3.6} ${FL - 108}q0-3 2-4.5" fill="none" stroke="rgba(255,255,255,.55)" stroke-width=".6" stroke-linecap="round"/><rect x="${cx2 - 6}" y="${FL - 93.2}" width="6" height="2.2" rx=".6" fill="${tc}"/></g>`; }
       if (sp.app === 'kf') { const hw = m.t === 'kf' ? Math.min(eqv('hobW', 80), w) - 2 : w - 4, hx = x + w / 2 - hw / 2; s += `<rect x="${hx}" y="${FL - 91.2}" width="${hw}" height="1.6" fill="#0d0d0e"/>${isDD() ? `<rect x="${x + w / 2 - 5}" y="${FL - 91.6}" width="10" height="1.2" fill="#6a6e72"/>` : ''}`; }
       return s;
     }
-    if (c.h === 't') { const Ht = hOf(m), top = FL - Ht; return `<rect x="${x}" y="${FL - 10}" width="${w}" height="10" fill="#2b2b2b"/>` + stack2d(x, top, w, Ht - 10, sp.fr, 't'); }
+    if (c.h === 't') { const Ht = hOf(m), top = FL - Ht, ax = axOf(m); return `<rect x="${x}" y="${FL - 10}" width="${w}" height="10" fill="#2b2b2b"/>` + stack2d(x, top, w, Ht - 10, sp.fr, 't') + (ax ? stack2d(x, top - ax, w, ax - .6, axFront(m, ax), 'u') : ''); }
     return upElev({ ...m, s: x }, x);
   }
   // Dunstabzug in der Ansicht – je nach gewählter Bauform
@@ -451,7 +455,7 @@
     const LY = layout(w), sel = opt.sel; let x = a;
     rowsW.forEach((m, i) => {
       m._cs = cornerSide(w, i); x = LY.X.get(m);
-      const tall = M[m.t].h === 't', hy = tall ? FL - hOf(m) : FL - 92, hh = tall ? hOf(m) : 92;
+      const tall = M[m.t].h === 't', hy = tall ? FL - hOf(m) - axOf(m) : FL - 92, hh = tall ? hOf(m) + axOf(m) : 92;
       s += `<g data-m="${m.id}" class="kp-m${sel === m.id ? ' on' : ''}"${opt.ghost === m.id ? ' opacity=".25"' : ''}>${elev(m, x)}<rect class="kp-hit" x="${x}" y="${hy}" width="${m.w}" height="${hh}" fill="transparent"/></g>`;
       x += m.w;
     });
@@ -789,6 +793,7 @@
     let h = `<div class="kp-pt"><b>${c.n} <small>${variant(m, cs)}</small></b><button type="button" class="kp-px" data-p="x" aria-label="Auswahl schließen">×</button></div>`;
     h += `<div class="kp-prow"><span class="kp-pl">Breite</span><div class="kp-step"><button type="button" data-p="w-"${stepW(ws, m.w, -1) === m.w ? ' disabled' : ''} aria-label="schmaler">−</button><span>${m.w} cm</span><button type="button" data-p="w+"${stepW(ws, m.w, 1) === m.w ? ' disabled' : ''} aria-label="breiter">+</button></div></div>`;
     if (c.hs) h += `<div class="kp-prow"><span class="kp-pl">Höhe</span><div class="kp-chips" role="group" aria-label="Höhe">${c.hs.map(v => `<button type="button" data-p="h" data-v="${v}" class="${hOf(m) === v ? 'on' : ''}" aria-pressed="${hOf(m) === v}">${v}</button>`).join('')}<em>cm</em></div></div>`;
+    if (c.h === 't') { const fits = AX.filter(v => hOf(m) + v <= AXMAX); if (fits.length) h += `<div class="kp-prow"><span class="kp-pl">Aufsatz</span><div class="kp-chips" role="group" aria-label="Aufsatzschrank">${[0, ...fits].map(v => `<button type="button" data-p="ax" data-v="${v}" class="${axOf(m) === v ? 'on' : ''}" aria-pressed="${axOf(m) === v}">${v ? v : 'ohne'}</button>`).join('')}<em>cm</em></div></div>`; }
     if (hasHinge(m, cs)) { const a = aOf(m, cs); h += `<div class="kp-prow"><span class="kp-pl">Tür öffnet</span><div class="kp-chips" role="group" aria-label="Türanschlag">${[['l', 'nach links', ICON_L], ['r', 'nach rechts', ICON_R]].map(([k, nm, ic]) => `<button type="button" data-p="a" data-v="${k}" class="${a === k ? 'on' : ''}" aria-pressed="${a === k}">${ic}${nm}</button>`).join('')}</div></div>`; }
     if (kinds) h += `<div class="kp-prow kp-kinds"><span class="kp-pl">Art</span><div class="kp-chips" role="group" aria-label="Art">${kinds.map(([t, nm]) => `<button type="button" data-p="t" data-v="${t}" class="${m.t === t ? 'on' : ''}" aria-pressed="${m.t === t}">${nm}</button>`).join('')}</div></div>`;
     if (m.t === 'sp') h += eqRows('sp', m); if (m.t === 'kf' || m.t === 'ko') h += eqRows('kf', m); if (m.t === 'dh') h += eqRows('dh', m);
@@ -909,7 +914,8 @@
       if (up) { const s = resolveUp(w, m, m.s - (m.w - old) / 2, true); if (s == null) { m.w = old; toast('Daneben hängt schon etwas – erst verschieben oder schmaler machen.'); } else m.s = s; }
       else { if (k === 'w+') makeRoom(w, m); if (c.corner) ['W', 'E'].forEach(x => P.rows[x] && makeRoom(x)); }
     }
-    if (k === 'h') m.h = +v;
+    if (k === 'h') { m.h = +v; if (m.ax && hOf(m) + m.ax > AXMAX) { delete m.ax; toast('Der Aufsatzschrank passt bei dieser Höhe nicht mehr unter die Decke – entfernt.'); } }
+    if (k === 'ax') { if (+v) m.ax = +v; else delete m.ax; }
     if (k === 'a') m.a = v;
     if (k === 't' && v !== m.t) {
       if (up) { const old = { ...m }; setUpType(m, v); const s = resolveUp(w, m, m.s, true); if (s == null) { Object.assign(m, old); toast('Der neue Schrank ist breiter – daneben ist kein Platz.'); } else m.s = s; }
@@ -1039,6 +1045,7 @@
       P.rows[w].forEach((m, i) => {
         const x = LY.X.get(m), cs = cornerSide(w, i), c = M[m.t], sp = spec(m, cs);
         const cutR = w === 'W' && cornerAt(w, 1) && Math.abs(x + m.w - rb) < .6 && !ekL ? 1 : 0, cutL = w === 'E' && cornerAt(w, 0) && Math.abs(x - ra) < .6 && !ekR ? 1 : 0;
+        if (axOf(m)) items.push({ t: 'cab', label: 'Aufsatzschrank · ' + axOf(m) + ' cm', kind: 'u', w: m.w, h: axOf(m) - .4, y0: hOf(m) + .4, d: 58, led: false, fr: axFront(m, axOf(m)), ...pos(w, x + m.w / 2, 58) });
         items.push({ t: 'cab', id: m.id, label: label(m, cs), kind: c.h, w: m.w, h: c.h === 't' ? hOf(m) : undefined, ah, ...sp, ...(m.t === 'kf' ? { hob: Math.min(eqv('hobW', 80), m.w) - 2 } : {}), ...(cutL || cutR ? { topCut: [cutL * 2, cutR * 2], plExt: [cutL * 6, cutR * 6] } : {}), ...pos(w, x + m.w / 2, 60) });
       });
       // freier Platz zwischen zwei Ecken: Passblende mit durchlaufender Arbeitsplatte – keine offene Lücke
@@ -1078,7 +1085,7 @@
 
   /* ---------------- Verlauf / Link ---------------- */
   const hist = [];
-  const opt = m => { const o = {}; if (m.h && M[m.t].hs && m.h !== HDEF(m.t)) o.h = m.h; if (m.a) o.a = m.a; return Object.keys(o).length ? o : null; };
+  const opt = m => { const o = {}; if (m.h && M[m.t].hs && m.h !== HDEF(m.t)) o.h = m.h; if (m.a) o.a = m.a; if (m.ax) o.ax = m.ax; return Object.keys(o).length ? o : null; };
   const ser = () => { const o = { f: P.form, r: P.room, rw: Object.fromEntries(Object.entries(P.rows).map(([k, v]) => [k, v.map(m => { const q = opt(m); return q ? [m.t, m.w, q] : [m.t, m.w]; })])), tp: P.top, op: P.op.map(o2 => [o2.t, o2.wall, o2.s, o2.w]), is: P.island, s: P.style, ah: P.ah || 90 }; const up = Object.entries(P.up || {}); if (up.length) o.up = Object.fromEntries(up.map(([k, v]) => [k, v.map(u => { const q = opt(u); return q ? [u.t, u.s, u.w, q] : [u.t, u.s, u.w]; })])); return JSON.stringify(o); };
   function des(j) {
     const o = JSON.parse(j); P = { form: FORMS[o.f] ? o.f : 'l', room: o.r, rows: {}, up: {}, top: o.tp || {}, op: [], island: o.is || { w: 180, v: 'kochfeld' }, style: o.s, ah: o.ah || 90 };
@@ -1201,7 +1208,7 @@
   function descr(m, cs, up) {
     const c = M[m.t], hng = hasHinge(m) ? `, Tür öffnet nach ${aOf(m, cs) === 'l' ? 'links' : 'rechts'}` : '';
     if (up) return m.t === 'dh' ? `Dunstabzug ${nm(HOODS, eqv('hood', 'schraeg'))} ${m.w} cm breit (ab ${Math.round(m.s)} cm)` : `${c.n} ${variant(m).replace(/ öffnet nach (links|rechts)/, '')} ${m.w} × ${hOf(m)} cm${hng} (ab ${Math.round(m.s)} cm)`;
-    if (c.h === 't') return `${c.n} (${c.s}) ${m.w} × ${hOf(m)} cm${hng}`;
+    if (c.h === 't') return `${c.n} (${c.s}) ${m.w} × ${hOf(m)} cm${hng}${axOf(m) ? ` + Aufsatzschrank ${axOf(m)} cm (gesamt ${hOf(m) + axOf(m)} cm)` : ''}`;
     if (c.corner) return `${c.n} ${c.s} ${m.w} cm in der ${cs === 'r' ? 'rechten' : 'linken'} Ecke${hng}`;
     if (c.n === 'Unterschrank') return `Unterschrank ${variant(m).replace(/ öffnet nach (links|rechts)/, '')} ${m.w} cm${hng}`;
     return `${c.n} ${m.w} cm`;
@@ -1215,7 +1222,7 @@
       const [a, b] = range(w), X = xs(w), LY = layout(w);
       o.nutzbarVon = a; o.nutzbarBis = b; o.frei = Math.round(free(w)); if (LY.fr > .5) o.freiAb = Math.round(LY.gx);
       { const TR = trims(w); o.passstuecke = TR.pf.map(q => ({ name: 'Passstück', abWand: Math.round(q.x), breite: Math.round(q.w), hoehe: q.tall ? q.h : ah, dekor: (P.style.pfDek || 'front') === 'top' ? 'Arbeitsplatte' : 'Frontfarbe' })); o.wangen = TR.wg.map(q => ({ name: 'Seitenwange', seite: q.side, abWand: Math.round(q.x), breite: 2.5, hoehe: ah, tiefe: 62, dekor: (P.style.wgDek || 'top') === 'top' ? 'Arbeitsplatte' : 'Frontfarbe' })); }
-      o.unten = rowsW.map((m, i) => { const cs = cornerSide(w, i), c = M[m.t], tall = c.h === 't', r = { id: m.id, typ: m.t, name: c.n, variante: variant(m, cs), art: tall ? 'hoch' : 'unter', breite: m.w, hoehe: tall ? hOf(m) : ah, tiefe: 60, abWand: X[i], ecke: cs || null, tuerAnschlag: hasHinge(m, cs) ? (aOf(m, cs) === 'l' ? 'links' : 'rechts') : null }; return r; });
+      o.unten = rowsW.map((m, i) => { const cs = cornerSide(w, i), c = M[m.t], tall = c.h === 't', r = { id: m.id, typ: m.t, name: c.n, variante: variant(m, cs), art: tall ? 'hoch' : 'unter', breite: m.w, hoehe: tall ? hOf(m) : ah, ...(tall && axOf(m) ? { aufsatz: axOf(m), gesamthoehe: hOf(m) + axOf(m) } : {}), tiefe: 60, abWand: X[i], ecke: cs || null, tuerAnschlag: hasHinge(m, cs) ? (aOf(m, cs) === 'l' ? 'links' : 'rechts') : null }; return r; });
       o.oben = [...upList(w)].sort((p, q) => p.s - q.s).map(u => u.t === 'dh' ? { id: u.id, typ: 'dh', name: 'Dunstabzug', variante: nm(HOODS, eqv('hood', 'schraeg')), art: 'haube', breite: u.w, hoehe: 108, tiefe: 50, abWand: Math.round(u.s), unterkante: 152 } : { id: u.id, typ: u.t, name: M[u.t].n, variante: variant(u), art: 'haenge', breite: u.w, hoehe: hOf(u), tiefe: 35, abWand: Math.round(u.s), unterkante: upY(u).bottom, oberkante: upY(u).bottom + hOf(u), tuerAnschlag: hasHinge(u) ? (aOf(u) === 'l' ? 'links' : 'rechts') : null, automatisch: !!u.auto });
       return o;
     });

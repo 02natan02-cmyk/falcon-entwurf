@@ -75,6 +75,7 @@
         const c = { id: c0.id, wall: k, s: num(c0.abWand) || 0, w: num(c0.breite) || 60, name: c0.name || 'Element', sub: c0.variante || '', kind: tall ? 't' : 'b', d: num(c0.tiefe) || 60, h: tall ? num(c0.hoehe) || 216 : null, y0: 0, fr: sp.fr || null, cols: sp.cols || null, corner: sp.corner || (c0.typ === 'ek' ? { kind: 'kar', side: c0.ecke || 'l' } : null), ecke: c0.ecke || null, typ: c0.typ, hinge: c0.tuerAnschlag || null };
         c.app = ['sp', 'kf', 'ko', 'gs', 'kue', 'bo', 'bm'].includes(c0.typ) ? c0.typ : appOf(c.name, sp);
         w.base.push(c); ok = true;
+        if (tall && num(c0.aufsatz)) w.up.push({ wall: k, s: c.s, w: c.w, kind: 'u', name: 'Aufsatzschrank', sub: 'auf ' + c.name, h: num(c0.aufsatz), y0: c.h, d: 58, fr: num(c0.aufsatz) <= 40 ? [{ k: 'flap', p: 1 }] : null, typ: 'ax' });
       });
       (w0.oben || []).forEach(c0 => {
         const sp = spec[String(c0.id)] || {}, hood = c0.typ === 'dh' || /haube/.test(c0.art || '');
