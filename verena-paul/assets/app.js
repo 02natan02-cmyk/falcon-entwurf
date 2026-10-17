@@ -294,7 +294,7 @@
       },
       len: k => CUE[k] ? CUE[k][1] : 0,
       say(k) { if (!on || !ac || !buf || !CUE[k]) return; const s = ac.createBufferSource(), f = chain(); s.buffer = buf; s.connect(f); s.start(ac.currentTime + .05, CUE[k][0], CUE[k][1]); track(s, f); },
-      breath(kind, sec) {   /* Atemgeräusch: leise im Hintergrund (Natan 17.10.: Rauschen um mehr als die Hälfte leiser, Höhen weich abgeschnitten) */
+      breath(kind, sec) {   /* Atemgeräusch: leise im Hintergrund, Höhen weich abgeschnitten */
         if (!on || !ac) return; const t = ac.currentTime + .05;
         if (!noise) { const n = ac.sampleRate * 2, nb = ac.createBuffer(1, n, ac.sampleRate), d = nb.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; noise = nb; }
         const s = ac.createBufferSource(); s.buffer = noise; s.loop = true; s.playbackRate.value = .92 + Math.random() * .16;
