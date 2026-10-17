@@ -76,3 +76,4 @@
 .scene.play:not(.moving) .leg{animation-play-state:paused}
 .scene.play .walker{transition:none}
 .scene .mess{pointer-events:none}
+.scene .vlit{opacity:var(--lit)}

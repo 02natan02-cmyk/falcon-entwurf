@@ -253,6 +253,8 @@
     var r = road.getBoundingClientRect(), vh = innerHeight;
     var p = (vh - r.top) / (vh + r.height); p = Math.max(0, Math.min(1, p));
     var x = -0.05 + p * 1.1; drive.style.setProperty('--x', x.toFixed(4));
+    // Räder rollen genau so weit, wie der Bus fährt (Reifen-Radius 71 von 1072 Einheiten Bildbreite) – auch rückwärts beim Hochscrollen
+    var w = drive.offsetWidth, px = x * (innerWidth + w) - w; drive.style.setProperty('--rot', (px / (w * 71 / 1072) * 57.2958).toFixed(1) + 'deg');
     var moving = Math.abs(p - last) > .0005; last = p;
     road.style.setProperty('--run', moving ? 'running' : 'paused'); drive.style.setProperty('--trail', moving ? '1' : '0');
     clearTimeout(tmr); tmr = setTimeout(function () { road.style.setProperty('--run', 'paused'); drive.style.setProperty('--trail', '0'); }, 160);
@@ -280,7 +282,9 @@
     var W = road.clientWidth, w = drive.offsetWidth;
     var x = W - p * (W + w * 0.6) * 1.05;
     drive.style.setProperty('--vx', x.toFixed(1) + 'px');
-    var nose = (x + w * 0.04) / W, name = null;
+    // Räder rollen mit der Strecke; die Zeichnung ist gespiegelt (rechte Fahrzeugseite), daher umgekehrtes Vorzeichen
+    drive.style.setProperty('--rot', (-x / (w * 71 / 1072) * 57.2958).toFixed(1) + 'deg');
+    var nose = (x + w * 0.01) / W, name = null;
     signs.forEach(function (s) { var on = nose <= parseFloat(s.dataset.sx) + 0.02; s.classList.toggle('on', on); if (on && getComputedStyle(s).display !== 'none') name = s.textContent; });
     if (name && town) town.textContent = name;
     var moving = last >= 0 && Math.abs(p - last) > .0004; last = p;
@@ -316,7 +320,7 @@
   var b = document.querySelector('[data-cpbubble]'), road = document.querySelector('[data-cproad]'), drive = road && road.querySelector('[data-cpdrive]');
   if (!b || !drive) return; var lastTown = '', t;
   var town = road.querySelector('[data-cptown]');
-  new MutationObserver(function () { var n = town.textContent; if (n === lastTown) return; lastTown = n; var r = drive.getBoundingClientRect(), rr = road.getBoundingClientRect(); b.style.setProperty('--bx', (r.left - rr.left + r.width * .38) + 'px'); b.textContent = ['Wuff!', 'Wuff wuff!', 'Da vorne!', 'Fast da!', 'Wuff!'][Math.floor(Math.random() * 5)]; b.classList.add('on'); clearTimeout(t); t = setTimeout(function () { b.classList.remove('on'); }, 1100); }).observe(town, { childList: true, characterData: true, subtree: true });
+  new MutationObserver(function () { var n = town.textContent; if (n === lastTown) return; lastTown = n; var r = drive.getBoundingClientRect(), rr = road.getBoundingClientRect(); b.style.setProperty('--bx', (r.left - rr.left + r.width * .27) + 'px'); b.textContent = ['Wuff!', 'Wuff wuff!', 'Da vorne!', 'Fast da!', 'Wuff!'][Math.floor(Math.random() * 5)]; b.classList.add('on'); clearTimeout(t); t = setTimeout(function () { b.classList.remove('on'); }, 1100); }).observe(town, { childList: true, characterData: true, subtree: true });
 })();
 
 /* ===================== Review 16.10. ===================== */
