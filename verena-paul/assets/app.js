@@ -108,11 +108,12 @@
 
   /* ---------- Playlist: startet leise, sonst bei der ersten Interaktion ---------- */
   const PL = (() => {
-    const el = $('[data-pl]'), T = D.tracks || [], sbtn = $('[data-snd]'); if (!el || !T.length) return { duck() {}, swell() {}, ensure() {} };
+    const el = $('[data-pl]'), T = D.tracks || [], sbtn = $('[data-snd]'); if (!el || !T.length) return { duck() {}, swell() {}, hush() {} };
     const a = new Audio(); a.preload = 'auto';
     const LOW = .12, KEY = 'vp-mute';
     const ss = { get: () => { try { return sessionStorage.getItem(KEY); } catch (e) { return null; } }, set: v => { try { v ? sessionStorage.setItem(KEY, v) : sessionStorage.removeItem(KEY); } catch (e) {} } };
-    let i = 0, playing = false, muted = ss.get() === '1', ducked = false, AC = null, gain = null, raf = 0, armed = false;
+    let i = 0, playing = false, muted = ss.get() === '1', ducked = false, hushed = false, AC = null, gain = null, raf = 0, armed = false, nudge = null, nudged = false;
+    const quiet = () => muted || ducked || hushed;
     a.volume = .5; const fixedVol = Math.abs(a.volume - .5) > .01; a.volume = 0;   /* iOS: Lautstärke nur per WebAudio */
     const vol = (v, ms) => {
       if (gain) { gain.gain.cancelScheduledValues(AC.currentTime); gain.gain.setTargetAtTime(v, AC.currentTime, Math.max(.01, ms / 3000)); return; }
@@ -124,7 +125,7 @@
     const ui = () => {
       const on = playing && !muted;
       el.classList.toggle('playing', playing); el.classList.toggle('muted', muted);
-      $('[data-pl-state]', el).textContent = muted ? '♪ Playlist · stumm' : playing ? '♪ läuft leise – Playlist' : '♪ Playlist · tippen zum Starten';
+      $('[data-pl-state]', el).textContent = muted ? '♪ Playlist · stumm' : hushed ? '♪ Pause – Atemübung läuft' : playing ? '♪ läuft leise – Playlist' : '♪ Playlist · tippen zum Starten';
       const tg = $('[data-pl-toggle]', el); tg.setAttribute('aria-pressed', String(on)); tg.setAttribute('aria-label', on ? 'Musik pausieren' : 'Musik abspielen');
       const mb = $('[data-pl-mute]', el); mb.setAttribute('aria-pressed', String(muted)); mb.setAttribute('aria-label', muted ? 'Ton an' : 'Stumm schalten');
       if (sbtn) sbtn.setAttribute('aria-pressed', String(on));
@@ -133,19 +134,25 @@
     const play = (fade = 2000) => {
       if (fixedVol && !AC) return Promise.reject(new Error('gesture'));
       if (AC && AC.state === 'suspended') AC.resume();
-      if (!gain) a.volume = Math.min(a.volume, LOW);
-      return a.play().then(() => { playing = true; ui(); vol(muted || ducked ? 0 : LOW, fade); });
+      if (!gain) a.volume = quiet() ? 0 : Math.min(a.volume, LOW);
+      return a.play().then(() => { playing = true; hideNudge(); ui(); vol(quiet() ? 0 : LOW, fade); });
     };
     const pause = () => { vol(0, 400); setTimeout(() => { if (muted || ducked || !playing) a.pause(); }, 450); };
+    /* Scrollen startet die Musik, wo der Browser es erlaubt. Verlangt er ein Antippen, erscheint einmal ein kleiner Hinweis. */
+    const hideNudge = () => { if (!nudge) return; const n = nudge; nudge = null; n.classList.remove('on'); setTimeout(() => n.remove(), 600); };
+    const showNudge = () => { if (nudged || playing || muted || hushed) return; nudged = true;
+      const n = nudge = document.createElement('button'); n.type = 'button'; n.className = 'pl-nudge'; n.setAttribute('aria-label', 'Musik einschalten');
+      n.innerHTML = '<span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>Einmal antippen – dann spielt die Musik</span>';
+      n.addEventListener('click', () => { start(); hideNudge(); }); document.body.appendChild(n); requestAnimationFrame(() => requestAnimationFrame(() => n.classList.add('on'))); setTimeout(hideNudge, 7000); };
     const evs = ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'keydown', 'wheel', 'scroll', 'click'];
-    const onGesture = e => { if (e && e.isTrusted === false) return; /* Vorführ-Klicks (Impulse) starten keine Musik */ if (muted || playing) return disarm(); if (e && e.target && e.target.closest && e.target.closest('[data-pl],[data-snd]')) return; webaudio(); play().then(disarm).catch(() => {}); };
+    const onGesture = e => { if (e && e.isTrusted === false) return; /* Vorführ-Klicks (Impulse) starten keine Musik */ if (muted || playing) return disarm(); if (e && e.target && e.target.closest && e.target.closest('[data-pl],[data-snd],.pl-nudge')) return; webaudio(); const t = e && e.type; play().then(disarm).catch(() => { if ((t === 'scroll' || t === 'wheel') && scrollY > 120) setTimeout(() => { if (!playing) showNudge(); }, 700); }); };
     const arm = () => { if (armed) return; armed = true; evs.forEach(ev => addEventListener(ev, onGesture, { passive: true, capture: true })); };
     const disarm = () => { armed = false; evs.forEach(ev => removeEventListener(ev, onGesture, { capture: true })); };
     a.addEventListener('ended', () => { load(i + 1); if (playing && !muted) a.play().catch(() => {}); });
     load(0); ui();
     setTimeout(() => el.classList.add('compact'), 9000);
     if (!muted) play().catch(arm);
-    const start = () => { muted = false; ss.set(null); webaudio(); a.muted = false; (a.paused ? play(1200) : Promise.resolve(vol(LOW, 800))).catch(() => {}); ui(); };
+    const start = () => { muted = false; hushed = false; ss.set(null); webaudio(); a.muted = false; (a.paused ? play(1200) : Promise.resolve(vol(LOW, 800))).catch(() => {}); ui(); };
     const stop = () => { muted = true; ss.set('1'); pause(); disarm(); ui(); };
     $('[data-pl-toggle]', el).addEventListener('click', () => (playing && !muted && !a.paused) ? (playing = false, pause(), ss.set('1'), muted = false, ui(), el.classList.add('paused')) : (el.classList.remove('paused'), start()));
     $('[data-pl-mute]', el).addEventListener('click', () => muted ? start() : stop());
@@ -157,12 +164,14 @@
     document.addEventListener('click', e => { if (e.isTrusted !== false && !tl.hidden && !e.target.closest('[data-pl]')) { tl.hidden = true; lb.setAttribute('aria-expanded', 'false'); el.classList.remove('open'); } });
     if (sbtn) sbtn.addEventListener('click', () => (playing && !muted && !a.paused) ? stop() : start());
     return {
-      ensure() { if (muted || el.classList.contains('paused')) return; if (!playing || a.paused) { webaudio(); play(1500).then(disarm).catch(() => {}); } },
+      /* Atemübung: Musik blendet aus (läuft stumm weiter, damit sie danach ohne neues Antippen wiederkommt) und danach wieder ein */
+      hush(on) { if (on === hushed) return; hushed = on; hideNudge(); ui();
+        if (on) { if (playing) vol(0, 1400); else if (!muted && !el.classList.contains('paused')) { webaudio(); play(0).then(disarm).catch(() => {}); } }
+        else if (playing && !muted && !ducked) { if (a.paused) play(3500).catch(() => {}); else vol(LOW, 3500); } },
       duck(on) { if (on === ducked) return; ducked = on; if (!playing || muted) return; if (on) pause(); else play(1500).catch(() => {}); },
-      swell(f, sec) { if (playing && !muted && !ducked) vol(LOW * f, sec * 1000 * .6); }
+      swell(f, sec) { if (playing && !quiet()) vol(LOW * f, sec * 1000 * .6); }
     };
   })();
-  const breatheSound = (to, sec) => PL.swell(to, sec);
 
   /* ---------- Reise (horizontal, echte Fotos) ---------- */
   const track = $('[data-track]'), pin = $('[data-trip]'), bar = $('[data-tripbar]'), plane = $('.re-plane'), dots = $$('.re-dots li'), STS = $$('.st', track), tcount = $('[data-tcount]');
@@ -306,9 +315,9 @@
   vUi(); bvb && bvb.addEventListener('click', () => { BA.toggle(); vUi(); });
   if ('IntersectionObserver' in window) new IntersectionObserver((es, o) => es.forEach(e => { if (e.isIntersecting) { BA.prefetch(); o.disconnect(); } }), { rootMargin: '900px' }).observe(bw);
   bbtn.addEventListener('click', async () => {
-    if (bRun) { bRun = false; BA.stop(); return; }
+    if (bRun) { bRun = false; BA.stop(); PL.hush(false); return; }
     const id = ++bId, alive = () => bRun && id === bId; bRun = true; bbtn.lastChild.textContent = ' Stopp';
-    PL.ensure();   /* die Musik läuft während der Übung immer mit */
+    PL.hush(true);   /* Musik blendet für die Übung aus */
     const voice = BA.on ? BA.unlock() : Promise.resolve(false);
     const wait = async sec => { for (let k = 0; k < sec * 10; k++) { if (!alive()) return; await sleep(100); } };
     const phase = async (cls, label, sec) => { bw.className = 'breath ' + cls; bt.textContent = label; for (let k = sec; k > 0; k--) { if (!alive()) return; bn.textContent = k; await sleep(1000); } };
@@ -318,13 +327,14 @@
     if (ok && alive()) { BA.say('intro'); await wait(BA.len('intro') + .6); }
     for (let r = 1; r <= 3 && alive(); r++) {
       brr.textContent = `Runde ${r} von 3`;
-      BA.say('in' + r); BA.breath('in', 4); breatheSound(2, 4); await phase('in', 'Einatmen', 4);
+      BA.say('in' + r); BA.breath('in', 4); await phase('in', 'Einatmen', 4);
       if (!alive()) break; BA.say('hold' + r); await phase('hold', 'Halten', 2);
-      if (!alive()) break; BA.say('out' + r); BA.breath('out', 6); breatheSound(1.5, 6); await phase('out', 'Ausatmen', 6);
+      if (!alive()) break; BA.say('out' + r); BA.breath('out', 6); await phase('out', 'Ausatmen', 6);
     }
     if (id !== bId) return;
-    const done = bRun; if (done) BA.say('end');
-    breatheSound(1, 2); bw.className = 'breath'; bt.textContent = done ? 'Schön.' : 'Bereit?'; bn.textContent = done ? 'Spürst du es?' : ''; brr.textContent = done ? 'Drei Runden geschafft. Aloha.' : 'Runde 0 von 3';
+    const done = bRun;
+    if (done) { BA.say('end'); setTimeout(() => { if (!bRun) PL.hush(false); }, 2500); } else PL.hush(false);   /* danach kommt die Musik sanft zurück */
+    bw.className = 'breath'; bt.textContent = done ? 'Schön.' : 'Bereit?'; bn.textContent = done ? 'Spürst du es?' : ''; brr.textContent = done ? 'Drei Runden geschafft. Aloha.' : 'Runde 0 von 3';
     bRun = false; bbtn.lastChild.textContent = ' Nochmal atmen';
   });
 
