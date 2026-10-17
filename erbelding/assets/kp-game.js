@@ -2,7 +2,7 @@
    Gemüse und Obst fliegen durchs Bild – mit Finger oder Maus durchschneiden. Porzellan nicht treffen (3 Leben).
    Im Hintergrund entwickelt sich live das eigene Küchenbild; oben läuft der Fortschritt, am Ende „Ansehen“.
    API: KPGame.open({ host, title, sub, acc, onShow(url), onClose }) · progress(f, canvas, restSek) · done(url) · fail(titel, text) · close() · isOpen() · playing()
-   Natan 17.10.: Ist das Bild fertig, geht das Spiel von selbst aus – wer gerade mitten in einer Runde ist, wird gefragt
+   17.10.: Ist das Bild fertig, geht das Spiel von selbst aus – wer gerade mitten in einer Runde ist, wird gefragt
    („Ihr Bild ist fertig – ansehen oder weiterspielen?“). */
 (function () {
   'use strict';

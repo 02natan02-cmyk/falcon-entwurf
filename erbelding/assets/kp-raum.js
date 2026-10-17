@@ -1,5 +1,5 @@
 /* Raum-Vorschau: Foto automatisch vermessen · Entwurf Falcon Eye
-   Natan 17.10.: „Es muss viel mehr automatisch passieren“ – die vier Bodenpunkte werden nicht mehr von Hand gesetzt,
+   17.10.: „Es muss viel mehr automatisch passieren“ – die vier Bodenpunkte werden nicht mehr von Hand gesetzt,
    sondern aus dem Foto gelesen. Läuft komplett im Browser (wenn möglich in einem Web Worker), ohne Server, ohne KI-Dienst.
    Ablauf:
    1. Kanten → gerade Linienstücke (wie LSD: Bereiche gleicher Kantenrichtung wachsen lassen)

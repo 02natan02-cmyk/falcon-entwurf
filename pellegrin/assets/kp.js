@@ -72,7 +72,7 @@
     insel: { n: 'Mit Insel', walls: ['N'], island: 1, d: 'Zeile + Kochinsel', p: 'M6 6h52v10H6zM18 26h28v10H18z' },
   };
   const WN = { N: 'Rückwand', W: 'Linke Wand', E: 'Rechte Wand', S: 'Gegenüber' };
-  // Farbwelten (Natan 17.10.: „Ja mach alles“): Kunden wählen nach Gefühl, nicht nach Hersteller. Jede Welt hat ihre Töne und eine
+  // Farbwelten (17.10.): Kunden wählen nach Gefühl, nicht nach Hersteller. Jede Welt hat ihre Töne und eine
   // stimmige Kombination (Arbeitsplatte, Griffe, Wand, Boden). Die Herstellerzuordnung geht nur verdeckt als Hinweis mit der Anfrage ans Studio.
   const WORLDS = [
     { k: 'hell', n: 'Hell & freundlich', d: 'Weiß, Kreide, Creme', m: 'Licht und zeitlos – macht jeden Raum größer.', c: [['Weiß', '#f1eee8'], ['Kreide', '#e9e4da'], ['Creme', '#ece3cf'], ['Seidengrau', '#dad6cd']], pair: { top: 'eiche', handle: 'schwarz', wall: '#f3efe9', floor: 'eiche' } },
@@ -84,7 +84,7 @@
   ];
   const FRONTS = WORLDS.flatMap(w => w.c);
   // Verdeckter Studio-Hinweis: nächster Herstellerton (Namen aus Herstellerunterlagen 2024–2026, Farbwerte geschätzt → „am Muster prüfen“).
-  // Welche Marken: data-herst am Planer (Pellegrin: nobilia, Nolte, Schüller). Ohne Angabe nur Farbname + HEX.
+  // Welche Marken: data-herst am Planer (z. B. nobilia, Nolte, Schüller). Ohne Angabe nur Farbname + HEX.
   const HERST = { nobilia: [['Weiß', '#f2f1ec'], ['Sand', '#d8cab1'], ['Macchiato', '#c2ad94'], ['Taupegrau', '#a2988c'], ['Steingrau', '#8b8d89'], ['Coffee', '#5b493c'], ['Schilf', '#b7b496'], ['Olive', '#6e6b46'], ['Steinblau', '#6f7d88'], ['Fjordblau', '#54687a'], ['Schwarz', '#262627']],
     nolte: [['Weiß softmatt', '#f1f0eb'], ['Magnolia', '#ece4d3'], ['Avocado', '#7e8b64'], ['Quarzgrau', '#7c7e7f'], ['Schwarzgrün', '#2c3530']],
     schueller: [['Kristallweiß matt', '#f3f3f0'], ['Muschelweiß matt', '#ebe5d8'], ['Kaschmirbraun', '#b8a58f'], ['Kieselgrau', '#b3afa7'], ['Sandgelb', '#d8c38e'], ['Eukalyptusgrün', '#8fa293'], ['Stahlblau', '#6f8597'], ['Tiefblau matt', '#26344a'], ['Sepiabraun', '#6c5443'], ['Orientrot', '#9a3b2f'], ['Lavaschwarz matt', '#2a2a2b']] };
@@ -1430,7 +1430,7 @@
       .then(() => { const l = $('.kp-load', host3); if (l) l.remove(); mk3D(); })
       .catch(() => { l3 = null; const l = $('.kp-load', host3); if (l) l.textContent = '3D-Ansicht konnte nicht geladen werden.'; }));
   }
-  // Selbstheilung (Natan 17.10.: „oben gar keine Ansicht mehr“): Bricht die Grafik weg (Treiber-Neustart, Überlast), zeigt die Bühne
+  // Selbstheilung (17.10.): Bricht die Grafik weg (Treiber-Neustart, Überlast), zeigt die Bühne
   // kurz „startet neu“ – kommt der Browser-Kontext nicht von selbst zurück, legt der Planer die 3D-Ansicht neu an. Nie ein leeres Feld.
   let lostT = 0, msg3 = null;
   function msg3D(html) { if (!msg3) { msg3 = document.createElement('div'); msg3.className = 'kp-3dmsg'; msg3.setAttribute('role', 'status'); host3.appendChild(msg3); } msg3.innerHTML = html; msg3.hidden = false; }
@@ -1500,7 +1500,7 @@
   }
   function undo() { if (hist.length < 2) return; hist.pop(); des(hist[hist.length - 1]); change(true); }
   $$('[data-undo]').forEach(b => b.addEventListener('click', undo));
-  // Neu anfangen (Natan 17.10.): Raum leeren · neu einrichten mit gleichen Maßen · ganz von vorn – alles mit Rückgängig
+  // Neu anfangen (17.10.): Raum leeren · neu einrichten mit gleichen Maßen · ganz von vorn – alles mit Rückgängig
   function resetPlan(k) {
     if (k === 'leer') {
       for (const w in P.rows) P.rows[w] = [];
@@ -1932,7 +1932,7 @@
   if (!fromHash()) fresh('l');
   const qAh = +(new URLSearchParams(location.search).get('ah') || 0);
   if (qAh >= 80 && qAh <= 110) { P.ah = qAh; setTimeout(() => toast(`Ihre Arbeitshöhe ${qAh} cm ist übernommen – sehen Sie den höheren Sockel?`), 2600); }
-  // Natan 17.10.: Der Planer beginnt bei Schritt 1 „Form & Raum“ – nur mit fertigem Plan im Link (KI, gespeicherte Küche) bei „Einrichten“
+  // 17.10.: Der Planer beginnt bei Schritt 1 „Form & Raum“ – nur mit fertigem Plan im Link (KI, gespeicherte Küche) bei „Einrichten“
   renderPal(); change(); go(SENT ? 3 : HASH0 ? 1 : 0, true); syncAttach();
   if (/[?&]gesendet=1/.test(location.search)) { const n = $('[data-sent]'); if (n) n.hidden = false; }
   offerResume();

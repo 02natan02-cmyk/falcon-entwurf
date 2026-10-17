@@ -1,6 +1,6 @@
 /* Ihre Küche in Ihrem Raum – eigenes Raumfoto, geplante Küche perspektivisch hinein, Vorher/Nachher · Entwurf Falcon Eye
    Läuft komplett im Browser: kein Server, kein Schlüssel. Das Foto verlässt das Gerät erst, wenn man es selbst mitschickt.
-   Natan 17.10.: „Der ganze Bereich muss neu gemacht werden, viel besser, intuitiver – das soll jeder sofort verstehen.“
+   Neu seit 17.10.: einfacher und automatischer – das soll jeder sofort verstehen.
    Ablauf:
    1. Foto wählen → der Raum wird automatisch vermessen (kp-raum.js: Boden, Wände, Brennweite) – mit Such-Animation.
    2. Die geplante Küche steht sofort an ihrem Platz. Mit einem Finger verschieben, mit zwei Fingern drehen und skalieren

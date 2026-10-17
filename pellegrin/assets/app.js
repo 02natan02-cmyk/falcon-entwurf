@@ -86,7 +86,7 @@
         .to(intro, { opacity: 0, duration: .9, ease: 'power2.inOut' }, 10.4);
       // Tippen beschleunigt, Überspringen springt ans Ende
       intro.addEventListener('pointerdown', e => { if (e.target.closest('.intro-skip')) return; tl.timeScale(3.2); });
-      // Scrollen/Wischen/Tasten während des Intros = Vorspulen (Natan: nicht „zu oft scrollen müssen“)
+      // Scrollen/Wischen/Tasten während des Intros = Vorspulen (nicht „zu oft scrollen müssen“)
       ['wheel', 'touchmove', 'keydown'].forEach(ev => addEventListener(ev, () => { if (!intro.classList.contains('gone')) tl.timeScale(3.2); }, { passive: true }));
       $('.intro-skip', intro).addEventListener('click', () => { tl.progress(1); });
       setTimeout(() => { if (!intro.classList.contains('gone')) end(); }, 17000);

@@ -506,7 +506,7 @@
     }
     return best;
   }
-  // Zweite Idee (Natan 17.10.): deutlich andere Anordnung zum Vergleichen – was der Kunde gesagt hat, bleibt in beiden gleich
+  // Zweite Idee (17.10.): deutlich andere Anordnung zum Vergleichen – was der Kunde gesagt hat, bleibt in beiden gleich
   function sig(p) { const ws = FORMS[p.f].walls, has = (w, ts) => (p.rw[w] || []).some(m => ts.includes(m[0])); const sw = ws.find(w => has(w, ['sp'])) || (p.f === 'insel' && p.is.v === 'spuele' ? 'I' : '-'), cw = ws.find(w => has(w, ['kf', 'ko'])) || (p.f === 'insel' && p.is.v === 'kochfeld' ? 'I' : '-'); return [p.f, sw, cw, ws.map(w => (p.rw[w] || []).map(m => m[0]).join(',')).join('/')].join('|'); }
   function mirror(p0) {
     const p = JSON.parse(JSON.stringify(p0));

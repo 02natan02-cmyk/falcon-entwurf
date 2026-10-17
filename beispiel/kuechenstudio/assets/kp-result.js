@@ -709,7 +709,7 @@
   /* ---------- Echtoptik per Raytracing (rt/kp-rt.js, three-gpu-pathtracer) ---------- */
   // Fotorealistisch: physikalisches Licht (Himmel, Sonne durchs Fenster, LED, Spots), echte Materialien, Deko.
   // Ältere Geräte ohne WebGL2-Gleitkomma-Puffer bekommen die bisherige Darstellung.
-  // Freischaltung: nur mit ?rt=1 (merkt sich der Tab). Natan 17.10.: Auf seinem Windows-PC hat das Raytracing (riesiger Shader,
+  // Freischaltung: nur mit ?rt=1 (merkt sich der Tab). 17.10.: Auf einem Windows-PC mit Intel-Grafik hat das Raytracing (riesiger Shader,
   // lange Übersetzung im Grafikprozess) den ganzen Browser eingefroren – darum für alle aus; die Echtoptik kommt vom Lichtsammler.
   const RT_DEFAULT = false;
   const RT_OFF = /[?&]rt=0/.test(location.search) || (!RT_DEFAULT && !(() => { try { if (/[?&]rt=1/.test(location.search)) sessionStorage.setItem('kp-rt', '1'); return sessionStorage.getItem('kp-rt') === '1'; } catch (e) { return /[?&]rt=1/.test(location.search); } })());
@@ -1028,7 +1028,7 @@
     const minT = withBuild && fx ? fx.dur : RMO ? 0 : 450;
     let shown = false, lastCv = null;
     const reveal = () => { if (shown || tok !== renderTok) return; shown = true; live.classList.add('on'); load.classList.add('out'); setTimeout(() => { if (tok === renderTok && shown) { load.hidden = true; if (fx) fx.destroy(); } }, 700); rtp.hidden = false; rtp.classList.toggle('ultra', ultra); };
-    // Natan 17.10.: Dauert das Echtfoto länger, geht das Mini-Spiel auf (fertig → Spiel geht von selbst aus bzw. fragt nach)
+    // 17.10.: Dauert das Echtfoto länger, geht das Mini-Spiel auf (fertig → Spiel geht von selbst aus bzw. fragt nach)
     let lastF2 = 0; clearTimeout(showFoto.gT);
     if (!ultra && !RMO) showFoto.gT = setTimeout(() => { if (tok !== renderTok || Game.isOpen() || el.hidden || tab !== 'foto') return; if (lastF2 > .6) return; Game.open({ title: 'Ihr Echtfoto entsteht', sub: 'Spielen Sie solange eine Runde.', onShow: () => { } }); }, Math.max(minT + 900, 6500));
     const onPrev = (f, cv, n) => {
@@ -1580,7 +1580,7 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(addBar, 0)); else setTimeout(addBar, 0);
 
-  /* ---------- Varianten vergleichen (Natan 17.10.): zwei Entwürfe nebeneinander – Bild, echte Zahlen, wer wo vorne liegt ---------- */
+  /* ---------- Varianten vergleichen (17.10.): zwei Entwürfe nebeneinander – Bild, echte Zahlen, wer wo vorne liegt ---------- */
   const unbH = h => decodeURIComponent(escape(atob(h.slice(3).replace(/-/g, '+').replace(/_/g, '/'))));
   let cmpEl = null, cmpBack = null; const cmpPick = [0, 1];
   function cmpSources() {

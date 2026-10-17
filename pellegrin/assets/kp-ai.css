@@ -293,7 +293,7 @@ html.kpai-lock,html.kpai-lock body{overflow:hidden}
 @media (prefers-reduced-motion:reduce){.kpai-rtap{animation:none}}
 .kpai-rrot{flex-wrap:wrap;row-gap:0;padding:8px 14px}
 @media (max-width:760px){.kpai-rrot small{flex-basis:100%;text-align:center}}
-/* Zwei Ideen zur Wahl (Natan 17.10.) */
+/* Zwei Ideen zur Wahl (17.10.) */
 .kpai-ideas{margin:2px 0 18px}.kpai-ideas[hidden]{display:none}
 .kpai-il{margin:0 0 12px;font:500 15px/1.5 var(--ss);color:var(--mu)}
 .kpai-ig{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(10px,2vw,18px)}
