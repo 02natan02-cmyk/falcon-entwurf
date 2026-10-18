@@ -211,7 +211,7 @@ html[data-page="fahrzeuge"]{overflow-anchor:none}
 .fzf-in input::placeholder,.fzf-in textarea::placeholder{color:#8a9799}
 .fzf-in input:focus,.fzf-in select:focus,.fzf-in textarea:focus{outline:none;border-color:var(--teal);background-color:#fff;box-shadow:0 0 0 4px rgba(63,224,229,.25)}
 .fzf-in input:user-invalid,.fzf-in select:user-invalid{border-color:#e0533d;background-color:#fff6f4}
-.fzf-unit input{padding-right:48px}
+.fzf-unit input{padding-right:44px}
 .fzf-unit>i{position:absolute;right:16px;bottom:15px;font-style:normal;font-weight:700;color:var(--mute);pointer-events:none}
 .fzf-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .fzf-hint{position:absolute;right:2px;top:0;display:inline-flex;align-items:center;gap:6px;font-style:normal;font-size:12.5px;font-weight:700;color:var(--teal-d);opacity:0;transition:opacity .4s;pointer-events:none}
