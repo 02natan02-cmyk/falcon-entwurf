@@ -9,8 +9,18 @@
   const intro = $('[data-intro]');
   let introDone = !intro || document.documentElement.classList.contains('no-intro') || RM;
   const afterIntro = [];
-  const finishIntro = () => { if (introDone && !intro) return; introDone = true; if (intro) { intro.classList.add('out'); setTimeout(() => intro.remove(), 1200); } try { sessionStorage.setItem('vp-intro', '1'); } catch (e) {} afterIntro.forEach(f => f()); };
-  if (!introDone) { intro.addEventListener('click', finishIntro); setTimeout(finishIntro, 2700); } else { intro && intro.remove(); }
+  const finishIntro = () => { if (introDone) return; introDone = true; if (intro) { intro.classList.add('out'); setTimeout(() => intro.remove(), 1200); } try { sessionStorage.setItem('vp-intro', '1'); } catch (e) {} afterIntro.forEach(f => f()); };
+  if (!introDone) {
+    // sichtbarer Knopf „Überspringen“ (Tippen aufs Intro und Esc/Enter/Leertaste gehen auch)
+    const skip = document.createElement('button');
+    skip.type = 'button'; skip.className = 'in-skip'; skip.tabIndex = -1;
+    skip.innerHTML = 'Überspringen <span aria-hidden="true">→</span>';
+    intro.appendChild(skip);
+    intro.addEventListener('click', finishIntro);
+    const key = e => { if (introDone) return removeEventListener('keydown', key); if (/^(Escape|Enter| )$/.test(e.key)) { e.preventDefault(); removeEventListener('keydown', key); finishIntro(); } };
+    addEventListener('keydown', key);
+    setTimeout(finishIntro, 2700);
+  } else { intro && intro.remove(); }
   const whenIntro = f => introDone ? f() : afterIntro.push(f);
 
   /* ---------- Header ---------- */
