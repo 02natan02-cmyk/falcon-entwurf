@@ -314,6 +314,150 @@
     if (Math.abs(dx) > 50 && Math.abs(dy) < 60) go(dx < 0 ? 1 : -1);
   }, { passive: true });
 
+  /* ---------- Ankauf-Formular: Live-Zusammenfassung, Fotos verkleinern, WhatsApp, Danke ---------- */
+  const sell = $('[data-sell]');
+  if (sell) {
+    const done = $('[data-sell-done]', sell), sendBtn = $('[data-sell-send]', sell), SEND = sendBtn.textContent;
+    const val = n => { const e = sell.elements[n]; return e ? String(e.value || '').trim() : ''; };
+    const REQ = ['Fahrzeug', 'Erstzulassung', 'Kilometerstand', 'Name', 'Telefon'];
+    const sumBox = $('.fzf-sum', sell), sumCar = $('[data-sum-car]', sell), sumMeta = $('[data-sum-meta]', sell), sumBar = $('[data-sum-bar]', sell), sumLeft = $('[data-sum-left]', sell);
+    let photos = [];
+    const update = () => {
+      sumCar.textContent = val('Fahrzeug') || 'Ihr Auto';
+      const ez = val('Erstzulassung'), km = val('Kilometerstand'), pr = val('Preisvorstellung');
+      const meta = [ez && (/^\d{4}$/.test(ez) ? 'EZ ' + ez : 'EZ vor 1990'), km && km + ' km', val('Kraftstoff'), val('Getriebe'), val('Zustand'),
+        photos.length && (photos.length === 1 ? '1 Foto' : photos.length + ' Fotos'), pr && 'Wunschpreis ' + pr + ' €'].filter(Boolean);
+      sumMeta.textContent = meta.length ? meta.join(' · ') : 'Ihre Angaben erscheinen hier.';
+      const ok = REQ.filter(n => { const e = sell.elements[n]; return e && String(e.value).trim() && e.checkValidity(); }).length, left = REQ.length - ok;
+      sumBar.style.width = (ok / REQ.length * 100) + '%';
+      sumLeft.textContent = left ? `Noch ${left} Pflichtangabe${left === 1 ? '' : 'n'}` : 'Alles da – bereit zum Senden';
+      sumBox.classList.toggle('ok', !left);
+    };
+    sell.addEventListener('input', update); sell.addEventListener('change', update);
+
+    // Kilometer und Preis mit Tausenderpunkt
+    $$('[data-sell-num]', sell).forEach(inp => inp.addEventListener('input', () => {
+      const d = inp.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, 7), f = d ? Number(d).toLocaleString('de-DE') : '';
+      if (inp.value !== f) inp.value = f;
+    }));
+    // Auswahl-Chips: zweiter Klick nimmt die Auswahl wieder raus
+    $$('.fzf-chip input', sell).forEach(r => {
+      r.addEventListener('pointerdown', () => { r.dataset.was = r.checked ? '1' : ''; });
+      r.addEventListener('click', () => { if (r.dataset.was === '1') { r.checked = false; r.dataset.was = ''; update(); } });
+    });
+
+    // Fotos: im Browser auf 1600 px verkleinern und auf einzelne Felder verteilen (Formulardienst: mehrere Dateifelder, zusammen max. 10 MB)
+    const MAXP = 4, pick = $('[data-sell-pick]', sell), thumbs = $('[data-sell-thumbs]', sell), pmsg = $('[data-sell-pmsg]', sell), drop = pick.closest('.fzf-drop'), PMSG = pmsg.textContent;
+    let canDT = false;
+    try { canDT = !!new DataTransfer(); } catch (e) { canDT = false; }
+    const slots = [];
+    if (canDT) {
+      pick.removeAttribute('name');
+      for (let i = 1; i <= MAXP; i++) { const h = document.createElement('input'); h.type = 'file'; h.name = 'Foto_' + i; h.hidden = true; h.tabIndex = -1; h.setAttribute('aria-hidden', 'true'); sell.appendChild(h); slots.push(h); }
+    }
+    const note = (t, warn) => { pmsg.textContent = t; pmsg.classList.toggle('warn', !!warn); };
+    const shrink = file => new Promise(res => {
+      const url = URL.createObjectURL(file), img = new Image(), fallback = () => res(file.size < 2.5e6 ? file : null);
+      img.onload = () => {
+        try {
+          const s = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement('canvas');
+          c.width = Math.max(1, Math.round(img.naturalWidth * s)); c.height = Math.max(1, Math.round(img.naturalHeight * s));
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          URL.revokeObjectURL(url);
+          c.toBlob(b => b ? res(new File([b], (file.name.replace(/\.[^.]+$/, '') || 'foto') + '.jpg', { type: 'image/jpeg' })) : fallback(), 'image/jpeg', .82);
+        } catch (e) { URL.revokeObjectURL(url); fallback(); }
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); fallback(); };
+      img.src = url;
+    });
+    const sync = () => slots.forEach((h, i) => { const dt = new DataTransfer(); if (photos[i] && photos[i].file) dt.items.add(photos[i].file); h.files = dt.files; });
+    const renderThumbs = () => {
+      thumbs.innerHTML = '';
+      photos.forEach((p, i) => {
+        const li = document.createElement('li');
+        if (p.url) { const im = document.createElement('img'); im.src = p.url; im.alt = `Foto ${i + 1}`; li.appendChild(im); } else li.className = 'busy';
+        const x = document.createElement('button'); x.type = 'button'; x.textContent = '×'; x.setAttribute('aria-label', `Foto ${i + 1} entfernen`);
+        x.addEventListener('click', () => { if (p.url) URL.revokeObjectURL(p.url); photos.splice(photos.indexOf(p), 1); sync(); renderThumbs(); update(); note(photos.length ? `${photos.length} von ${MAXP} Fotos` : PMSG); });
+        li.appendChild(x); thumbs.appendChild(li);
+      });
+      drop.classList.toggle('full', photos.length >= MAXP);
+    };
+    const addFiles = async list => {
+      const all = [...list].filter(f => /^image\//.test(f.type) || /\.(jpe?g|png|webp|heic|heif)$/i.test(f.name));
+      const files = all.slice(0, Math.max(0, MAXP - photos.length));
+      if (!files.length) { if (all.length) note(`Maximal ${MAXP} Fotos – weitere gern per WhatsApp.`, true); return; }
+      const items = files.map(() => ({ file: null, url: '' }));
+      photos.push(...items); renderThumbs(); note('Fotos werden verkleinert …');
+      let bad = 0;
+      for (let k = 0; k < files.length; k++) {
+        const out = await shrink(files[k]);
+        if (out) { items[k].file = out; items[k].url = URL.createObjectURL(out); } else { bad++; photos.splice(photos.indexOf(items[k]), 1); }
+        renderThumbs();
+      }
+      sync(); update();
+      if (bad) note('Ein Foto ließ sich nicht lesen – bitte per WhatsApp schicken.', true);
+      else if (all.length > files.length) note(`Maximal ${MAXP} Fotos – weitere gern per WhatsApp.`, true);
+      else note(`${photos.length} von ${MAXP} Fotos – verkleinert und bereit`);
+    };
+    if (canDT) {
+      pick.addEventListener('change', () => { const l = pick.files; addFiles(l); pick.value = ''; });
+      ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, () => drop.classList.add('drag')));
+      ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, () => drop.classList.remove('drag')));
+    } else pick.addEventListener('change', () => note(pick.files.length ? `${pick.files.length} Foto(s) ausgewählt` : PMSG));
+
+    // Senden über den Formulardienst, danach zurück auf diese Seite
+    sell.addEventListener('submit', e => {
+      if (photos.some(p => !p.file)) { e.preventDefault(); note('Einen Moment – die Fotos werden noch verkleinert …'); setTimeout(() => sell.requestSubmit ? sell.requestSubmit() : sell.submit(), 700); return; }
+      sell.elements._next.value = location.href.split('#')[0].split('?')[0] + '?gesendet=ankauf#fz-sell';
+      const ez = val('Erstzulassung');
+      sell.elements._subject.value = 'Ankauf-Anfrage: ' + val('Fahrzeug') + (ez ? ' (EZ ' + ez + ')' : '');
+      sendBtn.disabled = true; sendBtn.textContent = 'Wird gesendet …';
+    });
+    addEventListener('pageshow', () => { sendBtn.disabled = false; sendBtn.textContent = SEND; });
+
+    // Dieselben Angaben per WhatsApp
+    $('[data-sell-wa]', sell).addEventListener('click', () => {
+      const L = [['Fahrzeug', 'Marke und Modell'], ['Erstzulassung', 'Erstzulassung'], ['Kilometerstand', 'Kilometer', ' km'], ['Kraftstoff', 'Kraftstoff'], ['Getriebe', 'Getriebe'], ['Zustand', 'Zustand'], ['Preisvorstellung', 'Preisvorstellung', ' €'], ['Hinweise', 'Hinweise'], ['Name', 'Name']];
+      const lines = L.map(([n, l, u]) => val(n) ? `${l}: ${val(n)}${u || ''}` : '').filter(Boolean);
+      const t = 'Hallo Z&H, ich möchte mein Auto verkaufen.\n' + (lines.length ? lines.join('\n') : 'Marke und Modell: \nBaujahr: \nKilometer: ') + '\nFotos schicke ich gleich hier im Chat.';
+      window.open(WA(t), '_blank', 'noopener');
+    });
+
+    // Danke-Ansicht nach dem Senden
+    const showDone = () => { sell.classList.add('sent'); done.hidden = false; setTimeout(() => { try { done.focus({ preventScroll: true }); } catch (e) {} }, 900); };
+    if (/[?&]gesendet=ankauf\b/.test(location.search)) showDone();
+    $('[data-sell-again]', sell).addEventListener('click', () => {
+      sell.reset(); photos.forEach(p => p.url && URL.revokeObjectURL(p.url)); photos = [];
+      if (canDT) sync(); renderThumbs(); note(PMSG); update();
+      sell.classList.remove('sent'); done.hidden = true; sendBtn.disabled = false; sendBtn.textContent = SEND;
+      try { history.replaceState(null, '', location.pathname + '#ankauf'); } catch (e) {}
+      $('[data-sell-car]', sell).focus();
+    });
+
+    // Selbst-Impuls: Beispiele tippen sich ins erste Feld, bis jemand loslegt
+    const carIn = $('[data-sell-car]', sell), hint = $('[data-sell-hint]', sell), PH = carIn.placeholder;
+    const EX = ['VW Golf 7 Variant', 'Opel Corsa', 'Hyundai Tucson'];
+    let stopped = false;
+    const stop = () => { if (stopped) return; stopped = true; carIn.placeholder = PH; hint.classList.remove('on'); };
+    carIn.addEventListener('focus', stop); sell.addEventListener('input', stop);
+    onView(sell, () => {
+      if (stopped) return;
+      hint.classList.add('on');
+      if (reduce) return;
+      let w = 0, i = 0, del = false;
+      const tick = () => {
+        if (stopped) return;
+        const word = EX[w];
+        if (!del) { i++; carIn.placeholder = 'z. B. ' + word.slice(0, i); if (i >= word.length) { del = true; if (w === EX.length - 1) { setTimeout(() => { if (!stopped) carIn.placeholder = PH; }, 1600); return; } return setTimeout(tick, 1300); } }
+        else { i--; carIn.placeholder = 'z. B. ' + word.slice(0, i); if (i <= 0) { del = false; w++; } }
+        setTimeout(tick, del ? 32 : 70);
+      };
+      carIn.placeholder = 'z. B. ';
+      setTimeout(tick, 500);
+    }, .3);
+    update();
+  }
+
   // Direktlink #fz-1048 öffnet das Fahrzeug
   const m = location.hash.match(/^#fz-(\d+)$/);
   if (m && byId(m[1])) setTimeout(() => open(m[1], null, { push: false }), 650);

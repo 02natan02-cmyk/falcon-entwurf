@@ -708,3 +708,57 @@ a.wd:hover .ic{animation:wdic .6s var(--ease)}
 /* v6: Tablet – Galerie-Karten schmaler, Vorher/Nachher bleibt zweispaltig */
 @media (min-width:701px) and (max-width:900px){.shine-g .sh{flex-basis:44%}}
 @media (min-width:641px) and (max-width:900px){.bf-g{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Start: An- & Verkauf im Hero – Desktop als Karte rechts unten, Tablet als Doppelkachel, Handy als zwei Knöpfe */
+.hero-c{position:relative}
+.hero-av{position:absolute;z-index:2;right:0;bottom:clamp(96px,12vh,140px);width:min(410px,33vw);padding:14px 12px 10px;border-radius:24px;color:#fff;
+  background:linear-gradient(160deg,rgba(14,22,25,.74),rgba(6,9,10,.6));-webkit-backdrop-filter:blur(16px) saturate(1.3);backdrop-filter:blur(16px) saturate(1.3);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.14),0 30px 70px -30px rgba(0,0,0,.8)}
+.hav-k{display:flex;align-items:center;gap:9px;margin:0 6px 6px;font:700 11.5px var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--aqua)}
+.hav-k>i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--aqua);animation:havPing 2.2s infinite}
+@keyframes havPing{0%{box-shadow:0 0 0 0 rgba(63,224,229,.55)}70%,100%{box-shadow:0 0 0 9px rgba(63,224,229,0)}}
+.hav-road{position:relative;flex:1;min-width:44px;height:17px;margin-left:2px;overflow:hidden;border-bottom:1.5px dashed rgba(255,255,255,.24)}
+.hav-road svg{position:absolute;right:2px;bottom:2px;width:31px;height:13px;fill:none;stroke:#fff;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+.intro.gone~main .hav-road svg{animation:havDrive 2.6s 1.4s cubic-bezier(.22,.7,.2,1) backwards}
+@keyframes havDrive{0%{transform:translateX(-230px)}100%{transform:none}}
+.hav-row{display:grid}
+.hav-a{position:relative;display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px;border-radius:16px;transition:background .25s}
+.hav-a+.hav-a{margin-top:2px}
+.hav-a+.hav-a::before{content:"";position:absolute;left:68px;right:10px;top:-1px;height:1px;background:rgba(255,255,255,.1)}
+.hav-ic{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:rgba(63,224,229,.14);color:var(--aqua)}
+.hav-ic svg{fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round}
+.hav-ic svg[viewBox="0 0 80 34"]{width:32px;height:14px;stroke-width:3.4}
+.hav-ic svg[viewBox="0 0 24 24"]{width:22px;height:22px;stroke-width:2}
+.hav-t{display:grid;justify-items:start;gap:2px;min-width:0}
+.hav-l{font:800 16px/1.25 var(--disp);letter-spacing:-.01em;color:#fff;text-decoration:none}
+.hav-l::after{content:"";position:absolute;inset:0;border-radius:16px}
+.hav-l:focus-visible{outline:none}.hav-l:focus-visible::after{box-shadow:0 0 0 2px var(--aqua)}
+.hav-t small{font-size:13px;line-height:1.35;color:rgba(255,255,255,.74)}
+.hav-go{font-size:20px;line-height:1;color:var(--aqua);transition:transform .3s var(--ease)}
+.intro.gone~main .hav-go{animation:havNudge .7s 3.4s ease-in-out 2}
+.intro.gone~main .hav-a+.hav-a .hav-go{animation-delay:4.1s}
+@keyframes havNudge{50%{transform:translateX(7px)}}
+@media (hover:hover){.hav-a:hover{background:rgba(255,255,255,.08)}.hav-a:hover .hav-go{transform:translateX(4px)}}
+.hav-btns{position:relative;z-index:1;display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.hav-btns a{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 13px;border-radius:999px;font:700 13px var(--body);text-decoration:none;background:#fff;color:var(--ink);transition:transform .2s,background .2s}
+.hav-btns a.wa{background:#25d366;color:#04140b}
+.hav-btns .wai{width:15px;height:15px;fill:currentColor}
+.hav-btns a:active{transform:scale(.96)}
+@media (max-width:1100px){
+  .hero-av{position:static;width:auto;max-width:720px;margin:24px 0 0;padding:12px;border-radius:22px}
+  .hav-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .hav-a{align-items:center;background:rgba(255,255,255,.06)}
+  .hav-a+.hav-a{margin-top:0}.hav-a+.hav-a::before{display:none}
+}
+@media (max-width:760px){
+  .hero-av{margin:20px 0 0;padding:0;border-radius:0;background:none;-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none}
+  .hav-k{margin:0 0 9px;font-size:10.5px;letter-spacing:.12em}
+  .hav-a{grid-template-columns:auto minmax(0,1fr);gap:9px;align-items:center;min-height:52px;padding:8px 12px 8px 8px;border-radius:999px;
+    background:rgba(6,9,10,.55);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)}
+  .hav-ic{width:36px;height:36px;border-radius:50%}
+  .hav-ic svg[viewBox="0 0 80 34"]{width:25px;height:11px}
+  .hav-ic svg[viewBox="0 0 24 24"]{width:18px;height:18px}
+  .hav-l{font:700 14px/1.2 var(--body);letter-spacing:0}
+  .hav-l::after{border-radius:999px}
+  .hav-t small,.hav-btns,.hav-go{display:none}
+}
