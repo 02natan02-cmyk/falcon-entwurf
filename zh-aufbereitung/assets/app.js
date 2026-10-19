@@ -438,6 +438,65 @@
     onView(shg, () => setTimeout(() => { if (!strip() || reduce || shTouched) return; const w = items[0].offsetWidth; shg.scrollTo({ left: w * .6, behavior: 'smooth' }); setTimeout(() => { if (!shTouched) shg.scrollTo({ left: 0, behavior: 'smooth' }); }, 1250); }, 450), '-25%');
   }
 
+  /* ---------- Start: Hero-Karte – echte Fahrzeugfotos wechseln sich ab ---------- */
+  const havPh = $('[data-hav-ph]');
+  if (havPh && !reduce) { const ims = $$('img', havPh); if (ims.length > 1) { let k = 0; setInterval(() => { if (document.hidden) return; ims[k].classList.remove('on'); k = (k + 1) % ims.length; ims[k].classList.add('on'); }, 2800); } }
+
+  /* ---------- Start: Hof-Leiste mit echten Fahrzeugen – Auffahren, Glanz, Impuls, Ziehen, Punkte, Pfeile, 3D-Neigung ---------- */
+  const hs = $('[data-hs]');
+  if (hs) {
+    const sec = hs.closest('.hofs'), items = $$('[data-hs-item]', hs), cars = $$('.hs-car', hs);
+    const dots = $('[data-hs-dots]', sec), hint = $('.hs-hint', sec), prev = $('[data-hs-prev]', sec), next = $('[data-hs-next]', sec);
+    let touched = false, dragEnd = 0;
+    if (hint && fine) $('b', hint).textContent = '← ziehen →';
+    const touch = () => { if (touched) return; touched = true; hint && hint.classList.add('gone'); };
+    const x0 = () => items[0].offsetLeft, maxL = () => hs.scrollWidth - hs.clientWidth;
+    const cur = () => { const L = hs.scrollLeft, m = maxL(); if (m > 0 && L >= m - 4) return items.length - 1; let best = 0, bd = 1e9; items.forEach((it, i) => { const d = Math.abs(Math.min(m, it.offsetLeft - x0()) - L); if (d < bd) { bd = d; best = i; } }); return best; };
+    const goL = L => hs.scrollTo({ left: Math.max(0, Math.min(maxL(), L)), behavior: reduce ? 'auto' : 'smooth' });
+    const go = i => { i = Math.max(0, Math.min(items.length - 1, i)); goL(items[i].offsetLeft - x0()); };
+    const step = () => items.length > 1 ? items[1].offsetLeft - items[0].offsetLeft : hs.clientWidth;
+    const by = dir => { const s = step(); goL(Math.round((hs.scrollLeft + dir * s) / s) * s); };
+    if (dots) { dots.innerHTML = items.map((_, i) => `<i data-i="${i}"></i>`).join(''); dots.addEventListener('click', e => { const d = e.target.closest('[data-i]'); if (d) { touch(); go(+d.dataset.i); } }); }
+    const di = dots ? $$('i', dots) : [];
+    const upd = () => { const i = cur(), L = hs.scrollLeft, m = maxL(); di.forEach((d, k) => d.classList.toggle('on', k === i)); if (prev) prev.disabled = L < 4; if (next) next.disabled = L > m - 4; };
+    let rq = 0; hs.addEventListener('scroll', () => { if (!rq) rq = requestAnimationFrame(() => { rq = 0; upd(); }); }, { passive: true }); upd(); addEventListener('resize', upd);
+    prev && prev.addEventListener('click', () => { touch(); by(-1); });
+    next && next.addEventListener('click', () => { touch(); by(1); });
+    ['touchstart', 'keydown', 'focusin'].forEach(ev => hs.addEventListener(ev, touch, { passive: true }));
+    // Trackpad/Shift+Rad seitwärts: nativ in der Leiste scrollen (nicht an das weiche Seiten-Scrollen weitergeben)
+    hs.addEventListener('wheel', e => { if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) { e.stopPropagation(); touch(); } }, { passive: true });
+    // Maus: Leiste mit gedrückter Taste ziehen (Finger scrollen nativ); nach dem Ziehen keinen Klick auslösen
+    let drag = null;
+    hs.addEventListener('dragstart', e => e.preventDefault());
+    hs.addEventListener('pointerdown', e => { touch(); if (e.pointerType !== 'mouse' || e.button !== 0) return; drag = { x: e.clientX, L: hs.scrollLeft, moved: false }; });
+    addEventListener('pointermove', e => { if (!drag) return; const dx = e.clientX - drag.x; if (!drag.moved && Math.abs(dx) > 6) { drag.moved = true; hs.classList.add('drag', 'free'); } if (drag.moved) hs.scrollLeft = drag.L - dx; });
+    const endDrag = () => { if (!drag) return; const moved = drag.moved; drag = null; if (!moved) return; dragEnd = performance.now(); hs.classList.remove('drag'); const i = cur(); hs.classList.remove('free'); go(i); };
+    addEventListener('pointerup', endDrag); addEventListener('pointercancel', endDrag);
+    hs.addEventListener('click', e => { if (performance.now() - dragEnd < 350) { e.preventDefault(); e.stopPropagation(); } }, true);
+    // Glanz läuft einmal über jedes Foto
+    const shineAll = () => cars.forEach((c, i) => setTimeout(() => c.classList.add('shine'), reduce ? 0 : 160 * i));
+    // Auffahren: die Autos rollen nacheinander von rechts ein
+    let played = false;
+    const play = () => { if (played) return; played = true;
+      if (hasG && !reduce) gsap.fromTo(items, { opacity: 0, x: 110, rotationY: -24, transformPerspective: 900 }, { opacity: 1, x: 0, rotationY: 0, duration: 1.15, ease: 'power3.out', stagger: .09, clearProps: 'opacity,transform', onComplete: shineAll });
+      else shineAll(); };
+    if (hasG && !reduce) gsap.set(items, { opacity: 0 });
+    onView(hs, play, '0px 0px -12% 0px');
+    // Impuls: die Leiste fährt beim ersten Sichtkontakt ein Stück nach links und zurück
+    onView(hs, () => setTimeout(() => { if (reduce || touched || maxL() < 10) return; hs.classList.add('free'); hs.scrollTo({ left: Math.min(maxL(), items[0].offsetWidth * .62), behavior: 'smooth' });
+      setTimeout(() => { if (!touched) hs.scrollTo({ left: 0, behavior: 'smooth' }); setTimeout(() => hs.classList.remove('free'), 750); }, 1350); }, 1900), '-22%');
+    // 3D-Neigung und Lichtfleck folgen der Maus
+    if (fine && !reduce) cars.forEach(c => {
+      c.addEventListener('pointermove', e => { if (drag && drag.moved) return; const r = c.getBoundingClientRect(), px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;
+        c.style.setProperty('--ry', ((px - .5) * 9).toFixed(2) + 'deg'); c.style.setProperty('--rx', ((.5 - py) * 7).toFixed(2) + 'deg');
+        c.style.setProperty('--mx', (px * 100).toFixed(1) + '%'); c.style.setProperty('--my', (py * 100).toFixed(1) + '%'); });
+      c.addEventListener('pointerleave', () => { c.style.setProperty('--rx', '0deg'); c.style.setProperty('--ry', '0deg'); });
+    });
+  }
+
+  /* ---------- Start: Bewertungen – Sterne füllen sich beim Sichtkontakt ---------- */
+  if (!reduce) $$('[data-hs-rev]').forEach(r => { r.classList.add('pre'); onView(r, () => { r.classList.remove('pre'); r.classList.add('in'); }, '0px 0px -15% 0px'); });
+
   /* ---------- Paket ---------- */
   const veh = $('[data-veh]');
   if (veh) {

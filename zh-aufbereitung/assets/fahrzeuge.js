@@ -1,4 +1,4 @@
-/* Z&H Aufbereitung – Seite „Fahrzeuge“: Hof-Scan, Suche, Filter, Merkliste, Detailansicht (Vorschau mit Beispielbestand) */
+/* Z&H Aufbereitung – Seite „Fahrzeuge“: Hof-Scan, Suche, Filter, Merkliste, Detailansicht mit Fotogalerie (echter Bestand oder Beispiele) */
 (() => {
   const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const root = document.documentElement;
@@ -28,6 +28,8 @@
   };
   const ICON_WA = ($('.fz-srcchip.wa svg') || {}).outerHTML || '';
   const ICON_SYNC = ($('.fz-srcchip.mob svg') || {}).outerHTML || '';
+  const ICON_HOF = '<svg class="fz-hofic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>';
+  const REAL = !!$('[data-grid][data-real]');
 
   const grid = $('[data-grid]');
   const cards = $$('.fz-card', grid);
@@ -44,7 +46,7 @@
   /* ---------- Hof-Scan: Pins erscheinen mit der Scan-Linie, dann Selbst-Impuls ---------- */
   const mon = $('[data-mon]'), frame = $('.fz-mon-v'), pins = $$('.fz-pin'), hint = $('[data-mon-hint]'), found = $('[data-found]');
   let pinTouched = false;
-  if (hint && matchMedia('(hover:hover) and (pointer:fine)').matches) { const t = $('span', hint); if (t) t.textContent = 'Markiertes Auto anklicken'; }
+  if (hint && !REAL && matchMedia('(hover:hover) and (pointer:fine)').matches) { const t = $('span', hint); if (t) t.textContent = 'Markiertes Auto anklicken'; }
   const placeLabel = p => {
     const fr = frame.getBoundingClientRect(), pr = p.getBoundingClientRect();
     const fx = (pr.left + pr.width / 2 - fr.left) / fr.width, fy = (pr.top + pr.height / 2 - fr.top) / fr.height;
@@ -52,7 +54,7 @@
   };
   const stopCycle = () => { pinTouched = true; pins.forEach(p => p.classList.remove('show')); hint && hint.classList.add('on'); };
   pins.forEach(p => {
-    p.addEventListener('click', () => { stopCycle(); open(p.dataset.pin, p); });
+    p.addEventListener('click', () => { stopCycle(); if (p.dataset.pin) open(p.dataset.pin, p); });
     p.addEventListener('mouseenter', () => { placeLabel(p); const c = cardOf(p.dataset.pin); c && c.classList.add('hl'); });
     p.addEventListener('mouseleave', () => { const c = cardOf(p.dataset.pin); c && c.classList.remove('hl'); });
     p.addEventListener('focus', () => placeLabel(p));
@@ -62,8 +64,14 @@
     const fr = frame.getBoundingClientRect();
     const items = pins.map(p => { const r = p.getBoundingClientRect(); return { p, y: Math.min(1, Math.max(0, (r.top + r.height / 2 - fr.top) / fr.height)), x: r.left }; });
     let n = 0;
-    items.forEach(it => setTimeout(() => { it.p.classList.add('on'); n++; if (found) found.textContent = n; }, reduce ? 0 : 300 + it.y * 2250));
+    const total = found && found.dataset.total ? +found.dataset.total : 0;
+    items.forEach(it => setTimeout(() => { it.p.classList.add('on'); n++; if (found && !total) found.textContent = n; }, reduce ? 0 : 300 + it.y * 2250));
+    if (total && found) {
+      if (reduce) found.textContent = total;
+      else { const t0 = performance.now(), dur = 2500; const tick = now => { const k = Math.min(1, (now - t0) / dur); found.textContent = Math.round(total * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(tick); }; setTimeout(() => requestAnimationFrame(tick), 300); }
+    }
     if (reduce) { hint && hint.classList.add('on'); return; }
+    if (!$('.fz-pin-lab', frame)) { setTimeout(() => { hint && hint.classList.add('on'); }, 2900); return; }
     const order = items.slice().sort((a, b) => a.x - b.x).map(it => it.p);
     let i = 0;
     const step = () => {
@@ -100,7 +108,9 @@
     }
     return true;
   };
-  const sorter = (a, b) => st.sort === 'preis' ? a.dataset.price - b.dataset.price : st.sort === 'km' ? a.dataset.km - b.dataset.km : (a.dataset.added < b.dataset.added ? 1 : -1);
+  // Gleichstand (z. B. gleicher Tag) bleibt in der ursprünglichen Reihenfolge – sonst springen die Karten beim Filtern hin und her
+  const rank = new Map(cards.map((c, i) => [c, i]));
+  const sorter = (a, b) => (st.sort === 'preis' ? a.dataset.price - b.dataset.price : st.sort === 'km' ? a.dataset.km - b.dataset.km : (a.dataset.added < b.dataset.added ? 1 : a.dataset.added > b.dataset.added ? -1 : 0)) || rank.get(a) - rank.get(b);
   const visibleOrder = () => cards.filter(matches).sort(sorter);
   const setCount = n => {
     if (countEl) countEl.textContent = n;
@@ -169,7 +179,7 @@
       if (reduce) { maxhint && maxhint.classList.add('on'); return; }
       setTimeout(() => {
         if (sliderTouched) return;
-        const lo = Math.max(+slider.min, 15000), t0 = performance.now(), dur = 2800;
+        const lo = Math.max(+slider.min, REAL && slider.dataset.lo ? +slider.dataset.lo : 15000), t0 = performance.now(), dur = 2800;
         const tick = now => {
           if (sliderTouched) return;
           const p = Math.min(1, (now - t0) / dur), e = Math.sin(p * Math.PI);
@@ -221,24 +231,71 @@
     void el.offsetWidth;
     requestAnimationFrame(() => ds.forEach((d, i) => { d.style.transitionDelay = (i * 90) + 'ms'; d.style.transform = `translateY(-${+digits[i] * 1.1}em)`; }));
   };
+  const PIC = (id, n, s) => `img/fz/${id}-${n}-${s}.webp`;
+  let galTouched = false, galNudged = false;
+  const galleryHTML = d => {
+    const ph = d.photos, name = esc(`${d.make} ${d.model}`), N = ph.length;
+    return `<div class="fzs-gal" data-gal><div class="fzs-track" data-track tabindex="0" role="group" aria-roledescription="Fotogalerie" aria-label="Fotos: ${name}">`
+      + ph.map((p, i) => `<figure><img src="${PIC(d.id, p.n, 's')}" srcset="${PIC(d.id, p.n, 's')} 640w, ${PIC(d.id, p.n, 'l')} 1280w" sizes="(min-width:901px) 580px, 100vw" width="${p.w}" height="${p.h}" alt="${name} – Foto ${i + 1} von ${N}"${i ? ' loading="lazy"' : ''} decoding="async"></figure>`).join('')
+      + `</div>${N > 1 ? '<button class="fzs-gb p" type="button" data-gp aria-label="Vorheriges Foto">‹</button><button class="fzs-gb n" type="button" data-gn aria-label="Nächstes Foto">›</button>' : ''}<span class="fzs-gc" data-gc aria-hidden="true">1 / ${N}</span>`
+      + (N > 1 ? `<span class="fzs-gh" data-gh aria-hidden="true">← wischen →</span>` : '') + `</div>`
+      + (N > 1 ? `<div class="fzs-thumbs" data-thumbs>${ph.map((p, i) => `<button type="button" data-ti="${i}" aria-label="Foto ${i + 1} von ${N}"${i ? '' : ' class="on" aria-current="true"'}><img src="${PIC(d.id, p.n, 't')}" alt="" width="192" height="144" loading="lazy" decoding="async"></button>`).join('')}</div>` : '');
+  };
+  const wireGallery = stage => {
+    const track = $('[data-track]', stage); if (!track) return;
+    const figs = $$('figure', track), gc = $('[data-gc]', stage), gh = $('[data-gh]', stage), th = $$('[data-ti]', stage), N = figs.length;
+    const idx = () => Math.max(0, Math.min(N - 1, Math.round(track.scrollLeft / Math.max(1, track.clientWidth))));
+    const goTo = i => { galTouched = true; gh && gh.classList.remove('on'); i = (i + N) % N; track.scrollTo({ left: i * track.clientWidth, behavior: reduce ? 'auto' : 'smooth' }); };
+    let raf = 0, last = 0;
+    track.addEventListener('scroll', () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const i = idx(); if (gc) gc.textContent = `${i + 1} / ${N}`;
+        if (i !== last) { last = i; th.forEach((b, k) => { b.classList.toggle('on', k === i); if (k === i) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); }); const b = th[i]; if (b) b.parentElement.scrollTo({ left: b.offsetLeft - (b.parentElement.clientWidth - b.offsetWidth) / 2, behavior: reduce ? 'auto' : 'smooth' }); }
+      });
+    }, { passive: true });
+    ['pointerdown', 'touchstart', 'wheel'].forEach(ev => track.addEventListener(ev, () => { galTouched = true; gh && gh.classList.remove('on'); }, { passive: true }));
+    const gp = $('[data-gp]', stage), gn = $('[data-gn]', stage);
+    gp && gp.addEventListener('click', () => goTo(idx() - 1));
+    gn && gn.addEventListener('click', () => goTo(idx() + 1));
+    track.addEventListener('keydown', e => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); e.stopPropagation(); goTo(idx() + (e.key === 'ArrowRight' ? 1 : -1)); } });
+    th.forEach((b, k) => b.addEventListener('click', () => goTo(k)));
+    // Selbst-Impuls beim ersten Öffnen: die Galerie zuckt kurz zum nächsten Foto und zurück
+    if (N > 1 && !galNudged && !galTouched) {
+      galNudged = true;
+      if (reduce) { gh && gh.classList.add('on'); return; }
+      setTimeout(() => {
+        if (galTouched || !isOpen) return;
+        gh && gh.classList.add('on');
+        track.scrollTo({ left: track.clientWidth * .24, behavior: 'smooth' });
+        setTimeout(() => { if (!galTouched) track.scrollTo({ left: 0, behavior: 'smooth' }); }, 700);
+        setTimeout(() => { gh && gh.classList.remove('on'); }, 4200);
+      }, 1100);
+    }
+  };
   const fill = id => {
     const d = byId(id), c = cardOf(id);
     if (!d || !c) return;
     curId = d.id;
-    const svg = $('.fz-car', c).outerHTML.replace(/id="([a-z])(\d+)"/g, 'id="$1$2s"').replace(/url\(#([a-z])(\d+)\)/g, 'url(#$1$2s)');
-    const stage = S('stage'); stage.innerHTML = svg; stage.classList.remove('drive'); void stage.offsetWidth; if (!reduce) stage.classList.add('drive');
+    const stage = S('stage');
+    if (d.photos && d.photos.length) {
+      stage.classList.add('gal'); stage.classList.remove('drive'); stage.innerHTML = galleryHTML(d); wireGallery(stage);
+    } else {
+      const svg = $('.fz-car', c).outerHTML.replace(/id="([a-z])(\d+)"/g, 'id="$1$2s"').replace(/url\(#([a-z])(\d+)\)/g, 'url(#$1$2s)');
+      stage.classList.remove('gal'); stage.innerHTML = svg; stage.classList.remove('drive'); void stage.offsetWidth; if (!reduce) stage.classList.add('drive');
+    }
     const ord = order(); S('pos').textContent = `${ord.indexOf(String(d.id)) + 1} / ${ord.length}`;
     S('src').className = 'fz-src ' + d.src;
-    S('src').innerHTML = (d.src === 'wa' ? ICON_WA + '<span>Per WhatsApp eingestellt · ' : ICON_SYNC + '<span>Automatisch aus mobile.de · ') + dmy(d.added) + '</span>';
+    S('src').innerHTML = (d.src === 'wa' ? ICON_WA + '<span>Per WhatsApp eingestellt · ' : d.src === 'hof' ? ICON_HOF + '<span>Auf dem Hof seit ' : ICON_SYNC + '<span>Automatisch aus mobile.de · ') + dmy(d.added) + '</span>';
     S('t').innerHTML = `<span>${esc(d.make)}</span> ${esc(d.model)}`;
     S('v').textContent = d.variant;
     S('res').hidden = d.status !== 'reserviert';
     S('p').textContent = eur(d.price);
     S('facts').innerHTML = [['Erstzulassung', d.ez], ['Kilometer', num(d.km) + ' km'], ['Leistung', `${d.kw} kW (${d.ps} PS)`], ['Kraftstoff', d.fuel], ['Getriebe', d.gear_l], ['Farbe', d.color], ['HU bis', d.hu], ['Vorbesitzer', d.owners], ['Karosserie', d.body], ['Fahrzeug-Nr.', d.id]]
-      .map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
-    S('eq').innerHTML = d.equip.map(e => `<li>${e}</li>`).join('');
-    S('prep').innerHTML = d.prep.map((p, i) => `<li><a href="leistungen.html#${d.prepLinks[i]}">${p}</a></li>`).join('');
-    S('txt').textContent = d.text;
+      .filter(([, v]) => v !== '' && v !== null && v !== undefined).map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('');
+    S('eq').innerHTML = d.equip.map(e => `<li>${esc(e)}</li>`).join(''); S('eqw').hidden = !d.equip.length;
+    S('prep').innerHTML = d.prep.map((p, i) => `<li><a href="leistungen.html#${d.prepLinks[i]}">${esc(p)}</a></li>`).join(''); S('prepw').hidden = !d.prep.length;
+    S('txt').textContent = d.text; S('txt').hidden = !d.text;
     const name = `${d.make} ${d.model}`;
     S('cta').innerHTML = `<a class="btn btn-wa wide" href="${WA(`Hallo Z&H, ich interessiere mich für den ${name} (Nr. ${d.id}, ${eur(d.price)}). Ist er noch zu haben?`)}" target="_blank" rel="noopener">${ICON_WA}Per WhatsApp anfragen</a>`
       + `<a class="btn btn-aqua" href="${TEL}">Anrufen</a>`
@@ -265,7 +322,7 @@
   const hide = () => {
     if (!isOpen) return;
     isOpen = false; sheet.classList.remove('open'); root.classList.remove('fz-lock');
-    hideT = setTimeout(() => { sheet.hidden = true; S('stage').innerHTML = ''; }, 560);
+    hideT = setTimeout(() => { sheet.hidden = true; S('stage').innerHTML = ''; S('stage').classList.remove('gal'); }, 560);
     if (opener && document.contains(opener)) { try { opener.focus({ preventScroll: true }); } catch (e) {} }
   };
   const close = () => {
@@ -307,7 +364,7 @@
   // Wischen über das Auto: nächstes / vorheriges Fahrzeug
   let tx = null, ty = null;
   const stageEl = S('stage');
-  stageEl.addEventListener('touchstart', e => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });
+  stageEl.addEventListener('touchstart', e => { if (e.target.closest('[data-gal],[data-thumbs]')) { tx = null; return; } tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });
   stageEl.addEventListener('touchend', e => {
     if (tx === null) return;
     const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty; tx = null;
