@@ -1,0 +1,1143 @@
+/* Verena Paul – Aloha (Entwurf Falcon Eye) */
+(function () {
+  'use strict';
+  const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const RM = matchMedia('(prefers-reduced-motion: reduce)').matches, D = window.VP || {};
+  const ic = p => `<svg class="ic-s" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${p}</g></svg>`;
+
+  /* ---------- Intro ---------- */
+  const intro = $('[data-intro]');
+  let introDone = !intro || document.documentElement.classList.contains('no-intro') || RM;
+  const afterIntro = [];
+  const finishIntro = () => { if (introDone) return; introDone = true; if (intro) { intro.classList.add('out'); setTimeout(() => intro.remove(), 1200); } try { sessionStorage.setItem('vp-intro', '1'); } catch (e) {} afterIntro.forEach(f => f()); };
+  if (!introDone) {
+    // sichtbarer Knopf „Überspringen“ (Tippen aufs Intro und Esc/Enter/Leertaste gehen auch)
+    const skip = document.createElement('button');
+    skip.type = 'button'; skip.className = 'in-skip'; skip.tabIndex = -1;
+    skip.innerHTML = 'Überspringen <span aria-hidden="true">→</span>';
+    intro.appendChild(skip);
+    intro.addEventListener('click', finishIntro);
+    const key = e => { if (introDone) return removeEventListener('keydown', key); if (/^(Escape|Enter| )$/.test(e.key)) { e.preventDefault(); removeEventListener('keydown', key); finishIntro(); } };
+    addEventListener('keydown', key);
+    setTimeout(finishIntro, 2700);
+  } else { intro && intro.remove(); }
+  const whenIntro = f => introDone ? f() : afterIntro.push(f);
+
+  /* ---------- Header ---------- */
+  const hdr = $('[data-hdr]'), hero = $('.hero');
+  const onS = () => { hdr.classList.toggle('solid', scrollY > (innerWidth < 900 ? 40 : hero.offsetHeight - 90)); document.documentElement.classList.toggle('scrolled', scrollY > 60); };
+  addEventListener('scroll', onS, { passive: true }); onS();
+  const bur = $('[data-burger]'), mn = $('[data-mnav]');
+  bur.addEventListener('click', () => { const o = bur.getAttribute('aria-expanded') !== 'true'; bur.setAttribute('aria-expanded', o); mn.hidden = !o; document.documentElement.classList.toggle('menu-open', o); hdr.classList.toggle('solid', o || scrollY > (innerWidth < 900 ? 40 : hero.offsetHeight - 90)); });
+  $$('a', mn).forEach(a => a.addEventListener('click', () => { bur.setAttribute('aria-expanded', 'false'); mn.hidden = true; document.documentElement.classList.remove('menu-open'); }));
+  /* Menü-Punkt des aktuellen Kapitels hervorheben */
+  (() => {
+    const links = $$('.nav a, .mnav a'), secs = $$('main > section[id]'); if (!('IntersectionObserver' in window) || !secs.length) return;
+    const navs = $$('.nav, .mnav').map(n => { const L = $$('a', n); return { L, T: L.map(a => $(a.getAttribute('href'))).filter(Boolean) }; });
+    const io = new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) return; const S = e.target;
+      navs.forEach(({ L, T }) => { let act = null; /* letztes Menüziel, das vor oder auf dem sichtbaren Abschnitt liegt */
+        T.forEach(t => { if (t === S || (t.compareDocumentPosition(S) & Node.DOCUMENT_POSITION_FOLLOWING)) { if (!act || (act.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING)) act = t; } });
+        if (S.id === 'top') act = null;
+        L.forEach(a => { const on = !!act && a.getAttribute('href') === '#' + act.id; a.classList.toggle('on', on); on ? a.setAttribute('aria-current', 'true') : a.removeAttribute('aria-current'); }); }); }), { rootMargin: '-45% 0px -50% 0px' });
+    secs.forEach(s => io.observe(s));
+  })();
+
+  /* ---------- Meer (Canvas) ---------- */
+  const cv = $('[data-sea]');
+  if (cv) {
+    const cx = cv.getContext('2d'); let W, H, dpr, t = 0, run = true, mx = .62, my = .5, tmx = .62, tmy = .5;
+    const size = () => { dpr = Math.min(1.6, devicePixelRatio || 1); W = cv.clientWidth; H = cv.clientHeight; cv.width = W * dpr; cv.height = H * dpr; cx.setTransform(dpr, 0, 0, dpr, 0, 0); };
+    size(); addEventListener('resize', size);
+    addEventListener('pointermove', e => { tmx = e.clientX / innerWidth; tmy = e.clientY / innerHeight; }, { passive: true });
+    const L0 = [ // Wellenschichten: Höhe, Amplitude, Länge, Tempo, Farbe
+      [.60, 10, 520, .25, 'rgba(255,170,130,.32)'], [.64, 14, 380, -.35, 'rgba(45,120,130,.55)'], [.70, 18, 300, .45, 'rgba(26,98,110,.72)'],
+      [.78, 22, 260, -.55, 'rgba(18,78,92,.85)'], [.88, 26, 220, .7, 'rgba(12,56,70,.95)']];
+    const L = L0; const spark = Array.from({ length: 70 }, () => [Math.random(), Math.random(), Math.random() * 6]);
+    const frame = () => {
+      if (run) {
+        t += RM ? 0 : 1 / 60; mx += (tmx - mx) * .03; my += (tmy - my) * .03;
+        const mob = W < 700, hz = H * (mob ? .5 : .6), sx = W * ((mob ? .78 : .74) + (mx - .5) * .12), sy = hz - H * ((mob ? .34 : .17) + (.5 - my) * .05);
+        let g = cx.createLinearGradient(0, 0, 0, hz);
+        g.addColorStop(0, '#0f2f45'); g.addColorStop(.45, '#5b4d6e'); g.addColorStop(.78, '#e8846a'); g.addColorStop(1, '#ffc58c');
+        cx.fillStyle = g; cx.fillRect(0, 0, W, hz + 2);
+        g = cx.createRadialGradient(sx, sy, 0, sx, sy, H * .55); g.addColorStop(0, 'rgba(255,214,150,.75)'); g.addColorStop(.25, 'rgba(255,170,120,.25)'); g.addColorStop(1, 'rgba(255,140,100,0)');
+        cx.fillStyle = g; cx.fillRect(0, 0, W, hz);
+        cx.fillStyle = '#ffe2b0'; cx.beginPath(); cx.arc(sx, sy, Math.min(W, H) * .07, 0, 7); cx.fill();
+        g = cx.createLinearGradient(0, hz, 0, H); g.addColorStop(0, '#3a7f8a'); g.addColorStop(1, '#0b2a36'); cx.fillStyle = g; cx.fillRect(0, hz, W, H - hz);
+        // Sonnenglitzern
+        for (const s of spark) { const x = sx + (s[0] - .5) * W * .28 * (1 + s[1]), y = hz + s[1] * (H - hz) * .9, a = (Math.sin(t * 2 + s[2]) + 1) / 2 * (1 - s[1]) * .8; cx.fillStyle = `rgba(255,220,170,${a})`; cx.fillRect(x, y, 10 + 30 * (1 - s[1]), 1.6); }
+        for (const [h, a, l, sp, c] of L) {
+          cx.fillStyle = c; cx.beginPath(); cx.moveTo(0, H);
+          for (let x = 0; x <= W + 10; x += 10) { const y = H * h + Math.sin(x / l * 6.28 + t * sp * 2) * a + Math.sin(x / (l * .47) * 6.28 - t * sp * 1.3) * a * .4; cx.lineTo(x, y); }
+          cx.lineTo(W, H); cx.fill();
+        }
+      }
+      requestAnimationFrame(frame);
+    };
+    new IntersectionObserver(([e]) => run = e.isIntersecting).observe(cv);
+    frame();
+  }
+
+  /* ---------- Hero: Parallax (Maus, Gyro, Scroll) & Glühwürmchen ---------- */
+  (() => {
+    const h = $('.hero'), fc = $('[data-flies]'); if (!h) return;
+    let tx = 0, ty = 0, x = 0, y = 0, vis = true, ptr = { x: -999, y: -999 };
+    if (!RM) {
+      h.addEventListener('pointermove', e => { const r = h.getBoundingClientRect(); tx = (e.clientX - r.left) / r.width * 2 - 1; ty = (e.clientY - r.top) / r.height * 2 - 1; ptr = { x: e.clientX - r.left, y: e.clientY - r.top }; }, { passive: true });
+      h.addEventListener('pointerleave', () => { tx = ty = 0; ptr = { x: -999, y: -999 }; });
+      addEventListener('deviceorientation', e => { if (e.gamma == null) return; tx = Math.max(-1, Math.min(1, e.gamma / 30)); ty = Math.max(-1, Math.min(1, (e.beta - 45) / 30)); }, { passive: true });
+    }
+    const sym = $('[data-hsym]');
+    let W = 0, H = 0, dpr = 1, cx = fc && fc.getContext('2d'), F = [];
+    const size = () => { if (!fc) return; dpr = Math.min(1.5, devicePixelRatio || 1); W = fc.clientWidth; H = fc.clientHeight; fc.width = W * dpr; fc.height = H * dpr; cx.setTransform(dpr, 0, 0, dpr, 0, 0); const n = W < 700 ? 26 : 48; F = Array.from({ length: n }, () => ({ x: Math.random() * W, y: H * (.15 + Math.random() * .6), r: .8 + Math.random() * 1.8, a: Math.random() * 6.28, s: .15 + Math.random() * .35, p: Math.random() * 6.28 })); };
+    size(); addEventListener('resize', size);
+    new IntersectionObserver(([e]) => vis = e.isIntersecting).observe(h);
+    let t = 0;
+    const tick = () => {
+      if (vis) {
+        x += (tx - x) * .05; y += (ty - y) * .05;
+        const sc = Math.min(1, scrollY / innerHeight);
+        h.style.setProperty('--px', x.toFixed(3)); h.style.setProperty('--py', (y + sc * 2.2).toFixed(3));
+        if (sym) sym.style.opacity = String(1 - sc * .9);
+        if (cx) {
+          t += RM ? 0 : .016; cx.clearRect(0, 0, W, H);
+          for (const f of F) {
+            if (!RM) { f.a += (Math.random() - .5) * .2; f.x += Math.cos(f.a) * f.s; f.y += Math.sin(f.a) * f.s * .6 - .05;
+              const dx = f.x - ptr.x, dy = f.y - ptr.y, d = dx * dx + dy * dy; if (d < 12000) { f.x += dx / Math.sqrt(d + 1) * 1.2; f.y += dy / Math.sqrt(d + 1) * 1.2; }
+              if (f.x < -10) f.x = W + 10; if (f.x > W + 10) f.x = -10; if (f.y < H * .05) f.y = H * .8; if (f.y > H * .9) f.y = H * .1; }
+            const al = .25 + .75 * Math.pow((Math.sin(t * 1.6 + f.p) + 1) / 2, 2), R = f.r * 7;
+            const g = cx.createRadialGradient(f.x, f.y, 0, f.x, f.y, R); g.addColorStop(0, `rgba(255,236,170,${al})`); g.addColorStop(.25, `rgba(255,200,120,${al * .45})`); g.addColorStop(1, 'rgba(255,190,110,0)');
+            cx.fillStyle = g; cx.beginPath(); cx.arc(f.x, f.y, R, 0, 6.283); cx.fill();
+          }
+        }
+      }
+      requestAnimationFrame(tick);
+    };
+    tick();
+  })();
+
+  /* ---------- Playlist: startet leise, sonst bei der ersten Interaktion ---------- */
+  const PL = (() => {
+    const el = $('[data-pl]'), T = D.tracks || [], sbtn = $('[data-snd]'); if (!el || !T.length) return { duck() {}, swell() {}, hush() {} };
+    const a = new Audio(); a.preload = 'auto';
+    const LOW = .12, KEY = 'vp-mute';
+    const ss = { get: () => { try { return sessionStorage.getItem(KEY); } catch (e) { return null; } }, set: v => { try { v ? sessionStorage.setItem(KEY, v) : sessionStorage.removeItem(KEY); } catch (e) {} } };
+    let i = 0, playing = false, muted = ss.get() === '1', ducked = false, hushed = false, AC = null, gain = null, raf = 0, armed = false, nudge = null, nudged = false;
+    const quiet = () => muted || ducked || hushed;
+    a.volume = .5; const fixedVol = Math.abs(a.volume - .5) > .01; a.volume = 0;   /* iOS: Lautstärke nur per WebAudio */
+    const vol = (v, ms) => {
+      if (gain) { gain.gain.cancelScheduledValues(AC.currentTime); gain.gain.setTargetAtTime(v, AC.currentTime, Math.max(.01, ms / 3000)); return; }
+      cancelAnimationFrame(raf); const v0 = a.volume, t0 = performance.now();
+      const st = now => { const k = Math.min(1, (now - t0) / Math.max(1, ms)); a.volume = Math.max(0, Math.min(1, v0 + (v - v0) * k)); if (k < 1) raf = requestAnimationFrame(st); };
+      raf = requestAnimationFrame(st);
+    };
+    const load = k => { i = (k + T.length) % T.length; a.src = T[i].f; $('[data-pl-title]', el).textContent = T[i].n; $$('[data-pl-track]', el).forEach((b, j) => b.classList.toggle('on', j === i)); };
+    const ui = () => {
+      const on = playing && !muted;
+      el.classList.toggle('playing', playing); el.classList.toggle('muted', muted);
+      $('[data-pl-state]', el).textContent = muted ? '♪ Playlist · stumm' : hushed ? '♪ Pause – Atemübung läuft' : playing ? '♪ läuft leise – Playlist' : '♪ Playlist · tippen zum Starten';
+      const tg = $('[data-pl-toggle]', el); tg.setAttribute('aria-pressed', String(on)); tg.setAttribute('aria-label', on ? 'Musik pausieren' : 'Musik abspielen');
+      const mb = $('[data-pl-mute]', el); mb.setAttribute('aria-pressed', String(muted)); mb.setAttribute('aria-label', muted ? 'Ton an' : 'Stumm schalten');
+      if (sbtn) sbtn.setAttribute('aria-pressed', String(on));
+    };
+    const webaudio = () => { if (AC || !fixedVol) return; try { AC = new (window.AudioContext || window.webkitAudioContext)(); gain = AC.createGain(); gain.gain.value = 0; AC.createMediaElementSource(a).connect(gain); gain.connect(AC.destination); } catch (e) { AC = null; gain = null; } };
+    const play = (fade = 2000) => {
+      if (fixedVol && !AC) return Promise.reject(new Error('gesture'));
+      if (AC && AC.state === 'suspended') AC.resume();
+      if (!gain) a.volume = quiet() ? 0 : Math.min(a.volume, LOW);
+      return a.play().then(() => { playing = true; hideNudge(); ui(); vol(quiet() ? 0 : LOW, fade); });
+    };
+    const pause = () => { vol(0, 400); setTimeout(() => { if (muted || ducked || !playing) a.pause(); }, 450); };
+    /* Scrollen startet die Musik, wo der Browser es erlaubt. Verlangt er ein Antippen, erscheint einmal ein kleiner Hinweis. */
+    const hideNudge = () => { if (!nudge) return; const n = nudge; nudge = null; n.classList.remove('on'); setTimeout(() => n.remove(), 600); };
+    const showNudge = () => { if (nudged || playing || muted || hushed) return; nudged = true;
+      const n = nudge = document.createElement('button'); n.type = 'button'; n.className = 'pl-nudge'; n.setAttribute('aria-label', 'Musik einschalten');
+      n.innerHTML = '<span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>Einmal antippen – dann spielt die Musik</span>';
+      n.addEventListener('click', () => { start(); hideNudge(); }); document.body.appendChild(n); requestAnimationFrame(() => requestAnimationFrame(() => n.classList.add('on'))); setTimeout(hideNudge, 7000); };
+    const evs = ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'keydown', 'wheel', 'scroll', 'click'];
+    const onGesture = e => { if (e && e.isTrusted === false) return; /* Vorführ-Klicks (Impulse) starten keine Musik */ if (muted || playing) return disarm(); if (e && e.target && e.target.closest && e.target.closest('[data-pl],[data-snd],.pl-nudge')) return; webaudio(); const t = e && e.type; play().then(disarm).catch(() => { if ((t === 'scroll' || t === 'wheel') && scrollY > 120) setTimeout(() => { if (!playing) showNudge(); }, 700); }); };
+    const arm = () => { if (armed) return; armed = true; evs.forEach(ev => addEventListener(ev, onGesture, { passive: true, capture: true })); };
+    const disarm = () => { armed = false; evs.forEach(ev => removeEventListener(ev, onGesture, { capture: true })); };
+    a.addEventListener('ended', () => { load(i + 1); if (playing && !muted) a.play().catch(() => {}); });
+    load(0); ui();
+    setTimeout(() => el.classList.add('compact'), 9000);
+    if (!muted) play().catch(arm);
+    const start = () => { muted = false; hushed = false; ss.set(null); webaudio(); a.muted = false; (a.paused ? play(1200) : Promise.resolve(vol(LOW, 800))).catch(() => {}); ui(); };
+    const stop = () => { muted = true; ss.set('1'); pause(); disarm(); ui(); };
+    $('[data-pl-toggle]', el).addEventListener('click', () => (playing && !muted && !a.paused) ? (playing = false, pause(), ss.set('1'), muted = false, ui(), el.classList.add('paused')) : (el.classList.remove('paused'), start()));
+    $('[data-pl-mute]', el).addEventListener('click', () => muted ? start() : stop());
+    $('[data-pl-next]', el).addEventListener('click', () => { load(i + 1); if (!muted) { webaudio(); play(600).catch(() => {}); } });
+    $('[data-pl-prev]', el).addEventListener('click', () => { load(i - 1); if (!muted) { webaudio(); play(600).catch(() => {}); } });
+    const lb = $('[data-pl-list]', el), tl = $('[data-pl-tracks]', el);
+    lb.addEventListener('click', () => { const o = tl.hidden; tl.hidden = !o; lb.setAttribute('aria-expanded', String(o)); el.classList.toggle('open', o); });
+    $$('[data-pl-track]', el).forEach(b => b.addEventListener('click', () => { load(+b.dataset.plTrack); muted = false; ss.set(null); webaudio(); play(600).catch(() => {}); ui(); }));
+    document.addEventListener('click', e => { if (e.isTrusted !== false && !tl.hidden && !e.target.closest('[data-pl]')) { tl.hidden = true; lb.setAttribute('aria-expanded', 'false'); el.classList.remove('open'); } });
+    if (sbtn) sbtn.addEventListener('click', () => (playing && !muted && !a.paused) ? stop() : start());
+    return {
+      /* Atemübung: Musik blendet aus (läuft stumm weiter, damit sie danach ohne neues Antippen wiederkommt) und danach wieder ein */
+      hush(on) { if (on === hushed) return; hushed = on; hideNudge(); ui();
+        if (on) { if (playing) vol(0, 1400); else if (!muted && !el.classList.contains('paused')) { webaudio(); play(0).then(disarm).catch(() => {}); } }
+        else if (playing && !muted && !ducked) { if (a.paused) play(3500).catch(() => {}); else vol(LOW, 3500); } },
+      duck(on) { if (on === ducked) return; ducked = on; if (!playing || muted) return; if (on) pause(); else play(1500).catch(() => {}); },
+      swell(f, sec) { if (playing && !quiet()) vol(LOW * f, sec * 1000 * .6); }
+    };
+  })();
+
+  /* ---------- Reise (horizontal, echte Fotos) ---------- */
+  const track = $('[data-track]'), pin = $('[data-trip]'), bar = $('[data-tripbar]'), plane = $('.re-plane'), dots = $$('.re-dots li'), STS = $$('.st', track), tcount = $('[data-tcount]');
+  let curSt = -1, tripST = null;
+  const setCur = k => {
+    if (k === curSt) return; curSt = k;
+    dots.forEach((d, i) => { d.classList.toggle('on', i <= k); d.classList.toggle('cur', i === k); });
+    STS.forEach((st, i) => st.classList.toggle('past', i < k));
+    pin.style.setProperty('--tone', STS[k].dataset.tone);
+    STS.slice(k, k + 3).forEach(st => $$('img', st).forEach(im => { im.loading = 'eager'; }));
+    if (tcount) tcount.textContent = String(k + 1).padStart(2, '0') + ' / ' + String(STS.length).padStart(2, '0');
+    const cd = dots[k] && dots[k].parentNode; if (cd && innerWidth < 900) cd.scrollTo({ left: dots[k].getBoundingClientRect().left - cd.getBoundingClientRect().left + cd.scrollLeft - 20, behavior: RM ? 'auto' : 'smooth' });
+  };
+  setCur(0);
+  if ('IntersectionObserver' in window) new IntersectionObserver((es, o) => es.forEach(e => { if (e.isIntersecting) { STS.forEach((st, i) => setTimeout(() => $$('img', st).forEach(im => { im.loading = 'eager'; if (im.decode) im.decode().catch(() => {}); }), i < 4 ? 0 : 400 + i * 120)); o.disconnect(); } }), { rootMargin: '1200px' }).observe(pin);
+  const desk = () => innerWidth >= 900 && window.gsap && window.ScrollTrigger;
+  const tdist = () => track.scrollWidth - innerWidth + (parseFloat(getComputedStyle(track).paddingLeft) || 0);
+  const goSt = i => {
+    i = Math.max(0, Math.min(STS.length - 1, i));
+    if (desk() && tripST) { const dist = tdist(), x = Math.min(dist, STS[i].offsetLeft - (innerWidth - STS[i].offsetWidth) / 2); scrollTo({ top: tripST.start + Math.max(0, x) / dist * (tripST.end - tripST.start) + 2, behavior: RM ? 'auto' : 'smooth' }); }
+    else track.scrollTo({ left: STS[i].offsetLeft - (track.clientWidth - STS[i].offsetWidth) / 2, behavior: RM ? 'auto' : 'smooth' });
+  };
+  $$('[data-go]').forEach(b => b.addEventListener('click', () => goSt(+b.dataset.go)));
+  $$('[data-tnav]').forEach(b => b.addEventListener('click', () => goSt(curSt + +b.dataset.tnav)));
+  track.addEventListener('scroll', () => { if (desk()) return; const c = track.scrollLeft + track.clientWidth / 2; let k = 0; STS.forEach((st, i) => { if (st.offsetLeft <= c) k = i; }); setCur(k); }, { passive: true });
+  if (window.gsap && window.ScrollTrigger) {
+    gsap.registerPlugin(ScrollTrigger);
+    ScrollTrigger.matchMedia({
+      '(min-width: 900px)': () => {
+        const dist = tdist;
+        const tw = gsap.to(track, { x: () => -dist(), ease: 'none', scrollTrigger: { trigger: pin, start: 'top top', end: () => '+=' + dist() * 1.05, pin: true, scrub: .7, invalidateOnRefresh: true, onUpdate: s => {
+          const p = s.progress; bar.style.width = p * 100 + '%'; plane.style.left = p * 100 + '%';
+          const x = p * dist() + innerWidth * .55; let k = 0; STS.forEach((st, i) => { if (st.offsetLeft <= x) k = i; }); setCur(k);
+        } } });
+        tripST = tw.scrollTrigger;
+        if (!RM) STS.forEach((st, i) => {
+          const ph = $$('.sp', st), yr = $('.st-y', st), tx = $$('.st-t > :not(.st-y)', st);
+          if (i > 0) {
+            const tl = gsap.timeline({ scrollTrigger: { trigger: st, containerAnimation: tw, start: 'left 100%', end: 'left 35%', scrub: true } });
+            tl.from(ph, { y: (j) => [50, -60, 30][j], x: j => [-40, 80, 40][j], rotate: j => [-9, 12, -10][j], opacity: 0, scale: .86, stagger: .12, ease: 'power2.out' }, 0)
+              .from(tx, { x: 80, opacity: 0, stagger: .06, ease: 'power2.out' }, .1);
+          }
+          gsap.fromTo(yr, { xPercent: 35 }, { xPercent: -35, ease: 'none', scrollTrigger: { trigger: st, containerAnimation: tw, start: 'left right', end: 'right left', scrub: true } });
+        });
+        return () => { tripST = null; };
+      }
+    });
+  }
+
+  /* ---------- Zitat Wort für Wort ---------- */
+  const bq = $('[data-split]');
+  if (bq) {
+    const walk = n => { [...n.childNodes].forEach(c => { if (c.nodeType === 3) { const f = document.createDocumentFragment(); c.textContent.split(/(\s+)/).forEach(w => { if (!w.trim()) f.appendChild(document.createTextNode(w)); else { const s = document.createElement('span'); s.className = 'w'; s.textContent = w; f.appendChild(s); } }); c.replaceWith(f); } else walk(c); }); };
+    walk(bq); const ws = $$('.w', bq);
+    const up = () => { const r = bq.getBoundingClientRect(), p = Math.max(0, Math.min(1, (innerHeight * .85 - r.top) / (r.height + innerHeight * .35))); const n = Math.round(p * ws.length); ws.forEach((w, i) => w.classList.toggle('on', i < n)); };
+    addEventListener('scroll', up, { passive: true }); up();
+  }
+
+
+  /* ---------- Lebensbaum ---------- */
+  const tw = $('[data-tree]');
+  if (tw) {
+    const svgT = $('svg.tree', tw), ty = $('[data-ty]'), tt = $('[data-tt]'), F = $$('.fr', tw);
+    const FD = F.map(f => f.getAttribute('aria-label'));
+    const link = $('[data-tlink]', tw), tdot = $('[data-tdot]', tw), card = $('[data-tcard]', tw); let curF = 0;
+    const drawLink = () => { if (!link) return; if (innerWidth < 900) { link.removeAttribute('d'); return; }
+      const wr = tw.getBoundingClientRect(), fr = $('.fr-c', F[curF]).getBoundingClientRect(), cr = card.getBoundingClientRect();
+      const x1 = fr.left + fr.width / 2 - wr.left, y1 = fr.top + fr.height / 2 - wr.top, x2 = cr.left - wr.left - 3, y2 = cr.top + cr.height / 2 - wr.top, mx = x1 + (x2 - x1) * .55;
+      link.setAttribute('d', `M${x1.toFixed(1)} ${y1.toFixed(1)} C${mx.toFixed(1)} ${(y1 - 30).toFixed(1)}, ${(mx + 20).toFixed(1)} ${y2.toFixed(1)}, ${x2.toFixed(1)} ${y2.toFixed(1)}`);
+      tdot.setAttribute('cx', x2.toFixed(1)); tdot.setAttribute('cy', y2.toFixed(1));
+      link.classList.remove('draw'); void link.getBoundingClientRect(); link.classList.add('draw'); };
+    const pick = i => { curF = i; F.forEach((f, j) => f.classList.toggle('on', j === i)); const [y, ...r] = FD[i].split(': '); ty.textContent = y; tt.textContent = r.join(': '); requestAnimationFrame(drawLink); };
+    addEventListener('resize', () => requestAnimationFrame(drawLink));
+    F.forEach((f, i) => { f.addEventListener('click', () => pick(i)); f.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(i); } }); f.addEventListener('mouseenter', () => pick(i)); });
+    const grow = () => { const r = tw.getBoundingClientRect(), vh = innerHeight; const g = RM ? 1 : Math.max(0, Math.min(1, (vh * .9 - r.top) / (r.height * .75))); svgT.style.setProperty('--g', g.toFixed(3)); tw.classList.toggle('leafy', g > .55); tw.classList.toggle('fruity', g > .8); if (g > .8 && !tw._auto) { tw._auto = 1; let k = 0; const a = setInterval(() => { if (tw._touched) return clearInterval(a); pick(k = (k + 1) % F.length); }, 3200); } };
+    tw.addEventListener('pointerdown', () => tw._touched = 1);
+    addEventListener('scroll', grow, { passive: true }); grow(); pick(0);
+  }
+
+  /* ---------- Momente (Handy: antippen) ---------- */
+  $$('[data-mo]').forEach(m => m.addEventListener('click', () => m.classList.toggle('on')));
+  if (window.gsap && !RM) $$('.mo img').forEach((im, i) => gsap.fromTo(im, { yPercent: -4 }, { yPercent: 4, ease: 'none', scrollTrigger: { trigger: im, start: 'top bottom', end: 'bottom top', scrub: true } }));
+
+  /* ---------- Finder ---------- */
+  const ft = $('[data-ft]'), fd = $('[data-fd]'), fl = $('[data-fl]'), fres = $('[data-fres]'); let fsel = null;
+  const qk = m => '<li class="fi-qk"><span>Schnellwahl</span>' + (m === 'soul' ? D.feel : D.body).map((d, i) => `<button type="button" data-qm="${m}" data-qi="${i}">${d.l}</button>`).join('') + '</li>';
+  const show = (title, text, list) => { ft.textContent = title; fd.textContent = text; fl.innerHTML = list.map(x => `<li><a href="${D.wa}?text=${encodeURIComponent('Aloha Verena, ich interessiere mich für: ' + x + '. Wann hättest du Zeit?')}" target="_blank" rel="noopener">${x}<span aria-hidden="true">→</span></a></li>`).join(''); fres.animate && fres.animate([{ opacity: .3, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: 450, easing: 'ease-out' }); };
+  $$('[data-fmode]').forEach(b => b.addEventListener('click', () => { const m = b.dataset.fmode; $$('[data-fmode]').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-selected', String(x === b)); }); $$('[data-fp]').forEach(p => p.classList.toggle('on', p.dataset.fp === m)); fsel = null; $$('.bp, [data-feel]').forEach(x => x.classList.remove('on')); if (m === 'soul') show('Wie fühlst du dich?', 'Wähle das Gefühl, das am ehesten passt – links oder hier.', []); else show('Tippe auf eine Stelle', 'Nacken, Rücken, Knie – oder einfach das Gefühl, dass etwas nicht im Fluss ist.', []); fl.innerHTML = qk(m); }));
+  $$('.bp').forEach(b => b.addEventListener('click', () => { $$('.bp').forEach(x => x.classList.toggle('on', x === b)); const d = D.body[+b.dataset.bp]; fsel = d; show(d.l, 'Diese Angebote passen zu diesem Bereich – was für dich infrage kommt, besprechen wir persönlich.', d.r); }));
+  $$('[data-feel]').forEach(b => b.addEventListener('click', () => { $$('[data-feel]').forEach(x => x.classList.toggle('on', x === b)); const d = D.feel[+b.dataset.feel]; fsel = d; show(d.l, d.t, d.r); }));
+  fl.innerHTML = qk('body');
+  fl.addEventListener('click', e => { const q = e.target.closest('[data-qi]'); if (!q) return; const t = q.dataset.qm === 'soul' ? $$('[data-feel]')[+q.dataset.qi] : $$('.bp')[+q.dataset.qi]; t && t.click(); });
+  const fcta = $('[data-fcta]');
+  fcta && fcta.addEventListener('click', () => {
+    if (!fsel) return; const f = $('[data-form]'), ta = f && $('textarea', f); if (!ta) return;
+    const chip = x => /Lomi/.test(x) ? 'Lomi Lomi Nui' : /Frauen/.test(x) ? 'Frauenmassage' : /Massage/.test(x) ? 'Massage' : /HUNA/.test(x) ? 'HUNA' : /Transform/.test(x) ? 'Transformation' : /TERRA/.test(x) ? 'dōTERRA' : /Bowen/.test(x) ? 'Bowen-Therapie' : /Klang/.test(x) ? 'Klangschalen' : /Kennenlern/.test(x) ? null : 'Physiotherapie';
+    fsel.r.map(chip).forEach(v => { const c = v && $(`input[name="Interesse"][value="${v}"]`, f); if (c) c.checked = true; });
+    if (!ta.value.trim() || ta.dataset.pre === '1') { ta.value = 'Mich interessiert: ' + fsel.l + ' (' + fsel.r.join(', ') + '). '; ta.dataset.pre = '1'; }
+  });
+
+  /* ---------- Atmen: ruhige Stimme führt, Ein- und Ausatmen hörbar, Musik läuft mit ---------- */
+  const BA = (() => {
+    const SRC = '../media/atem.mp3', KEY = 'vp-atem-stimme';
+    const CUE = { intro: [0, 8.18], in1: [8.43, 2.12], hold1: [10.8, 1], out1: [12.05, 3.68], in2: [15.98, 1.16], hold2: [17.39, .98], out2: [18.62, 1.28], in3: [20.15, 2.95], hold3: [23.35, .99], out3: [24.59, 2.7], end: [27.54, 6.16] };
+    let ac = null, out = null, buf = null, noise = null, ab = null, loading = null, on = true; const live = new Set();
+    try { on = localStorage.getItem(KEY) !== '0'; } catch (e) {}
+    const fetchAB = () => ab ? Promise.resolve(ab) : (loading = loading || fetch(SRC).then(r => { if (!r.ok) throw new Error('atem'); return r.arrayBuffer(); }).then(x => (ab = x)).catch(e => { loading = null; throw e; }));
+    const chain = () => { const f = ac.createGain(); f.connect(out); return f; };
+    const track = (s, f) => { const o = { s, f }; live.add(o); s.onended = () => live.delete(o); };
+    const ready = () => { if (!ac) return Promise.resolve(false); if (buf) return Promise.resolve(true);
+      return fetchAB().then(x => new Promise((res, rej) => ac.decodeAudioData(x.slice(0), res, rej))).then(b => { buf = b; return true; }).catch(() => false); };
+    return {
+      get on() { return on; },
+      prefetch() { fetchAB().catch(() => {}); },
+      unlock() {   /* läuft direkt im Klick – sonst bleibt der Ton auf dem iPhone stumm */
+        try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+        if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); out = ac.createGain(); out.connect(ac.destination); const z = ac.createBufferSource(); z.buffer = ac.createBuffer(1, 1, 22050); z.connect(out); z.start(0); } catch (e) { ac = null; } }
+        if (ac && ac.state === 'suspended') { try { ac.resume(); } catch (e) {} }
+                return ready();
+      },
+      len: k => CUE[k] ? CUE[k][1] : 0,
+      say(k) { if (!on || !ac || !buf || !CUE[k]) return; const s = ac.createBufferSource(), f = chain(); s.buffer = buf; s.connect(f); s.start(ac.currentTime + .05, CUE[k][0], CUE[k][1]); track(s, f); },
+      breath(kind, sec) {   /* Atemgeräusch: leise im Hintergrund, Höhen weich abgeschnitten */
+        if (!on || !ac) return; const t = ac.currentTime + .05;
+        if (!noise) { const n = ac.sampleRate * 2, nb = ac.createBuffer(1, n, ac.sampleRate), d = nb.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; noise = nb; }
+        const s = ac.createBufferSource(); s.buffer = noise; s.loop = true; s.playbackRate.value = .92 + Math.random() * .16;
+        const hp = ac.createBiquadFilter(), bp = ac.createBiquadFilter(), lp = ac.createBiquadFilter(), g = ac.createGain(); hp.type = 'highpass'; bp.type = 'bandpass'; lp.type = 'lowpass'; lp.Q.value = .5; g.gain.setValueAtTime(0, t);
+        if (kind === 'in') { hp.frequency.value = 420; lp.frequency.value = 1900; bp.Q.value = .9; bp.frequency.setValueAtTime(800, t); bp.frequency.linearRampToValueAtTime(1350, t + sec * .9);
+          g.gain.linearRampToValueAtTime(.05, t + sec * .3); g.gain.linearRampToValueAtTime(.075, t + sec * .82); g.gain.linearRampToValueAtTime(0, t + sec * .97); }
+        else { hp.frequency.value = 180; lp.frequency.value = 1100; bp.Q.value = .7; bp.frequency.setValueAtTime(620, t); bp.frequency.exponentialRampToValueAtTime(340, t + sec * .95);
+          g.gain.linearRampToValueAtTime(.12, t + .45); g.gain.setTargetAtTime(0, t + .8, sec / 3.4); }
+        const f = chain(); s.connect(hp); hp.connect(bp); bp.connect(lp); lp.connect(g); g.connect(f); s.start(t); s.stop(t + sec + .3); track(s, f);
+      },
+      stop() { const old = [...live]; live.clear(); old.forEach(o => { try { o.f.gain.setTargetAtTime(0, ac.currentTime, .08); } catch (e) {} }); setTimeout(() => old.forEach(o => { try { o.s.stop(); } catch (e) {} }), 400); },
+      toggle() { on = !on; try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {} if (!on) this.stop(); return on; }
+    };
+  })();
+  const bw = $('[data-bwrap]'), bt = $('[data-bt]'), bn = $('[data-bn]'), bbtn = $('[data-breath]'), brr = $('[data-br-r]'), bvb = $('[data-bvoice]'); let bRun = false, bId = 0;
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const vUi = () => { if (!bvb) return; bvb.setAttribute('aria-pressed', String(BA.on)); bvb.lastChild.textContent = BA.on ? 'Stimme an' : 'Stimme aus'; };
+  vUi(); bvb && bvb.addEventListener('click', () => { BA.toggle(); vUi(); });
+  if ('IntersectionObserver' in window) new IntersectionObserver((es, o) => es.forEach(e => { if (e.isIntersecting) { BA.prefetch(); o.disconnect(); } }), { rootMargin: '900px' }).observe(bw);
+  bbtn.addEventListener('click', async () => {
+    if (bRun) { bRun = false; BA.stop(); PL.hush(false); return; }
+    const id = ++bId, alive = () => bRun && id === bId; bRun = true; bbtn.lastChild.textContent = ' Stopp';
+    PL.hush(true);   /* Musik blendet für die Übung aus */
+    const voice = BA.on ? BA.unlock() : Promise.resolve(false);
+    const wait = async sec => { for (let k = 0; k < sec * 10; k++) { if (!alive()) return; await sleep(100); } };
+    const phase = async (cls, label, sec) => { bw.className = 'breath ' + cls; bt.textContent = label; for (let k = sec; k > 0; k--) { if (!alive()) return; bn.textContent = k; await sleep(1000); } };
+    if (innerWidth < 900) { const r = bw.getBoundingClientRect(); if (r.bottom > innerHeight || r.top < 70) bw.scrollIntoView({ block: 'center', behavior: RM ? 'auto' : 'smooth' }); }
+    bw.className = 'breath'; bt.textContent = 'Ankommen'; bn.textContent = ''; brr.textContent = 'Mach es dir bequem';
+    const ok = await Promise.race([voice, sleep(3500).then(() => false)]);
+    if (ok && alive()) { BA.say('intro'); await wait(BA.len('intro') + .6); }
+    for (let r = 1; r <= 3 && alive(); r++) {
+      brr.textContent = `Runde ${r} von 3`;
+      BA.say('in' + r); BA.breath('in', 4); await phase('in', 'Einatmen', 4);
+      if (!alive()) break; BA.say('hold' + r); await phase('hold', 'Halten', 2);
+      if (!alive()) break; BA.say('out' + r); BA.breath('out', 6); await phase('out', 'Ausatmen', 6);
+    }
+    if (id !== bId) return;
+    const done = bRun;
+    if (done) { BA.say('end'); setTimeout(() => { if (!bRun) PL.hush(false); }, 2500); } else PL.hush(false);   /* danach kommt die Musik sanft zurück */
+    bw.className = 'breath'; bt.textContent = done ? 'Schön.' : 'Bereit?'; bn.textContent = done ? 'Spürst du es?' : ''; brr.textContent = done ? 'Drei Runden geschafft. Aloha.' : 'Runde 0 von 3';
+    bRun = false; bbtn.lastChild.textContent = ' Nochmal atmen';
+  });
+
+  /* ---------- Aloha & HUNA ---------- */
+  $$('.al').forEach(a => a.addEventListener('click', () => { const on = !a.classList.contains('on'); $$('.al').forEach(x => x.classList.remove('on')); a.classList.toggle('on', on); }));
+  const huna = $$('.huna-w span');
+  if (huna.length) new IntersectionObserver((es, o) => es.forEach(e => { if (e.isIntersecting) { huna.forEach((s, i) => setTimeout(() => s.classList.add('on'), RM ? 0 : i * 450)); o.disconnect(); } }), { threshold: .6 }).observe($('.huna-w'));
+
+
+  /* ---------- Neuseeland ---------- */
+  (() => {
+    const q = $$('[data-nzq] blockquote'), st = $('[data-nzstack]'), figs = st ? $$('figure', st) : [], dots = $$('[data-nzd]'); let i = 0, timer = 0;
+    const set = k => { if (!q.length) return; q[i].classList.remove('on'); i = (k + q.length) % q.length; q[i].classList.add('on'); const p = +q[i].dataset.nzp;
+      figs.forEach((f, j) => f.classList.toggle('front', j === p)); dots.forEach((d, j) => { d.classList.toggle('on', j === i); d.setAttribute('aria-pressed', String(j === i)); }); };
+    const loop = () => { clearInterval(timer); if (!RM) timer = setInterval(() => { if (!document.hidden) set(i + 1); }, 6500); };
+    if (q.length) { set(0); loop(); }
+    dots.forEach(d => d.addEventListener('click', () => { set(+d.dataset.nzd); loop(); }));
+    if (st && 'IntersectionObserver' in window && !RM) { st.classList.add('wait'); new IntersectionObserver((es, o) => es.forEach(e => { if (e.isIntersecting) { st.classList.remove('wait'); o.disconnect(); } }), { threshold: .25 }).observe(st); }
+  })();
+  /* ---------- Reel neue Liege ---------- */
+  (() => {
+    const r = $('[data-reel]'); if (!r) return;
+    const v = $('video', r), b = $('[data-reelsnd]', r);
+    if ('IntersectionObserver' in window) new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { const p = v.play(); p && p.catch(() => {}); } else { v.pause(); if (!v.muted) { v.muted = true; if (b) { b.textContent = '🔇'; b.setAttribute('aria-pressed', 'false'); b.setAttribute('aria-label', 'Ton an'); } PL.duck(false); } } }), { threshold: .35 }).observe(v);
+    b && b.addEventListener('click', () => { v.muted = !v.muted; PL.duck(!v.muted); b.textContent = v.muted ? '🔇' : '🔊'; b.setAttribute('aria-pressed', String(!v.muted)); b.setAttribute('aria-label', v.muted ? 'Ton an' : 'Ton aus'); if (!v.muted) { const p = v.play(); p && p.catch(() => {}); } });
+  })();
+  /* ---------- Film ---------- */
+  const film = $('[data-film]');
+  film && $('.fl-play', film) && $('.fl-play', film).addEventListener('click', async () => {
+    let ok = false; try { ok = (await fetch('../media/film.mp4', { method: 'HEAD' })).ok; } catch (e) {}
+    if (ok) { film.innerHTML = '<video src="../media/film.mp4" controls autoplay playsinline style="width:100%;aspect-ratio:16/10;object-fit:cover"></video>'; }
+    else { film.classList.add('soon'); $('.fl-tag', film).textContent = 'Der Film von Falcon Eye kommt hier hinein 🎬'; }
+  });
+
+  /* ---------- Öle ---------- */
+  const oils = $('[data-oils]'), mist = $('[data-mist]');
+  $$('.oil').forEach(o => o.addEventListener('click', () => {
+    $$('.oil').forEach(x => x.classList.toggle('on', x === o));
+    const r = oils.getBoundingClientRect(), b = o.getBoundingClientRect();
+    mist.style.setProperty('--mx', ((b.left + b.width / 2 - r.left) / r.width * 60 + 20) + '%'); mist.style.setProperty('--my', ((b.top + b.height / 2 - r.top) / r.height * 60 + 20) + '%');
+    mist.style.setProperty('--mc', D.oils[+o.dataset.oil].c); mist.classList.remove('on'); void mist.offsetWidth; mist.classList.add('on');
+    const od = D.oils[+o.dataset.oil], sel = $('[data-oilsel]'); if (sel) sel.innerHTML = `<b>${od.n}</b> – ${od.d}. <a href="${D.shop}" target="_blank" rel="noopener">Im Shop ansehen →</a> · <a href="${D.wa}?text=${encodeURIComponent('Aloha Verena, ich habe eine Frage zu ' + od.n + '.')}" target="_blank" rel="noopener">Frage stellen</a>`;
+  }));
+
+  /* ---------- Wusstest du? (Flip-Karten) ---------- */
+  (() => {
+    const C = $$('.fc'), n = $('[data-fcn]'), bar = $('[data-fcbar]'), seen = new Set();
+    const flip = (c, on) => {
+      c.classList.toggle('on', on); const t = $('.fc-t', c); t.setAttribute('aria-expanded', String(on));
+      $('.fc-b', c).setAttribute('aria-hidden', String(!on)); $$('.fc-b a, .fc-b button', c).forEach(x => x.tabIndex = on ? 0 : -1);
+      if (on) { seen.add(c.dataset.fc); c.classList.add('seen'); n.textContent = seen.size; bar.style.width = seen.size / C.length * 100 + '%'; if (seen.size === C.length) n.parentNode.innerHTML = '<b>Alle ' + C.length + '</b> entdeckt – Mahalo! 🌺'; setTimeout(() => $('.fc-x', c).focus({ preventScroll: true }), 300); }
+    };
+    C.forEach(c => {
+      c.addEventListener('click', e => { if (e.target.closest('a')) return; if (e.target.closest('.fc-x')) { flip(c, false); $('.fc-t', c).focus({ preventScroll: true }); return; } flip(c, !c.classList.contains('on')); });
+    });
+    $$('[data-fcat]').forEach(b => b.addEventListener('click', () => {
+      $$('[data-fcat]').forEach(x => x.classList.toggle('on', x === b)); const k = b.dataset.fcat;
+      C.forEach(c => c.classList.toggle('hide', k !== 'alle' && c.dataset.cat !== k));
+      const g = $('[data-fcg]'); g.scrollLeft = 0;
+      if (window.gsap && !RM) gsap.fromTo(C.filter(c => !c.classList.contains('hide')), { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: .6, stagger: .05, ease: 'power3.out', clearProps: 'transform,opacity' });
+    }));
+  })();
+
+  /* ---------- Aloha-Wörterbuch ---------- */
+  (() => {
+    const W = D.words || [], card = $('.wb-card'); if (!card) return; let cur = 0;
+    const show = i => { cur = i; const w = W[i]; $('[data-ww]').textContent = w.w; $('[data-wp]').textContent = w.p; $('[data-wm]').textContent = w.m; $('[data-wn]').textContent = w.n; const a = $('[data-wsrc]'); a.href = w.su; a.textContent = 'Quelle: ' + w.sn + '\u00a0↗'; $$('[data-w]').forEach((b, j) => b.classList.toggle('on', j === i)); card.classList.remove('flip'); void card.offsetWidth; card.classList.add('flip'); };
+    $$('[data-w]').forEach(b => b.addEventListener('click', () => show(+b.dataset.w)));
+    const say = $('[data-wsay]');
+    if (!('speechSynthesis' in window)) say.hidden = true;
+    else say.addEventListener('click', () => { const u = new SpeechSynthesisUtterance(W[cur].w.replace(/ʻ/g, '')); u.lang = 'de-DE'; u.rate = .75; speechSynthesis.cancel(); speechSynthesis.speak(u); });
+  })();
+
+  /* ---------- Lightbox für echte Fotos ---------- */
+  (() => {
+    const lb = $('[data-lbox]'); if (!lb) return; const li = $('[data-lbi]'), lc = $('[data-lbc]'); let list = [], k = 0, last = null;
+    const cap = im => { const f = im.closest('figure'); const c = f && $('figcaption', f); return (c && c.textContent) || im.alt || ''; };
+    const set = j => { k = (j + list.length) % list.length; const im = list[k]; li.src = im.currentSrc || im.src; li.alt = im.alt; lc.textContent = cap(im); };
+    const open = im => { const w = im.closest('[data-lbw]'); list = w ? $$('img', w) : $$('img[data-lb]'); last = document.activeElement; set(list.indexOf(im)); lb.hidden = false; document.documentElement.style.overflow = 'hidden'; $('[data-lbx]').focus(); };
+    const close = () => { lb.hidden = true; document.documentElement.style.overflow = ''; last && last.focus && last.focus({ preventScroll: true }); };
+    document.addEventListener('click', e => { if (e.target.closest('a, button')) return; let im = e.target.closest('[data-lbw] img, img[data-lb]'); if (!im) { const f = e.target.closest('[data-lbw] figure, figure[data-lbw]'); im = f && $('img', f); } if (im) { e.preventDefault(); open(im); } });
+    $('[data-lbx]').addEventListener('click', close); lb.addEventListener('click', e => { if (e.target === lb) close(); });
+    $$('[data-lbn]').forEach(b => b.addEventListener('click', () => set(k + +b.dataset.lbn)));
+    addEventListener('keydown', e => { if (lb.hidden) return; if (e.key === 'Escape') close(); if (e.key === 'ArrowRight') set(k + 1); if (e.key === 'ArrowLeft') set(k - 1); });
+  })();
+
+  /* ---------- Zahlen zählen hoch ---------- */
+  (() => {
+    const N = $$('[data-count]'); if (!N.length || RM || !('IntersectionObserver' in window)) return;
+    const io = new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) return; io.unobserve(e.target); const el = e.target, to = +el.dataset.count, from = to > 1000 ? 1980 : 0, plus = el.hasAttribute('data-plus') ? '+' : '', t0 = performance.now();
+      const st = now => { const p = Math.min(1, (now - t0) / 1600), v = Math.round(from + (to - from) * (1 - Math.pow(1 - p, 3))); el.textContent = v + (p === 1 ? plus : ''); if (p < 1) requestAnimationFrame(st); }; requestAnimationFrame(st); }), { threshold: .6 });
+    N.forEach(n => io.observe(n));
+  })();
+
+  /* ---------- Formular ---------- */
+  const form = $('[data-form]');
+  form.addEventListener('submit', () => { form.querySelector('[name="_next"]').value = location.href.split('#')[0].split('?')[0] + '?gesendet=1#kontakt'; });
+  if (/gesendet=1/.test(location.search)) $('[data-fok]').hidden = false;
+
+  /* ---------- Animationen ---------- */
+  if (window.gsap && !RM) {
+    /* CL: nach dem Einblenden die Inline-Transforms entfernen – sonst blockieren sie die Hover-/Tipp-Effekte aus dem CSS */
+    const CL = 'transform,opacity';
+    whenIntro(() => {
+      gsap.from('.h1 .ln > *', { yPercent: 110, duration: 1.3, ease: 'power4.out', stagger: .12, delay: .15, clearProps: 'transform' });
+      gsap.from('.hero [data-h]:not(.h1)', { y: 30, opacity: 0, duration: 1.1, ease: 'power3.out', stagger: .1, delay: .5, clearProps: CL });
+    });
+    $$('.stat').forEach((el, i) => gsap.from(el, { y: 40, opacity: 0, duration: .9, delay: i * .08, ease: 'power3.out', clearProps: CL, scrollTrigger: { trigger: el, start: 'top 92%', once: true } }));
+    $$('.fc').forEach((el, i) => gsap.from(el, { y: 60, rotateY: -25, opacity: 0, duration: 1, delay: (i % 4) * .08, ease: 'power3.out', clearProps: CL, scrollTrigger: { trigger: el, start: 'top 92%', once: true } }));
+    const sh = $('[data-shop]'); sh && gsap.from(sh, { y: 80, rotateY: -35, rotateX: 12, opacity: 0, duration: 1.4, ease: 'power3.out', clearProps: CL, scrollTrigger: { trigger: sh, start: 'top 85%', once: true } });
+    $$('.qs-ph, .wb-card, .al-law, .oe-vortrag').forEach(el => gsap.from(el, { y: 50, opacity: 0, scale: .96, duration: 1.1, ease: 'power3.out', clearProps: CL, scrollTrigger: { trigger: el, start: 'top 88%', once: true } }));
+    $$('.sec-h, .fi-g, .at-g > *, .fl-g > *, .oe-t, .cv-l, .ko-g > *, .huna, .wb-l').forEach(el => gsap.from(el, { y: 50, opacity: 0, duration: 1.1, ease: 'power3.out', clearProps: CL, scrollTrigger: { trigger: el, start: 'top 85%', once: true } }));
+    $$('[data-r]').forEach((el, i) => gsap.from(el, { y: 50, opacity: 0, duration: .9, delay: (i % 3) * .08, ease: 'power3.out', clearProps: CL, scrollTrigger: { trigger: el, start: 'top 90%', once: true } }));
+  }
+})();
+
+/* ===== Lomi Lomi, Instagram-Story-Wall & zusätzliche Bewegung ===== */
+(function () {
+  'use strict';
+  const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const RM = matchMedia('(prefers-reduced-motion: reduce)').matches, IO = 'IntersectionObserver' in window;
+  const seen = (els, f, opt) => { if (!IO) return els.forEach(f); const o = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { f(e.target); o.unobserve(e.target); } }), opt || { threshold: .2 }); els.forEach(el => o.observe(el)); };
+
+  /* --- Lomi: drei Seiten, drei Zeiten --- */
+  const SIDES = [['Die Rückseite steht für die Zukunft.', 'Was darf kommen? Raum für das, was vor dir liegt.'], ['Die Vorderseite steht für das Hier und Jetzt.', 'Ganz da sein – in diesem Atemzug, in diesem Moment.'], ['Die Seite steht für die Vergangenheit.', 'Was hinter dir liegt, darf gewürdigt werden.']];
+  const st = $('[data-lsidet]');
+  $$('[data-lside]').forEach(b => b.addEventListener('click', () => {
+    $$('[data-lside]').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', String(x === b)); });
+    const s = SIDES[+b.dataset.lside]; st.innerHTML = '<em>' + s[0] + '</em> ' + s[1]; st.classList.remove('swap'); void st.offsetWidth; st.classList.add('swap');
+  }));
+  const steps = $$('[data-lstep]'), sl = $('[data-lsteps]');
+  if (RM) steps.forEach(s => s.classList.add('in'));
+  else seen(steps, s => { s.classList.add('in'); if (sl) sl.style.setProperty('--lp', (steps.filter(x => x.classList.contains('in')).length / steps.length).toFixed(2)); }, { threshold: .25 });
+  const lp = $('[data-loplay]'), plt = $('[data-pl-toggle]');
+  if (lp && plt) {
+    const sync = () => { const on = plt.getAttribute('aria-pressed') === 'true'; lp.classList.toggle('on', on); lp.lastChild.textContent = on ? ' Musik läuft – pausieren' : ' Aloha-Playlist anhören'; };
+    lp.addEventListener('click', e => { e.stopPropagation(); plt.click(); setTimeout(sync, 80); });
+    new MutationObserver(sync).observe(plt, { attributes: true, attributeFilter: ['aria-pressed'] });
+  }
+
+  /* --- Story-Wall --- */
+  const wall = $('#instagram'), track = $('[data-swtrack]');
+  if (wall && track) {
+    const T = $$('.sw-t', track), mob = () => innerWidth < 760;
+    const vis = () => T.filter(t => !t.classList.contains('off'));
+    const now = $('[data-swnow]'), tot = $('[data-swtot]'), prog = $('[data-swprog]'), pbtn = $('[data-swplay]');
+    let cur = 0, auto = !RM, inView = false, paused = false, resumeT = 0, t0 = 0, raf = 0;
+    const DUR = 4200;
+    const pad = n => String(n).padStart(2, '0');
+    /* Abschluss-Kachel: füllt die freien Felder der letzten Reihe (Desktop), beim Filtern gleichmäßige Kacheln */
+    const more = $('[data-swmore]');
+    const fillMore = () => {
+      if (!more) return; more.style.gridColumn = more.style.gridRow = ''; more.classList.remove('band');
+      if (mob()) return;
+      more.style.display = 'none';
+      const cs = getComputedStyle(track), cols = cs.gridTemplateColumns.split(' ').length, gx = parseFloat(cs.columnGap) || 12, gy = parseFloat(cs.rowGap) || 12;
+      const cw = (track.clientWidth - gx * (cols - 1)) / cols, rh = parseFloat(cs.gridAutoRows) || 160, occ = new Set(); let maxR = 0;
+      vis().forEach(t => { const c0 = Math.round((t.offsetLeft - track.offsetLeft) / (cw + gx)), r0 = Math.round((t.offsetTop - track.offsetTop) / (rh + gy)), w = Math.max(1, Math.round((t.offsetWidth + gx) / (cw + gx))), h = Math.max(1, Math.round((t.offsetHeight + gy) / (rh + gy)));
+        for (let a = 0; a < h; a++) for (let b = 0; b < w; b++) occ.add((r0 + a) + ',' + (c0 + b)); maxR = Math.max(maxR, r0 + h); });
+      more.style.display = '';
+      const last = maxR - 1, free = []; for (let c = 0; c < cols; c++) if (!occ.has(last + ',' + c)) free.push(c);
+      if (!free.length) { more.style.gridColumn = '1 / -1'; more.style.gridRow = String(maxR + 1); more.classList.add('band'); return; }
+      let best = [free[0]], run = [free[0]]; for (let k = 1; k < free.length; k++) { if (free[k] === free[k - 1] + 1) run.push(free[k]); else run = [free[k]]; if (run.length > best.length) best = run.slice(); }
+      const up = last > 0 && best.every(c => !occ.has((last - 1) + ',' + c));
+      more.style.gridColumn = (best[0] + 1) + ' / ' + (best[best.length - 1] + 2);
+      more.style.gridRow = up ? last + ' / span 2' : String(last + 1);
+      if (best.length >= 3 && !up) more.classList.add('band');
+    };
+    fillMore(); let fmT = 0; addEventListener('resize', () => { clearTimeout(fmT); fmT = setTimeout(fillMore, 200); });
+    if (RM) { wall.classList.add('in'); if (pbtn) { pbtn.setAttribute('aria-pressed', 'false'); pbtn.setAttribute('aria-label', 'Automatisch weiterblättern'); } }
+    else seen([wall.querySelector('.sw-stage')], () => { vis().forEach((t, i) => t.style.setProperty('--k', i)); wall.classList.add('in'); }, { threshold: .08 });
+    if (IO) new IntersectionObserver(([e]) => { inView = e.isIntersecting; t0 = performance.now(); }, { threshold: .35 }).observe(track);
+    $$('.sw-b img', track).forEach(im => { const done = () => im.parentNode.classList.add('ld'); im.complete && im.naturalWidth ? done() : im.addEventListener('load', done, { once: true }); });
+    /* Bilder rechtzeitig laden, damit keine leeren Kacheln aufblitzen */
+    if (IO) new IntersectionObserver((es, o) => es.forEach(e => { if (e.isIntersecting) { $$('img', track).forEach((im, i) => setTimeout(() => { im.loading = 'eager'; }, i * 40)); o.disconnect(); } }), { rootMargin: '1400px 0px' }).observe(wall);
+
+    const setCur = k => {
+      const v = vis(); if (!v.length) return; cur = (k + v.length) % v.length;
+      T.forEach(t => t.classList.remove('cur')); v[cur].classList.add('cur');
+      now.textContent = pad(cur + 1); tot.textContent = pad(v.length);
+    };
+    const center = (k, smooth = true) => {
+      const v = vis(); if (!v.length) return; k = (k + v.length) % v.length; const el = v[k];
+      track.scrollTo({ left: el.offsetLeft - (track.clientWidth - el.offsetWidth) / 2, behavior: smooth && !RM ? 'smooth' : 'auto' });
+      setCur(k); t0 = performance.now();
+    };
+    let sT = 0;
+    track.addEventListener('scroll', () => { if (!mob()) return; cancelAnimationFrame(sT); sT = requestAnimationFrame(() => {
+      const c = track.scrollLeft + track.clientWidth / 2, v = vis(); let best = 0, bd = 1e9;
+      v.forEach((t, i) => { const d = Math.abs(t.offsetLeft + t.offsetWidth / 2 - c); if (d < bd) { bd = d; best = i; } });
+      if (best !== cur) { setCur(best); t0 = performance.now(); }
+    }); }, { passive: true });
+    const hold = () => { paused = true; clearTimeout(resumeT); resumeT = setTimeout(() => { paused = false; t0 = performance.now(); }, 7000); };
+    ['pointerdown', 'touchstart', 'wheel'].forEach(ev => track.addEventListener(ev, hold, { passive: true }));
+    $$('[data-swnav]').forEach(b => b.addEventListener('click', () => { hold(); center(cur + +b.dataset.swnav); }));
+    pbtn && pbtn.addEventListener('click', () => { auto = !auto; pbtn.setAttribute('aria-pressed', String(auto)); pbtn.setAttribute('aria-label', auto ? 'Automatisches Weiterblättern pausieren' : 'Automatisch weiterblättern'); t0 = performance.now(); paused = false; });
+    const lbOpen = () => !$('[data-swl]').hidden;
+    const tick = n => {
+      raf = requestAnimationFrame(tick);
+      if (!mob()) return;
+      const run = auto && inView && !paused && !document.hidden && !lbOpen();
+      if (!run) { t0 = n - (parseFloat(prog.style.width) || 0) / 100 * DUR; return; }
+      const p = Math.min(1, (n - t0) / DUR); prog.style.width = p * 100 + '%';
+      if (p >= 1) center(cur + 1);
+    };
+    raf = requestAnimationFrame(tick);
+    setCur(0);
+
+    // Filter
+    $$('[data-swf]').forEach(b => b.addEventListener('click', () => {
+      const c = b.dataset.swf;
+      $$('[data-swf]').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', String(x === b)); });
+      const first = new Map(); if (!mob() && !RM) vis().forEach(t => first.set(t, t.getBoundingClientRect()));
+      T.forEach(t => { t.classList.toggle('off', c !== 'alle' && !t.dataset.cats.split(' ').includes(c)); t.classList.remove('pop'); });
+      track.classList.toggle('flat', c !== 'alle'); fillMore();
+      const v = vis();
+      if (mob()) { track.scrollLeft = 0; setCur(0); t0 = performance.now(); prog.style.width = '0%'; }
+      if (!RM) v.forEach((t, i) => {
+        const r0 = first.get(t);
+        if (r0 && t.animate) { const r1 = t.getBoundingClientRect(); t.animate([{ transform: `translate(${r0.left - r1.left}px,${r0.top - r1.top}px) scale(${r0.width / r1.width},${r0.height / r1.height})` }, { transform: 'none' }], { duration: 650, easing: 'cubic-bezier(.22,.8,.16,1)' }); }
+        else { t.style.setProperty('--k', Math.min(i, 12)); void t.offsetWidth; t.classList.add('pop'); }
+      });
+    }));
+
+    // Lightbox
+    const L = $('[data-swl]'), li = $('[data-swli]'); let lk = 0, last = null, sx = null;
+    const fill = k => {
+      const v = vis(); lk = (k + v.length) % v.length; const b = $('.sw-b', v[lk]);
+      li.src = $('img', b).currentSrc || $('img', b).src; li.alt = $('img', b).alt;
+      li.style.animation = 'none'; void li.offsetWidth; li.style.animation = '';
+      $('[data-swlt]').textContent = b.dataset.tt; $('[data-swlx]').textContent = '„' + b.dataset.x + '“';
+      $('[data-swld]').textContent = b.dataset.d; $('[data-swltag]').textContent = b.dataset.tag;
+      $('[data-swlu]').href = b.dataset.u; $('[data-swlc]').textContent = pad(lk + 1) + ' / ' + pad(v.length);
+    };
+    const open = t => { last = document.activeElement; fill(vis().indexOf(t)); L.hidden = false; document.documentElement.style.overflow = 'hidden'; $('[data-swlx-close]').focus(); };
+    const close = () => { L.hidden = true; document.documentElement.style.overflow = ''; if (mob()) center(lk, false); last && last.focus({ preventScroll: true }); };
+    track.addEventListener('click', e => { const b = e.target.closest('.sw-b'); if (!b) return; const t = b.parentNode;
+      if (mob() && !t.classList.contains('cur')) { hold(); center(vis().indexOf(t)); return; } open(t); });
+    $('[data-swlx-close]').addEventListener('click', close);
+    L.addEventListener('click', e => { if (e.target === L) close(); });
+    $$('[data-swln]').forEach(b => b.addEventListener('click', () => fill(lk + +b.dataset.swln)));
+    document.addEventListener('keydown', e => { if (L.hidden) return; if (e.key === 'Escape') close(); else if (e.key === 'ArrowRight') fill(lk + 1); else if (e.key === 'ArrowLeft') fill(lk - 1);
+      else if (e.key === 'Tab') { const f = $$('button, a', L).filter(x => x.offsetParent); const i = f.indexOf(document.activeElement); if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); } } });
+    L.addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, { passive: true });
+    L.addEventListener('touchend', e => { if (sx == null) return; const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 50 && e.target.closest('.swl-ph')) fill(lk + (dx < 0 ? 1 : -1)); sx = null; }, { passive: true });
+  }
+
+  /* --- Werdegang: Linie wächst mit, erreichte Jahre leuchten --- */
+  const cvl = $('.cv-list');
+  if (cvl) {
+    const lis = $$('li', cvl); let cvT = 0;
+    const cvUp = () => { cvT = 0; const r = cvl.getBoundingClientRect(), mid = innerHeight * .62; if (r.top > innerHeight || r.bottom < 0) return;
+      cvl.style.setProperty('--cvp', Math.max(0, Math.min(1, (mid - r.top) / r.height)).toFixed(3));
+      lis.forEach(li => li.classList.toggle('lit', li.getBoundingClientRect().top + 22 < mid)); };
+    addEventListener('scroll', () => { if (!cvT) cvT = requestAnimationFrame(cvUp); }, { passive: true }); cvUp();
+  }
+
+  /* --- Mehr Bewegung --- */
+  const fd = $$('.fol-div');
+  if (RM) fd.forEach(f => f.classList.add('in')); else seen(fd, f => f.classList.add('in'), { threshold: .6 });
+  const h2 = $$('.h2');
+  if (RM) h2.forEach(h => h.classList.add('ul')); else seen(h2, h => h.classList.add('ul'), { threshold: .6 });
+  if (!RM && window.gsap && window.ScrollTrigger) {
+    const g = window.gsap;
+    const batch = (sel, from, st = .08) => { const els = $$(sel); if (!els.length) return; window.ScrollTrigger.batch(els, { start: 'top 90%', once: true, onEnter: b => g.fromTo(b, from, { opacity: 1, y: 0, x: 0, scale: 1, rotate: 0, clipPath: 'inset(0% 0% 0% 0% round 0px)', duration: 1, ease: 'power3.out', stagger: st, overwrite: true, clearProps: 'clipPath,transform,opacity' }) }); };
+    batch('.mo', { opacity: 0, y: 60, scale: .92 });
+    batch('.oil', { opacity: 0, y: 30, scale: .8 }, .06);
+    batch('.kc', { opacity: 0, x: -30 });
+    batch('.cv-list li', { opacity: 0, x: 40 }, .05);
+    batch('.lo-way li', { opacity: 0, y: 60, rotate: 2 }, .1);
+    batch('.lo-ph figure', { opacity: 0, scale: .85, y: 40 }, .15);
+    batch('.lo-q', { opacity: 0, y: 30 });
+    // Parallax auf Fotos (über die CSS-Eigenschaft "translate", kollidiert nicht mit Hover-Transforms)
+    $$('.qs-ph img, .lo-p1 img, .oe-vortrag, .fl-side').forEach(im => {
+      if (im.tagName === 'IMG' && !im.classList.contains('fl-side')) im.style.scale = '1.12';
+      g.fromTo(im, { '--py': -18 }, { '--py': 18, ease: 'none', scrollTrigger: { trigger: im, start: 'top bottom', end: 'bottom top', scrub: true }, onUpdate() { im.style.translate = '0 ' + (parseFloat(g.getProperty(im, '--py')) || 0).toFixed(1) + 'px'; } });
+    });
+    $$('.sec-h .kick').forEach(k => g.from(k, { opacity: 0, x: -30, duration: .9, ease: 'power3.out', clearProps: 'transform,opacity', scrollTrigger: { trigger: k, start: 'top 92%', once: true } }));
+  }
+})();
+
+/* ===== v6: Impulse & Hinweise, Kapitel-Faden, freie Sicht am Seitenende ===== */
+(function () {
+  'use strict';
+  const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const RM = matchMedia('(prefers-reduced-motion: reduce)').matches, IO = 'IntersectionObserver' in window;
+  const HAND = '<svg class="v6-hand" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 11.4V5.6a1.6 1.6 0 0 1 3.2 0v5.2m0-.4V9.7a1.6 1.6 0 0 1 3.2 0v1.6m0 0a1.6 1.6 0 0 1 3.2 0v3.1c0 4-2.7 6.6-6.4 6.6h-.6c-2.1 0-3.4-.8-4.6-2.3l-2.9-3.8a1.6 1.6 0 0 1 2.5-2l1.4 1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  /* sichtbar? – ruft cb(true/false) bei jeder Änderung */
+  const watch = (el, cb, th = .45) => { if (!el) return; if (!IO) return cb(true); new IntersectionObserver(es => es.forEach(e => cb(e.isIntersecting)), { threshold: th }).observe(el); };
+  /* echte Nutzer-Interaktion (keine Vorführ-Klicks) */
+  const touched = (el, f, evs = ['pointerdown', 'keydown', 'wheel', 'touchstart']) => evs.forEach(ev => el.addEventListener(ev, e => { if (e.isTrusted !== false) f(e); }, { passive: true }));
+  const hint = (txt, cls = '') => { const h = document.createElement('p'); h.className = 'v6-hint ' + cls; h.setAttribute('aria-hidden', 'true'); h.innerHTML = HAND + '<span>' + txt + '</span>'; return h; };
+  const gone = h => h && h.classList.add('gone');
+
+  /* ---------- 1) Horizontale Streifen: kleiner Schubs + „← wischen →“ (verschwindet nach dem ersten Wischen) ---------- */
+  const STRIPS = [['.re-track', '← wischen · Station für Station →'], ['.tr-g', '← wischen für alle Angebote →'], ['.ag-g', '← wischen →'], ['.al-g', '← wischen →'], ['.lo-facts', '← wischen →'], ['.lo-way ol', '← wischen →'], ['.fc-g', '← wischen · Karte antippen →'], ['.wi-chips', null], ['.sw-chips', null], ['.re-dots', null]];
+  STRIPS.forEach(([sel, txt]) => {
+    const s = $(sel); if (!s) return;
+    let h = null, done = false, runs = 0, inV = false, rep = 0, prog = false, raf = 0, snap = '';
+    const over = () => s.scrollWidth > s.clientWidth + 8 && getComputedStyle(s).overflowX !== 'visible';
+    const edge = () => { const o = over(); s.classList.toggle('v6-more', o && s.scrollLeft + s.clientWidth < s.scrollWidth - 6); s.classList.toggle('v6-less', o && s.scrollLeft > 6); };
+    /* echter kleiner Scroll-Schubs (keine Transforms – die würden sich mit den GSAP-Einblendungen der Karten verhaken) */
+    const stopN = () => { cancelAnimationFrame(raf); if (prog) { s.style.scrollSnapType = snap; requestAnimationFrame(() => requestAnimationFrame(() => { prog = false; })); } };
+    const nudge = () => { if (done || RM || prog || !over()) return; runs++; prog = true; snap = s.style.scrollSnapType; s.style.scrollSnapType = 'none';
+      const x0 = s.scrollLeft, d = Math.max(0, Math.min(64, s.scrollWidth - s.clientWidth - x0)), T = 2600, t0 = performance.now();
+      const f = now => { const k = Math.min(1, (now - t0) / T); s.scrollLeft = x0 + d * (1 - Math.cos(k * Math.PI * 4)) / 2; if (k < 1 && !done) raf = requestAnimationFrame(f); else { if (!done) s.scrollLeft = x0; stopN(); } };
+      raf = requestAnimationFrame(f); };
+    const finish = () => { if (done) return; done = true; stopN(); gone(h); clearTimeout(rep); };
+    s.addEventListener('scroll', () => { edge(); if (!prog) finish(); }, { passive: true });
+    touched(s, finish, ['pointerdown', 'touchstart', 'wheel']);
+    addEventListener('resize', edge); edge();
+    watch(s, v => {
+      inV = v; edge(); if (!v || done || !over()) return;
+      if (txt && !h) { h = hint(txt, 'v6-strip'); const o = getComputedStyle(s).order; if (o && o !== '0') h.style.order = o; s.after(h); }
+      if (runs < 3) { clearTimeout(rep); rep = setTimeout(() => { nudge(); rep = setTimeout(() => { if (inV && !done && runs < 3) nudge(); }, 7500); }, 700); }
+    }, .4);
+  });
+
+  /* ---------- 2) Körper-Karte: Punkte leuchten nacheinander, ein Finger zeigt „Tippen“ ---------- */
+  (() => {
+    const map = $('.bodymap'), fg = $('.fi-g'); if (!map || !fg) return;
+    const P = $$('.bp', map); if (!P.length) return;
+    const f = document.createElement('span'); f.className = 'v6-finger'; f.setAttribute('aria-hidden', 'true'); f.innerHTML = HAND + '<b>Tippen</b>'; map.appendChild(f);
+    let k = 0, t = 0, done = false;
+    const step = () => { P.forEach(p => p.classList.remove('demo')); const p = P[k % P.length]; p.classList.add('demo'); f.style.left = p.style.getPropertyValue('--x'); f.style.top = p.style.getPropertyValue('--y'); f.classList.remove('tap'); void f.offsetWidth; f.classList.add('tap', 'on'); k++; };
+    const stop = () => { clearInterval(t); t = 0; };
+    const finish = () => { if (done) return; done = true; stop(); P.forEach(p => p.classList.remove('demo')); f.classList.add('gone'); };
+    touched(fg, finish, ['pointerdown', 'keydown']);
+    watch(map, v => { if (done) return; stop(); if (v) { step(); if (!RM) t = setInterval(step, 2300); } }, .55);
+  })();
+
+  /* ---------- 3) Lomi: drei Seiten wechseln von selbst, bis jemand tippt ---------- */
+  (() => {
+    const g = $('.lo-sides'); if (!g) return; const B = $$('[data-lside]', g), live = $('[data-lsidet]'); if (!B.length) return;
+    const h = hint('Tippen', 'v6-inline'); g.appendChild(h);
+    let t = 0, done = false, k = B.findIndex(b => b.classList.contains('on'));
+    const stop = () => { clearInterval(t); t = 0; };
+    const finish = () => { if (done) return; done = true; stop(); gone(h); live && live.setAttribute('aria-live', 'polite'); };
+    touched(g, finish, ['pointerdown', 'keydown']);
+    watch(g, v => { if (done || RM) return; stop(); if (v) { live && live.setAttribute('aria-live', 'off'); t = setInterval(() => { k = (k + 1) % B.length; B[k].click(); }, 3600); } }, .9);
+  })();
+
+  /* ---------- 4) Aloha-Wörterbuch: Worte blättern von selbst (Karte behält ihre Höhe) ---------- */
+  (() => {
+    const wb = $('[data-wb]'); if (!wb) return; const card = $('.wb-card', wb), B = $$('[data-w]', wb), list = $('.wb-list', wb); if (!card || !B.length) return;
+    const h = hint('Tippe ein Wort an'); list.after(h);
+    const fit = () => { /* höchste Karte messen, damit nichts darunter springt */
+      const W = (window.VP && VP.words) || []; if (!W.length) return; const fx = ['[data-ww]', '[data-wp]', '[data-wm]', '[data-wn]', '[data-wsrc]'].map(s => $(s, card)); if (fx.some(e => !e)) return; const keep = fx.map(e => e.textContent);
+      card.style.minHeight = ''; let mx = 0; W.forEach(w => { fx[0].textContent = w.w; fx[1].textContent = w.p; fx[2].textContent = w.m; fx[3].textContent = w.n; fx[4].textContent = 'Quelle: ' + w.sn + ' ↗'; mx = Math.max(mx, card.offsetHeight); });
+      fx.forEach((e, i) => { e.textContent = keep[i]; }); card.style.minHeight = mx + 'px'; };
+    fit(); let rz = 0; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(fit, 250); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+    let t = 0, done = false;
+    const stop = () => { clearInterval(t); t = 0; };
+    const finish = () => { if (done) return; done = true; stop(); gone(h); card.setAttribute('aria-live', 'polite'); };
+    touched(wb, finish, ['pointerdown', 'keydown']);
+    watch(card, v => { if (done || RM) return; stop(); if (v) { card.setAttribute('aria-live', 'off'); t = setInterval(() => { const i = B.findIndex(b => b.classList.contains('on')); B[(i + 1) % B.length].click(); }, 4600); } }, .6);
+  })();
+
+  /* ---------- 5) Öle: der Duft-Nebel wandert von Öl zu Öl, bis jemand tippt ---------- */
+  (() => {
+    const box = $('[data-oils]'), mist = $('[data-mist]'), sel = $('[data-oilsel]'); if (!box || !mist) return;
+    const O = $$('.oil', box), D = (window.VP && VP.oils) || []; if (!O.length) return;
+    if (sel && !sel.querySelector('.v6-hand')) sel.insertAdjacentHTML('afterbegin', HAND);
+    let k = 0, t = 0, done = false;
+    const show = () => { const o = O[k % O.length], r = box.getBoundingClientRect(), b = o.getBoundingClientRect(); O.forEach(x => x.classList.toggle('demo', x === o));
+      mist.style.setProperty('--mx', ((b.left + b.width / 2 - r.left) / r.width * 60 + 20) + '%'); mist.style.setProperty('--my', ((b.top + b.height / 2 - r.top) / r.height * 60 + 20) + '%');
+      mist.style.setProperty('--mc', (D[k % O.length] || {}).c || '#ffc46b'); mist.classList.remove('on'); void mist.offsetWidth; mist.classList.add('on'); k++; };
+    const stop = () => { clearInterval(t); t = 0; };
+    const finish = () => { if (done) return; done = true; stop(); O.forEach(x => x.classList.remove('demo')); };
+    touched(box, finish, ['pointerdown', 'keydown']);
+    watch(box, v => { if (done || RM) return; stop(); if (v) { show(); t = setInterval(show, 2600); } }, .5);
+  })();
+
+  /* ---------- 6) A-L-O-H-A: Buchstaben leuchten nacheinander auf ---------- */
+  (() => {
+    const g = $('.al-g'); if (!g) return; const A = $$('.al', g); if (!A.length) return;
+    let k = 0, t = 0, done = false;
+    const stop = () => { clearInterval(t); t = 0; };
+    const finish = () => { if (done) return; done = true; stop(); A.forEach(a => a.classList.remove('demo')); };
+    touched(g, finish, ['pointerdown', 'keydown']);
+    watch(g, v => { if (done || RM) return; stop(); if (v) t = setInterval(() => { A.forEach((a, i) => a.classList.toggle('demo', i === k % A.length)); k++; }, 2400); }, .5);
+  })();
+
+  /* ---------- 7) Wusstest du?: eine Karte „lupft“ kurz an, Chip „Tippen“ zeigt, wie es geht ---------- */
+  (() => {
+    const g = $('[data-fcg]'); if (!g) return; const C = $$('.fc', g); if (!C.length) return;
+    let n = 0, t = 0, done = false, inV = false;
+    const chip = document.createElement('span'); chip.className = 'v6-tap'; chip.setAttribute('aria-hidden', 'true'); chip.innerHTML = HAND + '<b>Tippen</b>';
+    const pick = () => { const vw = innerWidth, vh = innerHeight; return C.find(c => { if (c.classList.contains('on') || c.classList.contains('hide') || c.classList.contains('seen')) return false; const r = c.getBoundingClientRect(); return r.left >= -2 && r.right <= vw + 2 && r.top >= 60 && r.bottom <= vh; }); };
+    const peek = () => { if (done || !inV) return; const c = pick(); if (!c) return; n++; const f = $('.fc-f', c); f && f.appendChild(chip); chip.classList.remove('gone');
+      if (!RM) { c.classList.remove('v6-peek'); void c.offsetWidth; c.classList.add('v6-peek'); } };
+    C.forEach(c => c.addEventListener('animationend', e => { if (e.animationName === 'v6lift') c.classList.remove('v6-peek'); }));
+    const finish = () => { if (done) return; done = true; clearInterval(t); C.forEach(c => c.classList.remove('v6-peek')); chip.classList.add('gone'); };
+    g.addEventListener('click', e => { if (e.isTrusted !== false && e.target.closest('.fc')) finish(); });
+    watch(g, v => { inV = v; clearInterval(t); t = 0; if (!v || done) return; setTimeout(peek, 600); t = setInterval(() => { if (n >= 5) return clearInterval(t); peek(); }, 6500); }, .3);
+  })();
+
+  /* ---------- 8) Story-Wall (Desktop): ab und zu huscht ein Lichtstreif über ein Bild ---------- */
+  (() => {
+    const tr = $('[data-swtrack]'); if (!tr || RM) return; let t = 0;
+    watch(tr, v => { clearInterval(t); t = 0; if (!v) return; t = setInterval(() => { if (innerWidth < 760 || document.hidden) return; const vh = innerHeight;
+      const vis = $$('.sw-t:not(.off) .sw-b', tr).filter(b => { const r = b.getBoundingClientRect(); return r.top > 70 && r.bottom < vh && !b.matches(':hover'); }); if (!vis.length) return;
+      const b = vis[Math.floor(Math.random() * vis.length)]; b.classList.remove('v6-shine'); void b.offsetWidth; b.classList.add('v6-shine'); setTimeout(() => b.classList.remove('v6-shine'), 1400); }, 2200); }, .15);
+  })();
+
+  /* ---------- 9) Atmen: der Kreis selbst startet die Übung ---------- */
+  (() => {
+    const c = $('[data-bc]'), b = $('[data-breath]'); if (!c || !b) return;
+    c.addEventListener('click', () => b.click());
+    c.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); b.click(); } });
+  })();
+
+  /* ---------- 10) Am Seitenende: schwebende Knöpfe weichen dem Formular und dem Footer ---------- */
+  (() => {
+    const zs = [$('#kontakt'), $('.ftr')].filter(Boolean); if (!zs.length || !IO) return; const on = new Set();
+    const io = new IntersectionObserver(es => { es.forEach(e => e.isIntersecting ? on.add(e.target) : on.delete(e.target)); document.documentElement.classList.toggle('v6-end', on.size > 0); }, { rootMargin: '0px 0px -12% 0px', threshold: 0 });
+    zs.forEach(z => io.observe(z));
+    /* Handy: auf dem ersten Bildschirm liegt nichts über dem Begrüßungstext */
+    const hero = $('.hero'); if (hero) new IntersectionObserver(([e]) => document.documentElement.classList.toggle('v6-top', e.intersectionRatio > .55), { threshold: [0, .55, 1] }).observe(hero);
+  })();
+
+  /* ---------- 10b) Zitat Wort für Wort: wer stehen bleibt, bekommt den Satz trotzdem ganz ---------- */
+  (() => {
+    const bq = $('[data-split]'); if (!bq) return; let t = 0;
+    watch(bq, v => { clearTimeout(t); if (!v || bq.classList.contains('v6-full')) return;
+      t = setTimeout(() => { const W = $$('.w', bq), i = W.findIndex(w => !w.classList.contains('on'));
+        if (i >= 0 && !RM) W.forEach((w, j) => { if (j >= i) w.style.transitionDelay = ((j - i) * 70) + 'ms'; });
+        bq.classList.add('v6-full'); }, 1400); }, .7);
+  })();
+
+  /* ---------- 11) Kapitel-Faden: wo bin ich in der Geschichte? ---------- */
+  (() => {
+    const th = $('[data-thread]'); if (!th) return; const L = $$('a[data-th]', th), S = L.map(a => document.getElementById(a.dataset.th)); if (S.some(s => !s)) return;
+    const fill = $('[data-thfill]', th), hdr = $('[data-hdr]'); let cur = -2, raf = 0, say = 0;
+    const upd = () => { raf = 0; const y = innerHeight * .45; let k = -1, fr = 0;
+      S.forEach((s, i) => { const r = s.getBoundingClientRect(); if (r.top <= y) { k = i; fr = Math.max(0, Math.min(1, (y - r.top) / Math.max(1, r.height))); } });
+      const p = k < 0 ? 0 : Math.min(1, (k + fr) / (S.length - 1));
+      if (fill) fill.style.transform = 'scaleY(' + p.toFixed(4) + ')';
+      if (hdr) hdr.style.setProperty('--thp', (k < 0 ? 0 : (k + fr) / S.length).toFixed(4));
+      th.classList.toggle('show', k >= 0);
+      if (k !== cur) { cur = k; L.forEach((a, i) => { a.classList.toggle('past', i < k); a.classList.toggle('cur', i === k); i === k ? a.setAttribute('aria-current', 'step') : a.removeAttribute('aria-current'); });
+        if (k >= 0) { th.classList.add('say'); clearTimeout(say); say = setTimeout(() => th.classList.remove('say'), 2400); } } };
+    addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(upd); }, { passive: true }); addEventListener('resize', upd); addEventListener('load', upd); upd();
+  })();
+})();
+
+/* ===== Fassung 2: Ulana Aloha, Wie ich ticke, Termin, Gutscheine, Agenda, Karte für heute, Aktuell ===== */
+(function () {
+  'use strict';
+  const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const RM = matchMedia('(prefers-reduced-motion: reduce)').matches, IO = 'IntersectionObserver' in window, D = window.VP || {};
+  const HAND = '<svg class="v6-hand" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 11.4V5.6a1.6 1.6 0 0 1 3.2 0v5.2m0-.4V9.7a1.6 1.6 0 0 1 3.2 0v1.6m0 0a1.6 1.6 0 0 1 3.2 0v3.1c0 4-2.7 6.6-6.4 6.6h-.6c-2.1 0-3.4-.8-4.6-2.3l-2.9-3.8a1.6 1.6 0 0 1 2.5-2l1.4 1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const MANH = '<i class="man" aria-hidden="true"></i>';
+  const watch = (el, cb, th = .45) => { if (!el) return; if (!IO) return cb(true); new IntersectionObserver(es => es.forEach(e => cb(e.isIntersecting)), { threshold: th }).observe(el); };
+  const seen = (els, f, th = .3) => { if (!IO || RM) return els.forEach(f); const o = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { f(e.target); o.unobserve(e.target); } }), { threshold: th }); els.forEach(el => o.observe(el)); };
+  const touched = (el, f, evs = ['pointerdown', 'keydown']) => el && evs.forEach(ev => el.addEventListener(ev, e => { if (e.isTrusted !== false) f(e); }, { passive: true }));
+  const hint = (txt, cls = '') => { const h = document.createElement('p'); h.className = 'v6-hint ' + cls; h.setAttribute('aria-hidden', 'true'); h.innerHTML = HAND + '<span>' + txt + '</span>'; return h; };
+  const gone = h => h && h.classList.add('gone');
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const tween = (ms, step, done) => { if (RM || ms <= 0) { step(1); done && done(); return () => {}; } let raf = 0; const t0 = performance.now(); const f = now => { const k = Math.min(1, (now - t0) / ms); step(ease(k)); if (k < 1) raf = requestAnimationFrame(f); else done && done(); }; raf = requestAnimationFrame(f); return () => cancelAnimationFrame(raf); };
+  const store = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+  const wa = t => (D.wa || 'https://wa.me/4915754354570') + '?text=' + encodeURIComponent(t);
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619); return h >>> 0; };
+  const eur = n => n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+
+  /* Hinweis-Leiste unten */
+  const T = $('[data-toast]'), Tt = $('[data-toastt]'); let tT = 0;
+  const toast = (html, ms = 7000) => { if (!T) return; Tt.innerHTML = html; T.hidden = false; T.style.animation = 'none'; void T.offsetWidth; T.style.animation = ''; clearTimeout(tT); tT = setTimeout(() => { T.hidden = true; }, ms); };
+  const tx = $('[data-toastx]'); tx && tx.addEventListener('click', () => { T.hidden = true; });
+
+  /* Seitenblätter (Termin, Warenkorb): öffnen, schließen, Fokus halten, Seite darunter sperren */
+  let locks = 0;
+  const lock = on => { locks = Math.max(0, locks + (on ? 1 : -1)); document.documentElement.style.overflow = locks ? 'hidden' : ''; };
+  const sheet = (el, onClose) => {
+    let last = null, open = false;
+    const show = () => { if (open) return; open = true; last = document.activeElement; el.hidden = false; lock(true); requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('open'))); };
+    const hide = () => { if (!open) return; open = false; el.classList.remove('open'); lock(false); setTimeout(() => { if (!open) el.hidden = true; }, 430); onClose && onClose(); if (last && last.focus) last.focus({ preventScroll: true }); };
+    el.addEventListener('click', e => { if (e.target === el) hide(); });
+    addEventListener('keydown', e => {
+      if (!open) return;
+      if (e.key === 'Escape') { e.preventDefault(); hide(); return; }
+      if (e.key !== 'Tab') return;
+      const F = $$('button:not([disabled]), a[href], input, textarea, [tabindex]:not([tabindex="-1"])', el).filter(x => x.offsetParent !== null && !x.closest('[hidden]'));
+      if (!F.length) return; const a = F[0], z = F[F.length - 1];
+      if (e.shiftKey && (document.activeElement === a || !el.contains(document.activeElement))) { e.preventDefault(); z.focus(); }
+      else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); }
+    });
+    return { show, hide, isOpen: () => open };
+  };
+
+  /* ---------- 1) Ulana Aloha: Faden für Faden entsteht Verenas Mandala ---------- */
+  (() => {
+    const L = $('[data-loom]'); if (!L) return;
+    const G = $$('.th', L), LI = $$('[data-thread]'), man = $('[data-loomman]'), shut = $('[data-shut]', L), cap = $('[data-loomc]'), num = $('[data-wnum]');
+    const bW = $('[data-weave]'), bA = $('[data-weaveall]'), TH = D.threads || [], N = G.length, R = G.map(g => +g.dataset.r), RMAX = 241;
+    const START = cap ? cap.innerHTML : '';
+    let k = 0, busy = false, done = false, user = false, cur = 0, stopR = null, auto = 0, inV = false, pend = 0, q = Promise.resolve();
+    const setR = (to, ms) => { const from = cur; stopR && stopR(); stopR = tween(ms, p => { cur = from + (to - from) * p; man.style.setProperty('--r', cur.toFixed(2) + '%'); }); };
+    const label = () => { const s = $('span', bW); if (s) s.textContent = done ? 'Nochmal weben' : (k ? 'Nächsten Faden weben' : 'Faden weben'); if (bA) bA.hidden = done || k + pend >= N; };
+    const finish = () => { done = true; LI.forEach(l => l.classList.remove('now')); setR(106, 1700); L.classList.add('done'); L.setAttribute('aria-label', 'Webrahmen: noch einmal weben'); cap.innerHTML = '<b>Gewebt ♡</b> Aus acht Fäden wird ein Ganzes – <b>Ulana Aloha</b>.'; label(); };
+    const weave = fast => new Promise(res => {
+      if (done || k >= N) return res();
+      busy = true; const i = k, g = G[i], r = R[i], t = TH[i] || {};
+      L.classList.add('weaving'); shut.style.setProperty('--shc', t.c || '#c98f57');
+      LI.forEach(l => l.classList.remove('now')); LI[i] && LI[i].classList.add('now');
+      cap.innerHTML = `<b>${i + 1}/${N}</b> · ${esc(t.n)} – ${esc(t.s)}`;
+      setR((r + 13) / RMAX * 100, fast ? 600 : 1500);
+      tween(fast ? 650 : 1600, p => {
+        g.style.setProperty('--p', (1 - p).toFixed(4));
+        const a = (-90 + 360 * p) * Math.PI / 180;
+        shut.setAttribute('transform', `translate(${(r * Math.cos(a)).toFixed(1)} ${(r * Math.sin(a)).toFixed(1)}) rotate(${(360 * p).toFixed(1)})`);
+      }, () => { g.classList.add('on'); LI[i] && LI[i].classList.add('on'); k = i + 1; if (num) num.textContent = k; busy = false; L.classList.remove('weaving'); if (k >= N) finish(); else label(); res(); });
+    });
+    const enqueue = fast => { pend++; label(); q = q.then(() => weave(fast)).then(() => { pend--; label(); }); return q; };
+    const reset = () => { done = false; k = 0; if (num) num.textContent = 0; L.classList.remove('done', 'weaving'); L.setAttribute('aria-label', 'Webrahmen: nächsten Faden weben'); G.forEach(g => { g.classList.remove('on'); g.style.setProperty('--p', 1); }); LI.forEach(l => l.classList.remove('on', 'now')); setR(0, 700); cap.innerHTML = START; label(); };
+    const next = () => { if (done) { if (!busy && !pend) reset(); return; } if (pend < 2 && k + pend < N) enqueue(false); };
+    const all = () => { for (let i = k + pend; i < N; i++) enqueue(true); };
+    const h = hint('Tippe auf den Webrahmen'); cap && cap.after(h);
+    const stopAuto = () => { clearTimeout(auto); auto = 0; };
+    const onUser = () => { if (user) return; user = true; stopAuto(); gone(h); };
+    L.addEventListener('click', () => { onUser(); next(); });
+    L.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onUser(); next(); } });
+    bW && bW.addEventListener('click', () => { onUser(); next(); });
+    bA && bA.addEventListener('click', () => { onUser(); all(); });
+    /* Selbst-Impuls: drei Fäden webt der Rahmen allein, dann wartet er – und webt langsam weiter, wenn niemand tippt */
+    const tick = () => { if (user || done || !inV || k + pend >= N) { auto = 0; return; } enqueue(false); auto = setTimeout(tick, k + pend === 3 ? 8000 : 2900); };
+    watch(L, v => { inV = v; if (v && !user && !done && !auto && !RM) auto = setTimeout(tick, 800); if (!v) stopAuto(); }, .4);
+    label();
+  })();
+
+  /* Aussprechen: Ulana Aloha */
+  (() => {
+    const b = $('[data-ulsay]'); if (!b) return;
+    if (!('speechSynthesis' in window)) { b.hidden = true; return; }
+    b.addEventListener('click', () => { const u = new SpeechSynthesisUtterance('Ulana Aloha'); u.lang = 'de-DE'; u.rate = .7; speechSynthesis.cancel(); speechSynthesis.speak(u); });
+  })();
+
+  /* ---------- 2) Wie ich ticke: Zwilling, die Acht, Profil 3/6 ---------- */
+  (() => {
+    const z = $('.zahlen'); if (!z) return;
+    seen($$('.za-c, .za-bg', z), el => el.classList.add('in'), .35);
+    /* Zwilling: Sternbild neu zeichnen */
+    const gb = $('[data-gem]', z), gc = gb && gb.closest('.za-c'), gf = $('[data-gemf]', z);
+    if (gb) {
+      const h = hint('Tippen'); gc.appendChild(h);
+      gb.addEventListener('click', e => { if (e.isTrusted !== false) gone(h); gc.classList.remove('in'); void gc.offsetWidth; gc.classList.add('in'); gf && gf.animate && gf.animate([{ backgroundColor: 'rgba(246,220,122,.32)' }, { backgroundColor: 'rgba(246,220,122,.08)' }], { duration: 1400, easing: 'ease-out' }); });
+      let t = 0; watch(gc, v => { clearInterval(t); if (!v || RM) return; t = setInterval(() => { if (gc.querySelector('.v6-hint.gone')) return clearInterval(t); gb.click(); }, 7000); }, .6);
+    }
+    /* Die Acht: legt sich hin und wird unendlich, ein Lichtpunkt läuft mit */
+    const eb = $('[data-eight]', z), path = $('[data-e8]', z), dot = $('[data-e8dot]', z);
+    if (eb && path && dot) {
+      let len = 0; try { len = path.getTotalLength(); } catch (e) {}
+      const at = s => { const p = path.getPointAtLength(s); dot.setAttribute('cx', p.x.toFixed(1)); dot.setAttribute('cy', p.y.toFixed(1)); };
+      if (len) at(0);
+      let s = 0, run = false, raf = 0, last = 0;
+      const frame = now => { if (!run) return; const dt = last ? Math.min(50, now - last) : 16; last = now; s = (s + dt * .085) % len; at(s); raf = requestAnimationFrame(frame); };
+      watch(eb, v => { if (RM || !len) return; run = v; cancelAnimationFrame(raf); if (v) { last = 0; raf = requestAnimationFrame(frame); } }, .15);
+      const card = eb.closest('.za-c'), h = hint('Tippen'); card.appendChild(h);
+      let user = false, iv = 0;
+      const flip = () => eb.setAttribute('aria-pressed', String(eb.getAttribute('aria-pressed') !== 'true'));
+      eb.addEventListener('click', e => { if (e.isTrusted !== false) { user = true; gone(h); clearInterval(iv); } flip(); });
+      watch(card, v => { clearInterval(iv); if (!v || user || RM) return; setTimeout(() => { if (!user && eb.getAttribute('aria-pressed') !== 'true') flip(); }, 1500); iv = setInterval(() => { if (!user) flip(); }, 5200); }, .6);
+    }
+    /* Profil 3/6: Linien antippen */
+    const HX = D.hx || {}, txt = $('[data-hxt]', z), lines = $$('[data-hx]', z);
+    if (lines.length && txt) {
+      const card = txt.closest('.za-c'), h = hint('Tippen'); card.appendChild(h);
+      let user = false, iv = 0, k = 0;
+      const sel = n => { lines.forEach(l => { const on = l.dataset.hx === n; l.classList.toggle('sel', on); l.setAttribute('aria-pressed', String(on)); }); const d = HX[n]; if (d) txt.innerHTML = `<b>${esc(d.t)}</b><br>${esc(d.d)}`; };
+      lines.forEach(l => l.addEventListener('click', e => { if (e.isTrusted !== false) { user = true; gone(h); clearInterval(iv); txt.setAttribute('aria-live', 'polite'); } sel(l.dataset.hx); }));
+      watch(card, v => { clearInterval(iv); if (!v || user || RM) return; txt.setAttribute('aria-live', 'off'); const order = ['3', '6']; setTimeout(() => { if (!user) sel(order[k++ % 2]); }, 1300); iv = setInterval(() => { if (!user) sel(order[k++ % 2]); }, 4600); }, .5);
+    }
+    const mb = $('[data-hdmore]', z), was = $('#hd-was');
+    mb && was && mb.addEventListener('click', () => { const o = mb.getAttribute('aria-expanded') !== 'true'; mb.setAttribute('aria-expanded', String(o)); was.hidden = !o; });
+  })();
+
+  /* ---------- 3) Karte für heute: Sätze aus Verenas Instagram ---------- */
+  (() => {
+    const K = D.karten || [], box = $('[data-tk]'), deck = $('[data-tkdeck]'), show = $('[data-tkshow]'), again = $('[data-tkagain]');
+    if (!box || !deck || !show || !K.length) return;
+    const C = $$('[data-tkc]', deck), n = C.length, EMPTY = show.innerHTML;
+    C.forEach((c, i) => { const o = i - (n - 1) / 2; c.style.setProperty('--o', o.toFixed(2)); c.style.setProperty('--y', (Math.abs(o) * 3.5).toFixed(1) + 'px'); c.style.zIndex = String(i + 1); });
+    const today = hash(new Date().toDateString()) % K.length;
+    let drawn = [], user = false, iv = 0;
+    const pick = () => { if (!drawn.length) return today; const rest = K.map((_, i) => i).filter(i => !drawn.includes(i)); const pool = rest.length ? rest : K.map((_, i) => i); return pool[Math.floor(Math.random() * pool.length)]; };
+    const draw = c => {
+      const i = pick(); drawn.push(i); const k = K[i]; c && c.classList.add('out');
+      show.innerHTML = `<div class="tk-front"><img src="${esc(k.img)}" alt=""><span class="tk-today">${drawn.length === 1 ? 'Deine Karte für heute' : 'Noch eine Karte'}</span><blockquote>„${esc(k.t)}“</blockquote><a href="${esc(k.u)}" target="_blank" rel="noopener">Verena auf Instagram, ${esc(k.d)} ↗</a></div>`;
+      show.classList.add('has'); if (again) again.hidden = false;
+      if (innerWidth < 561 && !RM) setTimeout(() => show.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 120);
+      if (C.every(x => x.classList.contains('out'))) setTimeout(shuffle, 2600);
+    };
+    const shuffle = () => { C.forEach(c => c.classList.remove('out')); drawn = []; show.innerHTML = EMPTY; show.classList.remove('has'); if (again) again.hidden = true; };
+    const h = hint('Tippe eine Karte an'); ($('.tk-stage', box) || box).appendChild(h);
+    C.forEach(c => c.addEventListener('click', e => { if (e.isTrusted !== false) { user = true; gone(h); clearInterval(iv); C.forEach(x => x.classList.remove('demo')); } draw(c); }));
+    again && again.addEventListener('click', shuffle);
+    watch(deck, v => { clearInterval(iv); C.forEach(x => x.classList.remove('demo')); if (!v || user || RM) return; let j = 0; iv = setInterval(() => { const free = C.filter(x => !x.classList.contains('out')); C.forEach(x => x.classList.remove('demo')); const c = free[(j++ * 5) % free.length]; c && c.classList.add('demo'); }, 1600); }, .5);
+  })();
+
+  /* ---------- 4) Agenda: vormerken mit Stempel ---------- */
+  (() => {
+    const B = $$('[data-vormerk]'); if (!B.length) return;
+    const KEY = 'vp2-vormerk', saved = store.get(KEY, []);
+    const mark = (b, on) => { const t = b.closest('.tik'); t.classList.toggle('stamped', on); b.setAttribute('aria-pressed', String(on)); b.textContent = on ? 'Vorgemerkt ✓' : 'Vormerken'; };
+    B.forEach(b => {
+      if (saved.includes(b.dataset.vormerk)) mark(b, true);
+      b.addEventListener('click', () => {
+        const name = b.dataset.vormerk, on = b.getAttribute('aria-pressed') !== 'true'; mark(b, on);
+        const s = new Set(store.get(KEY, [])); on ? s.add(name) : s.delete(name); store.set(KEY, [...s]);
+        if (on) toast(`Vorgemerkt: <b>${esc(name)}</b> ♡ <a href="${esc(wa('Aloha Verena, bitte gib mir Bescheid, sobald der nächste Termin für „' + name + '“ steht.'))}" target="_blank" rel="noopener">Verena per WhatsApp Bescheid geben</a>`);
+      });
+    });
+    const g = $('.ag-g'); let done = false; touched(g, () => { done = true; });
+    watch(g, v => { if (!v || done || RM) return; const t = B[0].closest('.tik'); t.classList.remove('demo'); void t.offsetWidth; t.classList.add('demo'); }, .4);
+  })();
+
+  /* ---------- 5) Geschützte Terminbuchung (Vorschau) ---------- */
+  const BOOKN = ['Lomi Lomi Nui', 'Physiotherapie', 'Manuelle Therapie', 'Manuelle Lymphdrainage', 'Bowen-Therapie', 'Klangschalenmassage', 'Thai-Massage', 'Therapeutische Frauenmassage', 'Individuelle Massage', 'HUNA', 'Transformation', 'Lomi-Tag'];
+  const toBook = x => { if (!x) return null; x = String(x); if (BOOKN.includes(x)) return x; if (/Lomi/.test(x)) return 'Lomi Lomi Nui'; if (/Lymph/.test(x)) return 'Manuelle Lymphdrainage'; if (/Frauen/.test(x)) return 'Therapeutische Frauenmassage'; if (/Individuelle/.test(x)) return 'Individuelle Massage'; if (/Thai/.test(x)) return 'Thai-Massage'; if (/Manuelle Therapie/.test(x)) return 'Manuelle Therapie'; if (/Physio|Taping/.test(x)) return 'Physiotherapie'; if (/Bowen/.test(x)) return 'Bowen-Therapie'; if (/Klang/.test(x)) return 'Klangschalenmassage'; if (/HUNA/.test(x)) return 'HUNA'; if (/Transform/.test(x)) return 'Transformation'; return null; };
+  (() => {
+    const el = $('[data-bk]'); if (!el) return;
+    const S = sheet(el);
+    const body = $('[data-bkbody]', el), H = $('[data-bkh]', el), back = $('[data-bkback]', el), dots = $$('.bk-steps li', el), steps = {};
+    $$('[data-bks]', el).forEach(s => { steps[s.dataset.bks] = s; });
+    const code = $('[data-bkcode]', el), cin = $('[data-bkcin]', el), err = $('[data-bkerr]', el);
+    const st = { who: null, code: '', treat: null, day: null, slot: null, pre: null, ints: new Set(), win: null };
+    let cur = 'who', hist = [];
+    const STEPN = { who: 0, treat: 1, neu: 1, time: 2, sum: 2, done: 3 };
+    const TITLE = { who: 'Termin buchen', treat: 'Dein Angebot', time: 'Dein Wunschtermin', sum: 'Fast geschafft', neu: 'Kennenlernen', done: 'Angefragt' };
+    const go = (name, push = true) => {
+      if (push && cur !== name) hist.push(cur); cur = name;
+      Object.entries(steps).forEach(([k, s]) => { s.hidden = k !== name; });
+      const s = steps[name]; s.style.animation = 'none'; void s.offsetWidth; s.style.animation = '';
+      H.textContent = TITLE[name] || 'Termin buchen'; back.hidden = !hist.length || name === 'done';
+      const n = STEPN[name]; dots.forEach((d, i) => { d.classList.toggle('on', i === n); d.classList.toggle('done', i < n); });
+      body.scrollTop = 0;
+    };
+    back.addEventListener('click', () => { const p = hist.pop(); if (p) go(p, false); });
+    /* Kalender: die nächsten Werktage, ein Samstag ist Lomi-Tag (Vorschau mit Beispielzeiten) */
+    const DAY = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'], DAYL = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'], MON = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+    const day0 = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+    const lomiDay = () => { const d = day0(); d.setDate(d.getDate() + 5); while (d.getDay() !== 6) d.setDate(d.getDate() + 1); return d; };
+    const SL = ['08:30', '10:00', '11:30', '14:00', '15:30', '17:00', '18:30'];
+    const slots = d => +d === +lomiDay() ? ['09:30', '12:30', '15:30'] : SL.filter((s, i) => ((hash(d.toDateString() + 'vp') >>> (i * 3)) & 7) > 2);
+    const days = () => { const Lm = lomiDay(), out = []; for (let i = 1; out.length < 12 && i < 40; i++) { const d = day0(); d.setDate(d.getDate() + i); const w = d.getDay(); if (w === 0 || (w === 6 && +d !== +Lm)) continue; out.push(d); } return out; };
+    const fmtD = d => `${DAYL[d.getDay()]}, ${d.getDate()}. ${MON[d.getMonth()]}`;
+    const dW = $('[data-bkdays]', el), sW = $('[data-bkslots]', el), dl = $('[data-bkdl]', el), mon = $('[data-bkmon]', el), what = $('[data-bkwhat]', el);
+    let DS = [];
+    const pickDay = i => {
+      const d = DS[i]; if (!d) return; st.day = d; st.slot = null;
+      $$('.bk-day', dW).forEach((b, j) => b.classList.toggle('on', j === i));
+      mon.textContent = `${MON[d.getMonth()]} ${d.getFullYear()}`;
+      const lomi = +d === +lomiDay();
+      dl.innerHTML = lomi ? `<b>Lomi-Tag</b> · ${fmtD(d)} – ein ganzer Tag nur Lomi Lomi Nui:` : `${fmtD(d)} – freie Zeiten:`;
+      const X = slots(d);
+      sW.innerHTML = X.length ? X.map(s => `<button type="button" class="bk-slot" data-s="${s}">${s}</button>`).join('') : '<p class="bk-dl">An diesem Tag ist schon alles belegt.</p>';
+      $$('.bk-slot', sW).forEach(b => b.addEventListener('click', () => { st.slot = b.dataset.s; $$('.bk-slot', sW).forEach(x => x.classList.toggle('on', x === b)); setTimeout(() => { renderSum(); go('sum'); }, RM ? 0 : 260); }));
+      const on = $('.bk-day.on', dW); if (on) dW.scrollTo({ left: Math.max(0, on.offsetLeft - 26), behavior: RM ? 'auto' : 'smooth' });
+    };
+    const renderTime = () => {
+      what.textContent = st.treat || 'Dein Termin';
+      const Lm = lomiDay(), only = st.treat === 'Lomi-Tag', lomiOk = only || st.treat === 'Lomi Lomi Nui'; DS = days();
+      dW.innerHTML = DS.map((d, i) => { const lomi = +d === +Lm, dis = only ? !lomi : (lomi && !lomiOk); return `<button type="button" class="bk-day${lomi ? ' lomi' : ''}" data-d="${i}"${dis ? ' disabled' : ''} aria-label="${fmtD(d)}${lomi ? ' – Lomi-Tag' : ''}"><small>${DAY[d.getDay()]}</small><b>${d.getDate()}</b>${lomi ? '<small>Lomi-Tag</small>' : '<i></i>'}</button>`; }).join('');
+      $$('.bk-day', dW).forEach((b, i) => b.addEventListener('click', () => pickDay(i)));
+      const first = $$('.bk-day', dW).findIndex(b => !b.disabled); pickDay(first < 0 ? 0 : first);
+    };
+    const renderSum = () => { $('[data-bksw]', el).textContent = st.treat; $('[data-bkst]', el).textContent = `${fmtD(st.day)} · ${st.slot} Uhr`; $('[data-bksc]', el).textContent = st.code; };
+    $('[data-bkbook]', el).addEventListener('click', () => { $('[data-bkdone]', el).textContent = `${st.treat} · ${fmtD(st.day)} · ${st.slot} Uhr`; go('done'); });
+    /* Wer bist du? */
+    $$('[data-bkwho]', el).forEach(b => b.addEventListener('click', () => {
+      $$('[data-bkwho]', el).forEach(x => x.classList.toggle('on', x === b));
+      if (b.dataset.bkwho === 'known') { code.hidden = false; err.hidden = true; setTimeout(() => cin.focus(), 60); }
+      else { code.hidden = true; st.who = 'new'; prepNew(); go('neu'); }
+    }));
+    $('[data-bkdemo]', el).addEventListener('click', () => { cin.value = 'ALOHA'; cin.focus(); });
+    code.addEventListener('submit', e => {
+      e.preventDefault(); const v = cin.value.trim().toUpperCase().replace(/\s+/g, '');
+      if (v.length < 4) { err.hidden = false; code.classList.remove('shake'); void code.offsetWidth; code.classList.add('shake'); cin.focus(); return; }
+      err.hidden = true; st.who = 'known'; st.code = v;
+      if (st.pre) { st.treat = st.pre; renderTime(); go('time'); } else go('treat');
+    });
+    $$('[data-bkt]', el).forEach(b => b.addEventListener('click', () => { st.treat = b.dataset.bkt; $$('[data-bkt]', el).forEach(x => x.classList.toggle('on', x === b)); renderTime(); go('time'); }));
+    /* Neu hier: Kennenlernen per WhatsApp (echter Link mit vorausgefülltem Text) */
+    const ints = $$('[data-bkint]', el), wins = $$('[data-bkwin]', el), waB = $('[data-bkwa]', el);
+    const upWA = () => { const t = [...st.ints]; let m = 'Aloha Verena, ich bin neu und würde dich gern kennenlernen.'; if (t.length) m += ' Mich interessiert: ' + t.join(', ') + '.'; if (st.win) m += ' Am besten erreichst du mich ' + st.win + '.'; waB.href = wa(m); };
+    const prepNew = () => { const p = st.pre === 'Lomi-Tag' ? 'Lomi Lomi Nui' : st.pre; st.ints = new Set(p ? [p] : []); st.win = null; ints.forEach(b => b.setAttribute('aria-pressed', String(st.ints.has(b.dataset.bkint)))); wins.forEach(b => b.setAttribute('aria-pressed', 'false')); upWA(); };
+    ints.forEach(b => b.addEventListener('click', () => { const v = b.dataset.bkint; st.ints.has(v) ? st.ints.delete(v) : st.ints.add(v); b.setAttribute('aria-pressed', String(st.ints.has(v))); upWA(); }));
+    wins.forEach(b => b.addEventListener('click', () => { st.win = st.win === b.dataset.bkwin ? null : b.dataset.bkwin; wins.forEach(x => x.setAttribute('aria-pressed', String(x.dataset.bkwin === st.win))); upWA(); }));
+    /* Öffnen von überall: [data-book] (mit Angebot vorausgewählt) und die Angebote im Finder */
+    const open = pre => {
+      st.pre = toBook(pre); st.who = null; st.code = ''; st.treat = st.pre; st.day = null; st.slot = null; hist = []; cur = 'who';
+      $$('[data-bkwho], [data-bkt]', el).forEach(x => x.classList.remove('on')); code.hidden = true; err.hidden = true; cin.value = '';
+      go('who', false); H.textContent = st.pre ? 'Termin: ' + st.pre : 'Termin buchen';
+      S.show(); setTimeout(() => H.focus({ preventScroll: true }), 80);
+    };
+    document.addEventListener('click', e => {
+      const fl = e.target.closest('[data-fl] a');
+      if (fl) { e.preventDefault(); open(fl.textContent.replace(/→/g, '').trim()); return; }
+      const b = e.target.closest('[data-book]'); if (!b) return;
+      e.preventDefault();
+      let pre = b.dataset.book || null;
+      if (!pre && b.hasAttribute('data-fcta')) { const a = $('[data-fl] a'); pre = a ? a.textContent.replace(/→/g, '').trim() : null; }
+      open(pre);
+    });
+    $$('[data-bkx]', el).forEach(b => b.addEventListener('click', () => S.hide()));
+  })();
+
+  /* ---------- 6) Gutschein-Studio + Warenkorb (Vorschau) ---------- */
+  (() => {
+    const F = $('[data-gform]'), card = $('[data-gv]'), stage = $('[data-gstage]'); if (!F || !card || !stage) return;
+    const M = D.motifs || [], O = D.occ || [], SH = D.ship || [];
+    const occ = $('[data-gvocc]', card), forW = $('[data-gvforw]', card), forB = $('[data-gvfor]', card), msg = $('[data-gvmsg]', card), amtE = $('[data-gvamt]', card), fromW = $('[data-gvfromw]', card), fromB = $('[data-gvfrom]', card);
+    const amtI = $('[data-gamt]', F), help = $('[data-gamterr]', F), cnt = $('[data-gcount]', F), HELP = help ? help.textContent : '';
+    const val = n => { const r = F.querySelector(`[name="${n}"]:checked`); return r ? r.value : null; };
+    const state = () => ({ m: val('motiv'), o: val('anlass'), a: parseInt(amtI.value, 10) || 0, f: F.elements.fuer.value.trim(), v: F.elements.von.value.trim(), x: F.elements.worte.value.trim(), d: val('versand') });
+    const paint = (el, s) => { const m = M.find(x => x.k === s.m) || M[0] || {}; el.dataset.m = m.k || 'mandala'; const b = $('.gv-bg', el); if (b) b.style.backgroundImage = m.img ? `url("${m.img}")` : ''; };
+    const upd = () => {
+      const s = state(); paint(card, s); const o = O.find(x => x.k === s.o) || O[0] || {};
+      occ.textContent = o.h || ''; forW.hidden = !s.f; forB.textContent = s.f; msg.textContent = s.x; fromW.hidden = !s.v; fromB.textContent = s.v;
+      if (s.a >= 10) { amtE.textContent = s.a + ' €'; amtE.classList.remove('ph'); } else { amtE.textContent = 'Betrag nach Wahl'; amtE.classList.add('ph'); }
+      if (cnt) cnt.textContent = s.x.length + '/120';
+    };
+    F.addEventListener('input', upd); F.addEventListener('change', upd);
+    $$('[data-gstep]', F).forEach(b => b.addEventListener('click', () => { const v = (parseInt(amtI.value, 10) || 0) + +b.dataset.gstep; amtI.value = Math.max(10, Math.min(500, v)); help.textContent = HELP; help.classList.remove('err'); upd(); }));
+    upd();
+    /* Karte fängt das Licht (Maus), sonst wiegt sie sich sanft */
+    let idleT = 0;
+    const idle = on => { clearTimeout(idleT); if (RM) return; if (on) idleT = setTimeout(() => card.classList.add('idle'), 1200); else card.classList.remove('idle'); };
+    if (!RM && matchMedia('(hover: hover)').matches) {
+      stage.addEventListener('pointermove', e => { idle(false); const r = card.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5; card.style.setProperty('--ry', (x * 16).toFixed(2) + 'deg'); card.style.setProperty('--rx', (-y * 12).toFixed(2) + 'deg'); card.style.setProperty('--sx', (x * 60).toFixed(1) + '%'); });
+      stage.addEventListener('pointerleave', () => { card.style.setProperty('--rx', '0deg'); card.style.setProperty('--ry', '0deg'); card.style.setProperty('--sx', '-25%'); idle(true); });
+    }
+    idle(true);
+    card.addEventListener('animationend', e => { if (e.animationName === 'popin') card.classList.remove('pop'); });
+    /* Selbst-Impuls: die Motive wechseln von allein, bis jemand etwas antippt */
+    const mot = $$('[name="motiv"]', F), h = hint('Probier es aus: Motiv antippen'); const gm = $('.gs-mot', F); gm && gm.after(h);
+    let user = false, iv = 0;
+    touched(F, () => { user = true; clearInterval(iv); gone(h); });
+    watch(stage, v => { clearInterval(iv); if (!v || user || RM) return; let i = mot.findIndex(r => r.checked); iv = setInterval(() => { if (user) return clearInterval(iv); i = (i + 1) % mot.length; mot[i].checked = true; upd(); card.classList.remove('pop'); void card.offsetWidth; card.classList.add('pop'); }, 3200); }, .35);
+
+    /* Warenkorb */
+    const cb = $('[data-cartopen]'), cel = $('[data-cart]'); if (!cel || !cb) return;
+    let cart = [];
+    const CS = sheet(cel, () => { if (!steps.done.hidden) { cart = []; render(); } });
+    const list = $('[data-ctlist]', cel), empty = $('[data-ctempty]', cel), tot = $('[data-cttotal]', cel), tot2 = $('[data-cttotal2]', cel), n = $('[data-cartn]'), ch = $('[data-carth]', cel), nextB = $('[data-ctnext]', cel), steps = {};
+    $$('[data-cts]', cel).forEach(s => { steps[s.dataset.cts] = s; });
+    const cgo = k => { Object.entries(steps).forEach(([key, s]) => { s.hidden = key !== k; }); ch.textContent = k === 'pay' ? 'Zur Kasse' : k === 'done' ? 'Mahalo!' : 'Dein Warenkorb'; cel.querySelector('.sheet-body').scrollTop = 0; };
+    const mini = s => { const m = M.find(x => x.k === s.m) || M[0] || {}; return `<span class="ct-mini"${m.img ? ` style="background-image:url('${esc(m.img)}')"` : ''}>${m.img ? '' : MANH}</span>`; };
+    const lbl = s => { const o = O.find(x => x.k === s.o) || O[0] || {}, d = SH.find(x => x.k === s.d) || SH[0] || {}; return { o: o.n || '', d: d.n || '' }; };
+    const render = () => {
+      const sum = cart.reduce((a, c) => a + c.a, 0);
+      list.innerHTML = cart.map((c, i) => { const l = lbl(c); return `<li class="ct-i">${mini(c)}<div><b>Gutschein · ${esc(l.o)}</b><small>${c.f ? 'für ' + esc(c.f) + ' · ' : ''}${esc(l.d)}</small></div><span class="ct-p">${eur(c.a)}</span><button type="button" class="ct-rm" data-rm="${i}">Entfernen</button></li>`; }).join('');
+      empty.hidden = cart.length > 0; tot.textContent = eur(sum); tot2.textContent = eur(sum); n.textContent = cart.length; cb.hidden = !cart.length; nextB.disabled = !cart.length;
+      $$('[data-rm]', list).forEach(b => b.addEventListener('click', () => { cart.splice(+b.dataset.rm, 1); render(); }));
+    };
+    const openCart = () => { cgo('list'); render(); CS.show(); setTimeout(() => ch.focus({ preventScroll: true }), 80); };
+    cb.addEventListener('click', openCart);
+    $$('[data-cartx]', cel).forEach(b => b.addEventListener('click', () => CS.hide()));
+    nextB.addEventListener('click', () => { if (cart.length) cgo('pay'); });
+    $('[data-ctbuy]', cel).addEventListener('click', () => {
+      const pay = (cel.querySelector('[name="zahlung"]:checked') || {}).value || '';
+      $('[data-ctcodes]', cel).innerHTML = cart.map(c => { const l = lbl(c), id = 'UA-2026-' + Math.random().toString(36).slice(2, 6).toUpperCase(); return `<li>${mini(c)}<span>${id} · ${eur(c.a)}</span><small>${esc(l.o)}${c.f ? ' · für ' + esc(c.f) : ''} · ${esc(l.d)} · ${esc(pay)}</small></li>`; }).join('');
+      cgo('done');
+    });
+    /* in den Warenkorb fliegen */
+    const fly = () => {
+      if (RM || !card.animate) return Promise.resolve();
+      const r = card.getBoundingClientRect(), w = document.createElement('div'), c = card.cloneNode(true);
+      Object.assign(w.style, { position: 'fixed', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', zIndex: 170, pointerEvents: 'none', containerType: 'inline-size' });
+      c.classList.remove('idle', 'pop'); c.style.transform = 'none'; c.removeAttribute('data-gv'); w.appendChild(c); document.body.appendChild(w);
+      cb.hidden = false; const t = cb.getBoundingClientRect(), dx = t.left + t.width / 2 - (r.left + r.width / 2), dy = t.top + t.height / 2 - (r.top + r.height / 2);
+      return new Promise(res => { const a = w.animate([{ transform: 'translate(0,0) scale(1)', opacity: 1 }, { transform: `translate(${dx * .45}px,${dy * .45 - 60}px) scale(.5) rotate(-8deg)`, opacity: 1, offset: .5 }, { transform: `translate(${dx}px,${dy}px) scale(.05) rotate(-22deg)`, opacity: .3 }], { duration: 820, easing: 'cubic-bezier(.5,0,.3,1)' }); a.onfinish = () => { w.remove(); cb.classList.remove('bump'); void cb.offsetWidth; cb.classList.add('bump'); res(); }; });
+    };
+    F.addEventListener('submit', e => {
+      e.preventDefault(); const s = state();
+      if (s.a < 10 || s.a > 500) { help.textContent = 'Bitte wähle einen Betrag zwischen 10 und 500 €.'; help.classList.add('err'); const w = $('.gs-amt', F); w.classList.remove('shake'); void w.offsetWidth; w.classList.add('shake'); amtI.focus(); return; }
+      help.textContent = HELP; help.classList.remove('err');
+      cart.push(s); render(); fly().then(() => setTimeout(openCart, RM ? 0 : 120));
+    });
+    render();
+  })();
+
+  /* ---------- 7) Aktuell aus der Praxis: schwebender Story-Ring, sobald der erste Bildschirm vorbei ist ---------- */
+  (() => {
+    const fab = $('[data-aktfab]'), pop = $('[data-aktpop]'), hero = $('.hero'); if (!fab || !pop) return;
+    const open = o => { pop.hidden = !o; fab.setAttribute('aria-expanded', String(o)); if (o) fab.classList.add('seen'); };
+    fab.addEventListener('click', e => { e.stopPropagation(); open(pop.hidden); });
+    const x = $('[data-aktx]', pop); x && x.addEventListener('click', () => open(false));
+    document.addEventListener('click', e => { if (!pop.hidden && !pop.contains(e.target) && !fab.contains(e.target)) open(false); });
+    addEventListener('keydown', e => { if (e.key === 'Escape' && !pop.hidden) open(false); });
+    if (hero && IO) new IntersectionObserver(([e]) => { const show = !e.isIntersecting; fab.classList.toggle('show', show); if (!show) open(false); }, { threshold: 0, rootMargin: '-35% 0px 0px 0px' }).observe(hero);
+    else fab.classList.add('show');
+  })();
+})();
