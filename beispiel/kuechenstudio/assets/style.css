@@ -1209,3 +1209,33 @@ a.ref p:last-of-type{margin-bottom:0}
 
 /* Handy: Kopf ohne Weichzeichner – spart Grafikleistung, kein Ruckeln beim Scrollen (17.10.) */
 @media (hover:none) and (pointer:coarse){.hdr{will-change:transform}.hdr.solid{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(247,242,234,.97)}}
+/* Steinwand von Strasser + Terrakotta-Küche (19.10.) */
+.stein{background:var(--cream,#f7f2ea);padding:clamp(72px,10vw,140px) 0;position:relative;overflow:hidden}
+.stein::before{content:"";position:absolute;inset:auto -10% -30% auto;width:60vw;height:60vw;border-radius:50%;background:radial-gradient(circle,rgba(224,112,63,.10),transparent 65%);pointer-events:none}
+.st-g{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);gap:clamp(28px,5vw,72px);align-items:center;position:relative}
+.st-t .h2 em{color:var(--acc)}
+.st-k{margin:30px 0 0;position:relative;border-radius:22px;overflow:hidden;background:#fff;box-shadow:0 30px 70px -40px rgba(16,38,74,.55)}
+.st-kb{position:relative}
+.st-k img{display:block;width:100%;height:auto;aspect-ratio:1600/901;object-fit:cover}
+.st-k figcaption{padding:12px 16px 14px;font-size:14px;line-height:1.45;color:var(--mute,#5f6779)}
+.st-k figcaption b{color:var(--ink,#14213a)}
+.st-hs{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;border:0;padding:0;background:none;cursor:pointer;z-index:2}
+.st-hs i{position:absolute;inset:7px;border-radius:50%;background:var(--acc,#e0703f);box-shadow:0 0 0 4px rgba(255,255,255,.85)}
+.st-hs i::after{content:"";position:absolute;inset:-9px;border-radius:50%;border:2px solid rgba(255,255,255,.9);animation:stp 2.2s ease-out infinite}
+@keyframes stp{0%{transform:scale(.6);opacity:1}100%{transform:scale(1.6);opacity:0}}
+.st-hs>span{position:absolute;left:50%;bottom:calc(100% + 10px);transform:translate(-50%,6px);width:min(240px,62vw);background:var(--blue,#10264a);color:#fff;text-align:left;border-radius:14px;padding:10px 13px;font:800 14px/1.3 var(--body,Figtree,sans-serif);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;box-shadow:0 18px 40px -16px rgba(0,0,0,.55)}
+.st-hs>span small{display:block;font-weight:500;font-size:13px;color:#cfdbf3;margin-top:4px}
+.st-hs>span a{display:inline-block;margin-top:6px;color:#ffb48f;font-size:13px;font-weight:700;pointer-events:auto}
+.st-hs.open{z-index:4}
+.st-hs.open>span,.st-hs:focus-visible>span{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.st-wall{position:relative;border-radius:28px;overflow:hidden;box-shadow:0 40px 90px -40px rgba(16,38,74,.6);touch-action:pan-y;aspect-ratio:1600/1231;background:#2a2c30;--ls:190px;transform:rotate(1deg)}
+.st-wall img{display:block;width:100%;height:100%;object-fit:cover}
+.st-lens{position:absolute;left:0;top:0;width:var(--ls);height:var(--ls);margin:calc(var(--ls)/-2) 0 0 calc(var(--ls)/-2);border-radius:50%;border:4px solid #fff;box-shadow:0 22px 50px -12px rgba(0,0,0,.6),inset 0 0 0 1px rgba(0,0,0,.25);background-repeat:no-repeat;background-color:#333;pointer-events:none;opacity:0;transition:opacity .35s;will-change:transform}
+.st-wall.on .st-lens{opacity:1}
+.st-hint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);margin:0;background:rgba(16,38,74,.86);color:#fff;font:700 13px var(--body,Figtree,sans-serif);padding:8px 14px;border-radius:999px;white-space:nowrap;transition:opacity .4s;pointer-events:none}
+.st-wall.used .st-hint{opacity:0}
+@media (hover:hover) and (pointer:fine){.st-wall{cursor:zoom-in}}
+@media (max-width:900px){.st-g{grid-template-columns:minmax(0,1fr)}.st-wall{transform:none;--ls:150px}}
+@media (max-width:600px){.st-hs.dn>span{bottom:auto;top:calc(100% + 8px);transform:translate(-50%,-6px)}.st-hs.dn.open>span{transform:translate(-50%,0)}}
+@media (max-width:420px){.st-wall{--ls:124px}.st-hint{font-size:12px;padding:7px 12px}}
+@media (prefers-reduced-motion:reduce){.st-hs i::after{animation:none}.st-wall{transform:none}}

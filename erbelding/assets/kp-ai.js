@@ -439,6 +439,8 @@
     if (plan.cx) { try { sinkToWater(plan, { wall: plan.cx[0][1], s: plan.cx[0][2] }); } catch (e) { } }
     else if (Array.isArray(b.fixOps) && b.fixOps.length) { const fw = plan.op.find(o => o[0] === 'fenster' && plan.rw[o[1]]); if (fw) try { sinkToWater(plan, { wall: fw[1], s: fw[2] + fw[3] / 2 }); } catch (e) { } }
     if (W.mulde && Object.values(plan.rw).some(r => r.some(m => m[0] === 'kf' || m[0] === 'ko'))) plan.s.hobV = 'dd';
+    // … und das Kochfeld steht nie unter einem Fenster: davor dürfte keine Haube hängen
+    try { if (underWin(plan) && !cookFromWindow(plan) && underWin(plan)) { plan.s.hobV = 'dd'; notes.push('Neben dem Fenster ist kein Platz fürs Kochfeld – darum ein Muldenlüfter, der den Dampf direkt am Kochfeld absaugt. Vor dem Fenster hängt so keine Haube.'); } } catch (e) { }
     // Ehrliche Hinweise: was gewünscht war, aber nicht hineinpasst
     const all = [].concat(...walls.map(w => rows[w].map(m => m[0]))), cnt = t => all.filter(x => x === t).length;
     if (W.apo === 'tall' && !cnt('ah')) notes.push(cnt('ap') ? 'Für den großen Apothekerschrank reicht die Wand nicht – darum ein schmaler Apotheker-Auszug direkt am Kochfeld.' : 'Für einen Apothekerschrank reicht der Platz leider nicht – im Planer lässt er sich gegen einen anderen Schrank tauschen.');
@@ -455,8 +457,34 @@
     return { plan, notes: notes.filter(Boolean), ctx, sinkWall, ww, opt };
   }
   // Spüle (samt Spülmaschine daneben) an eine Stelle rücken – nur übernehmen, wenn es nicht mehr Hinweise gibt als vorher
-  const tipW = t => { let m = /Nur (\d+) cm Platz zwischen Spüle/.exec(t); if (m) return +m[1] < 30 ? 9 : 4; if (/nicht an der Wand mit dem Wasser/.test(t)) return 14; m = /Spüle steht (\d+,\d) m neben dem Wasser/.exec(t); if (m) { const v = parseFloat(m[1].replace(',', '.')); return v <= 1.2 ? 4 : v <= 2 ? 7 : 10; } return 6; };
+  const tipW = t => { if (/davor darf keine Haube/.test(t)) return 25; let m = /Nur (\d+) cm Platz zwischen Spüle/.exec(t); if (m) return +m[1] < 30 ? 9 : 4; if (/nicht an der Wand mit dem Wasser/.test(t)) return 14; m = /Spüle steht (\d+,\d) m neben dem Wasser/.exec(t); if (m) { const v = parseFloat(m[1].replace(',', '.')); return v <= 1.2 ? 4 : v <= 2 ? 7 : 10; } return 6; };
   const warnN = p => { try { return window.KP && KP.tipsOf ? (KP.tipsOf(p) || []).reduce((a, t) => a + tipW(t), 0) : 0; } catch (e) { return 0; } };
+  // Kochfeld nie unter Fenster oder Tür: eine Wandhaube darf dort nicht hängen (gleiche Regel wie bei den Hängeschränken).
+  // Muldenlüfter und Deckenlüfter sind frei davon.
+  function underWin(p) {
+    const st = p.s || {}; if (st.hobV === 'dd' || st.hood === 'decke') return false;
+    return (p.op || []).some(o => spans(p, o[1]).some(s => { if (s.t !== 'kf' && s.t !== 'ko') return false; const hw = st.hood === 'flach' ? s.w : Math.min(90, Math.max(60, s.w)); return ov(s.x + s.w / 2 - hw / 2, hw, o[2], o[3]); }));
+  }
+  function cookFromWindow(plan) {
+    if (!underWin(plan)) return false;
+    const ws = FORMS[plan.f].walls, fw = ws.find(w => (plan.rw[w] || []).some(m => m[0] === 'kf' || m[0] === 'ko')); if (!fw) return false;
+    const i0 = plan.rw[fw].findIndex(m => m[0] === 'kf' || m[0] === 'ko'), g = plan.rw[fw][i0], x0 = (spans(plan, fw).find(s => s.t === g[0]) || { x: 0 }).x;
+    let best = null;
+    for (const tw of ws) {
+      if (!plan.rw[tw]) continue; const n = plan.rw[tw].length - (tw === fw ? 1 : 0);
+      for (let k = 0; k <= n; k++) {
+        const p = JSON.parse(JSON.stringify(plan)); p.rw[fw].splice(i0, 1); const row = p.rw[tw];
+        if ((k === 0 && row[0] && M[row[0][0]].c) || (k === row.length && row.length && M[row[row.length - 1][0]].c)) continue;
+        row.splice(k, 0, g.slice());
+        let bad = false;
+        if (fw !== tw) for (const w of [fw, tw]) { const L = usableOf(w, { N: (p.rw.N || []).map(m => ({ t: m[0] })) }, p.f, p.r), r = fitRow(p.rw[w], L, true); if (!r) { bad = true; break; } p.rw[w] = r; }
+        if (bad || !valid(p) || underWin(p)) continue;
+        const nx = (spans(p, tw).find(s => s.t === g[0]) || { x: 0 }).x, sc = warnN(p) * 100 + (tw === fw ? Math.abs(nx - x0) : 300);
+        if (!best || sc < best.sc) best = { sc, rw: p.rw };
+      }
+    }
+    if (best) { plan.rw = best.rw; return true; } return false;
+  }
   function sinkToWater(plan, tg) {
     const ws = FORMS[plan.f].walls; if (!plan.rw[tg.wall]) return false;
     const fw = ws.find(w => (plan.rw[w] || []).some(m => m[0] === 'sp')); if (!fw) return false;

@@ -168,6 +168,11 @@
   const sinkCol = () => (SINKS.find(x => x[0] === eqv('sink', 'edel')) || SINKS[0])[2];
   const tapCol = () => (TAPS.find(x => x[0] === eqv('tap', 'chrom')) || TAPS[0])[2];
   const isDD = () => eqv('hobV', 'normal') === 'dd';
+  // Eine Wandhaube (Schräghaube, Esse, Flachschirm) hängt nie vor einem Fenster oder einer Tür – genau wie die Hängeschränke.
+  // Frei davon sind nur der Deckenlüfter (in der Decke) und der Muldenlüfter (im Kochfeld).
+  const wallHood = () => !isDD() && eqv('hood', 'schraeg') !== 'decke';
+  const hoodW = m => eqv('hood') === 'flach' ? m.w : Math.min(90, Math.max(60, m.w));
+  const opAt = (w, s, width) => P.op.find(o => o.wall === w && s + width > o.s + .5 && o.s + o.w > s + .5);
   const backCol = () => P.style.backC || (P.style.wood ? '#2a2420' : P.style.front);
   // eigenes Motiv: bleibt nur im Browser (Speicher + localStorage), wird nie hochgeladen
   let motif = null, motSend = true; // Canvas (max. 1600 px) · motSend: geht mit der Anfrage mit (Schritt 4 abwählbar)
@@ -366,14 +371,14 @@
   }
   function autoUp(w) {
     const out = [], X = xs(w);
-    const L = wallLen(w); P.rows[w].forEach((m, i) => { const x = X[i]; const k = x + m.w > L + .5 ? null : overKind(w, m, x); if (k === 'hood' && isDD()) { /* Muldenlüfter: keine Haube */ } else if (k === 'hood') { const hw = eqv('hood') === 'flach' ? m.w : Math.min(90, Math.max(60, m.w)); out.push({ id: 'a' + m.id, t: 'dh', s: x + m.w / 2 - hw / 2, w: hw, auto: 1 }); } else if (k === 'cab') { const u = { id: 'a' + m.id, t: m.w > 60 ? 'h2' : 'h1', s: x, w: m.w, auto: 1 }, r = P.rows[w], nb = j => r[j] && M[r[j].t].h === 't'; if (u.t === 'h1') { const ua = nb(i - 1) || x <= 1 ? 'l' : nb(i + 1) || x + m.w >= L - 1 ? 'r' : (m.a || m._aa); if (ua) u.a = ua; } out.push(u); } });
+    const L = wallLen(w); P.rows[w].forEach((m, i) => { const x = X[i]; const k = x + m.w > L + .5 ? null : overKind(w, m, x); if (k === 'hood' && isDD()) { /* Muldenlüfter: keine Haube */ } else if (k === 'hood') { const hw = hoodW(m), hs = x + m.w / 2 - hw / 2; if (!(wallHood() && opAt(w, hs, hw))) out.push({ id: 'a' + m.id, t: 'dh', s: hs, w: hw, auto: 1 }); } else if (k === 'cab') { const u = { id: 'a' + m.id, t: m.w > 60 ? 'h2' : 'h1', s: x, w: m.w, auto: 1 }, r = P.rows[w], nb = j => r[j] && M[r[j].t].h === 't'; if (u.t === 'h1') { const ua = nb(i - 1) || x <= 1 ? 'l' : nb(i + 1) || x + m.w >= L - 1 ? 'r' : (m.a || m._aa); if (ua) u.a = ua; } out.push(u); } });
     return out;
   }
   const upList = w => P.up[w] || (P.rows[w] ? autoUp(w) : []);
   function materialize(w) { if (P.up[w]) return {}; const map = {}; P.up[w] = autoUp(w).map(u => { const n = { id: uid++, t: u.t, s: u.s, w: u.w }; map[u.id] = n.id; return n; }); return map; }
   function upY(u) { const h = hOf(u), top = Math.max(217, 145 + h); return { y: FL - top, h, bottom: top - h }; }
   function upConflict(w, u) {
-    if (u.t === 'dh') return null; const { bottom } = upY(u), X = xs(w); let r = null;
+    if (u.t === 'dh') return wallHood() && opAt(w, u.s, u.w) ? 'win' : null; const { bottom } = upY(u), X = xs(w); let r = null;
     P.rows[w].forEach((m, i) => { if (M[m.t].h === 't' && ov(X[i], m.w, u.s, u.w) && hOf(m) > bottom + 1) r = 'tall'; });
     if (!r && P.op.some(o => o.wall === w && ov(o.s, o.w, u.s, u.w))) r = 'win';
     return r;
@@ -854,7 +859,7 @@
     if (tg.rep != null) { const u = list.find(x => x.id === tg.rep) || list.find(x => Math.abs(x.s - tg.s) < 1); if (u) { const old = u.w; setUpType(u, pe.t, pe.o); const s = resolveUp(w, u, u.s, true); if (s == null) { u.w = old; } else u.s = s; sel = u.id; curWall = w; change(); pulse(u.id, 1); return; } }
     if (!tg.ok) { toast('Dort ist kein Platz – ein anderer Hängeschrank ist im Weg.'); renderWalls(); return; }
     const u = { id: uid++, t: pe.t, s: tg.s, w: tg.width }; if (pe.o && pe.o.a) u.a = pe.o.a; if (u.t === 'he' && !u.a) u.a = u.s + u.w / 2 < wallLen(w) / 2 ? 'r' : 'l'; list.push(u); list.sort((a, b) => a.s - b.s); sel = u.id; curWall = w; change(); pulse(u.id, 1);
-    if (upConflict(w, u)) toast(upConflict(w, u) === 'win' ? 'Achtung: Der Hängeschrank hängt vor einem Fenster oder einer Tür.' : 'Achtung: Der Hängeschrank stößt an einen Hochschrank.');
+    if (upConflict(w, u)) toast(upConflict(w, u) === 'win' ? (u.t === 'dh' ? 'Achtung: Die Haube hängt vor einem Fenster oder einer Tür.' : 'Achtung: Der Hängeschrank hängt vor einem Fenster oder einer Tür.') : 'Achtung: Der Hängeschrank stößt an einen Hochschrank.');
   }
   function addEntry(pe) { const c = M[pe.t]; if (c.corner) return addCorner(pe.t); if (c.h === 'u') return addUp(curWall, pe.t, pe.o); if (pe.t === 'sp') return askSink(() => addTo(curWall, pe.t, pe.o)); addTo(curWall, pe.t, pe.o); }
   const sinkCount = () => Object.values(P.rows).reduce((a, r) => a + r.filter(m => m.t === 'sp').length, 0) + (P.form === 'insel' && P.island.v === 'spuele' ? 1 : 0);
@@ -1341,6 +1346,37 @@
       return false; });
   }
   /* ---------------- Tipps (live) ---------------- */
+  const HOODWIN = 'Über dem Kochfeld ist ein Fenster – davor darf keine Haube hängen. Kochfeld verschieben oder Muldenlüfter wählen';
+  function cookWin() {
+    const out = []; if (!wallHood()) return out;
+    for (const w in P.rows) { const X = xs(w); P.rows[w].forEach((m, i) => { if (m.t !== 'kf' && m.t !== 'ko') return; const hw = hoodW(m), o = opAt(w, X[i] + m.w / 2 - hw / 2, hw); if (o) out.push({ w, i, m, o }); }); }
+    return out;
+  }
+  // Kochfeld neben das Fenster rücken: beide Seiten jedes betroffenen Fensters (und die anderen Küchenwände) probieren,
+  // genommen wird die Stelle ohne Fenster darüber mit den wenigsten Hinweisen und dem kürzesten Weg
+  function cookOffWindow() {
+    const cw = cookWin()[0]; if (!cw) return { ok: true, same: true };
+    const snap = JSON.stringify({ rows: P.rows, up: P.up }), restore = st => { const o = JSON.parse(st); P.rows = o.rows; P.up = o.up; };
+    const cand = []; P.op.filter(o => o.wall === cw.w).forEach(o => { cand.push({ wall: cw.w, s: o.s - cw.m.w / 2 - 10 }, { wall: cw.w, s: o.s + o.w + cw.m.w / 2 + 10 }); });
+    Object.keys(P.rows).filter(w => w !== cw.w).forEach(w => cand.push({ wall: w, s: wallLen(w) / 2 }));
+    const x0 = locate(cw.w, cw.i).x0; let best = null;
+    cand.forEach(c => {
+      restore(snap); let r = null; try { r = moveApp(['kf', 'ko'], c); } catch (e) { r = null; }
+      if (!r || !r.ok || r.same || cookWin().length) return;
+      let wl = null, nx = 0; for (const w in P.rows) { const i = P.rows[w].findIndex(m => m.t === 'kf' || m.t === 'ko'); if (i >= 0) { wl = w; nx = locate(w, i).x0; break; } }
+      const sc = tips().filter(x => x[0] === 'warn').length * 1000 + (wl === cw.w ? Math.abs(nx - x0) : 500);
+      if (!best || sc < best.sc) best = { sc, st: JSON.stringify({ rows: P.rows, up: P.up }) };
+    });
+    restore(best ? best.st : snap);
+    return best ? { ok: true } : { ok: false, msg: 'Neben dem Fenster ist kein Platz fürs Kochfeld – bitte von Hand verschieben oder beim Kochfeld „Mit Muldenlüfter“ wählen.' };
+  }
+  let cookWinKey = null;
+  function cookWinCheck(quiet) {
+    const c = cookWin()[0], k = c ? c.m.id + ':' + c.o.id : '';
+    if (cookWinKey === null || quiet) { cookWinKey = k; return; }
+    if (k && k !== cookWinKey) setTimeout(() => ask('Über dem Kochfeld ist jetzt ein Fenster – davor darf keine Haube hängen. Kochfeld daneben rücken?', 'Ja, rücken', () => { const r = cookOffWindow(); if (r.ok && !r.same) { change(); toast('Das Kochfeld sitzt jetzt neben dem Fenster – die Haube hängt frei an der Wand.', undo); } else if (!r.ok) toast(r.msg); }), 60);
+    cookWinKey = k;
+  }
   function tips() {
     const out = [], all = []; for (const w in P.rows) P.rows[w].forEach((m, i) => all.push({ w, i, m }));
     const has = t => all.some(x => x.m.t === t);
@@ -1355,8 +1391,9 @@
     for (const w in P.rows) { const r = P.rows[w], a = r.findIndex(x => x.t === 'sp'), b = r.findIndex(x => x.t === 'kf' || x.t === 'ko'); if (a >= 0 && b >= 0) { const [lo, hi] = a < b ? [a, b] : [b, a]; const mid = r.slice(lo + 1, hi); const wd = mid.filter(x => M[x.t].h === 'b').reduce((s, x) => s + x.w, 0); if (mid.some(x => M[x.t].h === 't')) warn('Hochschrank zwischen Spüle und Kochfeld'); else wd >= 60 ? ok(`${wd} cm Arbeitsfläche zum Schnippeln`) : warn(`Nur ${wd} cm Platz zwischen Spüle und Kochfeld – 60 bis 120 cm sind ideal`); } }
     for (const w in P.rows) { const r = P.rows[w]; r.forEach((m, i) => { if (m.t !== 'kf' && m.t !== 'ko') return; const [a, b] = range(w); const L = locate(w, i); const nb = [r[i - 1], r[i + 1]]; if (nb.some(x => x && M[x.t].h === 't') || L.x0 - a < 1 && a === 0 || (i === r.length - 1 && L.x0 + L.w >= b - 1 && b === wallLen(w))) warn('Neben dem Kochfeld etwas Ablage lassen (min. 30 cm)'); }); }
     P.op.forEach(o => { const r = P.rows[o.wall]; if (!r) return; r.forEach((m, i) => { const L = locate(o.wall, i); if (!opOver(o, L.x0, L.w)) return; if (o.t === 'fenster') { if (M[m.t].h === 't' && hOf(m) > 105) warn('Ein Hochschrank steht vor dem Fenster'); } else warn(o.t === 'tuer' ? 'Vor der Tür stehen Schränke – Tür im Grundriss verschieben' : 'Vor der Balkontür stehen Schränke'); }); });
-    for (const w in P.rows) upList(w).forEach(u => { const c = upConflict(w, u); if (c === 'tall') warn('Ein Hängeschrank stößt an einen Hochschrank – verschieben oder Hochschrank niedriger'); if (c === 'win') warn('Ein Hängeschrank hängt vor einem Fenster oder einer Tür'); });
-    if (!isDD()) for (const w in P.up) { const X = xs(w); P.rows[w] && P.rows[w].forEach((m, i) => { if ((m.t === 'kf' || m.t === 'ko') && !P.up[w].some(u => u.t === 'dh' && ov(u.s, u.w, X[i], m.w))) warn('Über dem Kochfeld fehlt die Dunstabzugshaube'); }); }
+    for (const w in P.rows) upList(w).forEach(u => { const c = upConflict(w, u); if (c === 'tall') warn('Ein Hängeschrank stößt an einen Hochschrank – verschieben oder Hochschrank niedriger'); if (c === 'win') warn(u.t === 'dh' ? HOODWIN : 'Ein Hängeschrank hängt vor einem Fenster oder einer Tür'); });
+    cookWin().forEach(() => warn(HOODWIN));
+    if (!isDD()) for (const w in P.up) { const X = xs(w); P.rows[w] && P.rows[w].forEach((m, i) => { if ((m.t === 'kf' || m.t === 'ko') && !P.up[w].some(u => u.t === 'dh' && ov(u.s, u.w, X[i], m.w)) && !(wallHood() && opAt(w, X[i] + m.w / 2 - hoodW(m) / 2, hoodW(m)))) warn('Über dem Kochfeld fehlt die Dunstabzugshaube'); }); }
     if (P.rows.N && P.rows.N.length && (hasCornerSlot('l') || hasCornerSlot('r'))) { const N = P.rows.N; if ((hasCornerSlot('l') && M[N[0].t].corner) || (hasCornerSlot('r') && M[N[N.length - 1].t].corner)) ok('Ecke clever genutzt'); }
     if (!P.op.some(o => o.t === 'tuer' || o.t === 'balkon')) warn('Noch keine Tür – wie kommt man in die Küche?');
     [['wasser', ['sp'], 'Die Spüle', 'Wasseranschluss', isl && P.island.v === 'spuele'], ['herd', ['kf', 'ko'], 'Das Kochfeld', 'Herdanschluss', isl && P.island.v === 'kochfeld']].forEach(([t, ks, nm, an, inIsl]) => {
@@ -1497,6 +1534,7 @@
     const j = ser(); if (!noHist && hist[hist.length - 1] !== j) { hist.push(j); if (hist.length > 60) hist.shift(); }
     lastHash = '#k=' + b64(j); history.replaceState(null, '', lastHash); try { guardChanged(); } catch (e) { }
     renderWalls(); renderTips(); syncUI(); schedule3D(); $$('[data-undo]').forEach(b => b.disabled = hist.length < 2);
+    try { cookWinCheck(noHist); } catch (e) { }
   }
   function undo() { if (hist.length < 2) return; hist.pop(); des(hist[hist.length - 1]); change(true); }
   $$('[data-undo]').forEach(b => b.addEventListener('click', undo));

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Feedback &amp; Bewertung – Bausteine</title>
+<style>
+:root{--ink:#1c1a17;--bg:#f6f1e9;--card:#fffdf9;--a:#b5632f;--mut:#6b6259}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:860px;margin:0 auto;padding:40px 16px 160px}
+h1{font-size:clamp(28px,6vw,44px);line-height:1.1;margin:0 0 10px;letter-spacing:-.02em}
+.lead{color:var(--mut);font-size:18px;margin:0 0 30px}
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.c{background:var(--card);border-radius:20px;padding:22px;box-shadow:0 10px 30px -18px rgba(0,0,0,.35)}
+.c h2{margin:0 0 6px;font-size:21px}.c p{margin:0 0 16px;color:var(--mut)}
+button{border:0;border-radius:999px;background:var(--a);color:#fff;font:inherit;font-weight:700;padding:12px 18px;cursor:pointer;margin:0 6px 8px 0}
+button.l{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1.5px rgba(0,0,0,.18)}
+code{background:rgba(0,0,0,.06);padding:2px 6px;border-radius:6px;font-size:13px;word-break:break-all}
+ul{padding-left:20px;color:var(--mut)}li{margin:4px 0}
+</style>
+</head>
+<body>
+<main>
+<h1>Feedback &amp; Bewertung</h1>
+<p class="lead">Zwei Bausteine für alle Kundenseiten – hier zum Ausprobieren. Auf dieser Seite wird nichts gesendet.</p>
+<div class="g">
+  <section class="c"><h2>Feedback in Klick-Karten</h2><p>Nach den aufwendigen Funktionen (Küchenplaner, Gartenplaner, Atemübung …): 4 Klicks, 20 Sekunden, ohne Name.</p>
+    <button type="button" data-fe-fb="Küchenplaner" data-fe-fb-art="der">Feedback öffnen</button><button type="button" class="l" onclick="sessionStorage.clear();FEFeedback.invite({topic:'Küchenplaner',art:'der'})">Einladung zeigen</button></section>
+  <section class="c"><h2>Bewertungs-Banner</h2><p>Ab und zu, nie aufdringlich: einmal pro Besuch, erst nach Lesezeit und Scrollen, mit Direktlink zur Google-Bewertung.</p>
+    <button type="button" onclick="FEReview.show()">Banner zeigen</button></section>
+</div>
+<section class="c" style="margin-top:16px"><h2>Einbauen</h2>
+<ul>
+<li><b>Feedback:</b> <code>&lt;script src="assets/fe-feedback.js" data-mail="info@falcon-eye.de" data-site="Name der Seite" data-topic="Gartenplaner" data-art="der" data-accent="#…" defer&gt;&lt;/script&gt;</code> – öffnen mit <code>data-fe-fb="Thema"</code> an einem Knopf, nach dem Abschluss <code>FEFeedback.invite()</code>.</li>
+<li><b>Banner:</b> <code>&lt;script src="assets/fe-bewertung.js" data-url="https://search.google.com/local/writereview?placeid=…" data-accent="#…" data-skip="impressum|datenschutz" data-bottom="22" data-bottom-m="90" defer&gt;&lt;/script&gt;</code></li>
+<li>Abstände so wählen, dass Dock, WhatsApp-Knopf und Entwurfs-Hinweis frei bleiben (<code>data-side="right"</code> möglich). Datenschutz um beide Punkte ergänzen. Anleitung: <code>README.md</code> in diesem Ordner.</li>
+</ul></section>
+</main>
+<script src="fe-feedback.js" data-site="Baustein-Vorschau" data-topic="Küchenplaner" data-art="der" defer></script>
+<script src="fe-bewertung.js" data-url="#demo" data-delay="9999" defer></script>
+</body>
+</html>

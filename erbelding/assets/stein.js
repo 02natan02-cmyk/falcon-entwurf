@@ -27,7 +27,7 @@
       var seg = 1300, t0 = performance.now();
       (function f(now) {
         if (!run) return;
-        var r = w.getBoundingClientRect(), k = (now - t0) / seg, i = Math.floor(k) % path.length, j = (i + 1) % path.length, u = k - Math.floor(k);
+        var r = w.getBoundingClientRect(), k = Math.max(0, now - t0) / seg, i = Math.floor(k) % path.length, j = (i + 1) % path.length, u = k - Math.floor(k);
         u = u < .5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
         set((path[i][0] + (path[j][0] - path[i][0]) * u) * r.width, (path[i][1] + (path[j][1] - path[i][1]) * u) * r.height);
         raf = requestAnimationFrame(f);
