@@ -830,3 +830,12 @@ em.gloss{font-style:italic;background:linear-gradient(100deg,var(--red) 0%,var(-
 /* Prüfung 21.10.: lange Wörter in Überschriften umbrechen, Schnellkontakt passt auch auf 360 px */
 .legal h1,.legal h2,.legal h3{-webkit-hyphens:auto;hyphens:auto;overflow-wrap:anywhere}
 @media (max-width:380px){.dock{gap:6px;padding-left:8px;padding-right:8px}.dock a{font-size:12px!important;gap:5px}.dock svg{width:16px;height:16px}}
+
+/* 21.10.: Karte erst nach Klick (Zwei-Klick, Datenschutz) */
+.map-2k{position:relative;width:100%;height:420px;border-radius:22px;border:1px solid var(--line);overflow:hidden;display:grid;place-content:center;justify-items:center;gap:14px;text-align:center;padding:24px;
+  background:radial-gradient(circle at 50% 42%,rgba(200,20,31,.22),transparent 55%),repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,transparent 1px 46px),repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 46px),#121316}
+.map-2k::before{content:"";position:absolute;inset:-20%;background:linear-gradient(115deg,transparent 46%,rgba(255,255,255,.07) 47%,rgba(255,255,255,.07) 49%,transparent 50%),linear-gradient(25deg,transparent 58%,rgba(255,255,255,.06) 59%,rgba(255,255,255,.06) 60.5%,transparent 61.5%);pointer-events:none}
+.map-pin{width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--red);box-shadow:0 0 0 8px rgba(200,20,31,.18),0 0 40px rgba(200,20,31,.6);animation:mapPin 2.4s ease-in-out infinite}
+@keyframes mapPin{50%{transform:rotate(-45deg) translate(4px,-4px)}}
+.map-adr{margin:0;line-height:1.5}.map-hinweis{max-width:42ch;margin:0}
+@media (prefers-reduced-motion:reduce){.map-pin{animation:none}}
