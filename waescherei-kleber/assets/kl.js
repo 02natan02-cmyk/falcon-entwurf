@@ -90,7 +90,7 @@
   if (dsw) {
     const btn = $('[data-doorsign]', dsw), pop = $('.ds-pop', dsw); let tOff = 0, peekT = 0;
     const fit = () => { pop.style.setProperty('--dx', '0px'); const r = pop.getBoundingClientRect(), m = 8; let dx = 0; if (r.right > innerWidth - m) dx = innerWidth - m - r.right; if (r.left + dx < m) dx = m - r.left; pop.style.setProperty('--dx', dx + 'px'); };
-    const setOpen = o => { clearTimeout(tOff); clearTimeout(peekT); if (o === dsw.classList.contains('on')) return; if (o) fit(); dsw.classList.toggle('on', o); btn.setAttribute('aria-expanded', o); btn.setAttribute('aria-label', o ? 'Öffnungszeiten schließen' : 'Öffnungszeiten anzeigen'); };
+    const setOpen = o => { clearTimeout(tOff); clearTimeout(peekT); if (o === dsw.classList.contains('on')) return; if (o) fit(); dsw.classList.toggle('on', o); btn.setAttribute('aria-expanded', o); };
     const fine = matchMedia('(hover: hover) and (pointer: fine)');
     dsw.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse' && fine.matches) setOpen(true); });
     dsw.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && fine.matches) tOff = setTimeout(() => setOpen(false), 280); });
@@ -334,7 +334,7 @@
     const lcd = $('.wm-lcd', wm), startI = $('[data-starti]', btnS);
     btnS.addEventListener('click', () => {
       running = !running; startI.textContent = running ? '❚❚' : '▶︎'; $('span', btnS).textContent = running ? 'Pause' : 'Start';
-      btnS.setAttribute('aria-label', running ? 'Waschgang anhalten' : 'Waschgang starten'); btnS.classList.toggle('paused', !running); lcd.classList.toggle('paused', !running);
+      btnS.classList.toggle('paused', !running); lcd.classList.toggle('paused', !running);
     });
     btnSp.addEventListener('click', spinNow);
     const ICON = { shirt: () => SP.shirt(30, 26, '#1d6fd8'), sock: () => sockSprite(SOCKS[1], 30).c, towel: () => SP.towel(30, 17, '#2a9d8f'), sheet: () => SP.sheet(30, 20), duck: () => SP.duck(28) };

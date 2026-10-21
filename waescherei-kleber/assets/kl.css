@@ -677,3 +677,5 @@ body.sg-play .hdr{transform:translateY(-100%)}
 .nd-story{top:auto;bottom:2vh;--ty:0px}
 /* geöffnete Bullaugen-Tür (3D) darf nie über den Text der Karte ragen */
 .lm-card{position:relative;z-index:2}
+/* Prüfung 21.10.: Text nur für Vorleseprogramme */
+.sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
