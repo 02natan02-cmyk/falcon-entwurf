@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Willkommen zurück, Martin &amp; Silke</title>
+<title>Hallo, Martin &amp; Silke</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="../pellegrin/img/favicon.png">
 <link rel="preload" href="begruessung.mp3" as="audio">
@@ -98,12 +98,12 @@
   <div class="win neu"><p class="lab"><small>Ab jetzt</small>Eure neue Homepage</p><div class="bar"><i></i><i></i><i></i><u>pellegrin-kuechenstudio.de · neu</u></div><div class="scr" style="background-image:url(neu_pellegrin.webp)"><div class="load"><b></b></div></div></div>
 </div>
 <div class="glow" aria-hidden="true"></div>
-<div class="fin" id="fin"><i class="rays" aria-hidden="true"></i><img src="logo.png" alt="Pellegrin Küchenstudio"><p>Viel Spaß beim Stöbern!</p></div>
+<div class="fin" id="fin"><i class="rays" aria-hidden="true"></i><img src="logo.png" alt="Pellegrin Küchenstudio"><p>Wir freuen uns auf euer Feedback!</p></div>
 <div class="flash" id="flash"></div>
 <div class="cur l"></div><div class="cur r"></div><div class="val"></div>
 <div class="start" id="start">
   <small>Pellegrin Küchenstudio · St. Wendel</small>
-  <h1>Willkommen zurück, Martin <em>&amp;</em> Silke</h1>
+  <h1>Hallo, Martin <em>&amp;</em> Silke</h1>
   <button class="btn" id="go" type="button"><i></i>Vorhang auf</button>
   <p class="hint">Ton an · Leertaste oder Klick</p>
 </div>
@@ -113,13 +113,13 @@
 <script>
 (function(){
   var TARGET = '../pellegrin/';
-  var LINES = ["Hi, <em>Martin!</em> Hallo, <em>Silke!</em>", "Schön, dass ihr wieder vorbeischaut.", "Ich hoffe, die Seite gefällt euch beim zweiten und dritten Hinsehen genauso gut wie beim ersten Mal.", "Kleiner Insider: Am Küchenplaner und an eurer Seite wird ständig weitergearbeitet –", "es lohnt sich also, öfter mal reinzuschauen.", "Wenn ihr Fragen habt, meldet euch jederzeit bei Natan.", "Ich wünsche euch viel Spaß beim Stöbern und ein wunderschönes Wochenende –", "herzliche Grüße aus meiner technischen Zentrale, irgendwo zwischen eurem WLAN und der Cloud.", "Und denkt dran: <em>Was mit Liebe beginnt, endet mit Erfolg.</em>", "Vorhang auf – <em>eure Seite wartet!</em>"];
+  var LINES = ["Hi, <em>Martin!</em> Hallo, <em>Silke!</em>", "Seit Natan euch die Seite gezeigt hat, sind schon ein paar Tage vergangen.", "Damit es an die Umsetzung gehen kann, sind noch ein paar Schritte nötig.", "Für Impressum und Datenschutz brauchen wir noch ein paar Angaben von euch.", "Und die Frage: Soll die Seite schnellstmöglich online gehen, so wie sie ist – noch unter dem Namen <em>Ruppenthal?</em>", "Und später machen wir eine große Enthüllung zu <em>Pellegrin?</em>", "Uns stehen alle Möglichkeiten offen.", "Ein großer Punkt, der euch wahrscheinlich sehr beschäftigt, ist die Preisfrage – da werden wir uns einig, ganz bestimmt.", "Schaut euch gerne noch etwas um und meldet euch bei Natan.", "<em>Wir freuen uns auf euer Feedback!</em>"];
   var st=document.getElementById('st'), cap=document.getElementById('cap'), v=document.getElementById('v'), m=document.getElementById('m');
   var started=false, compStarted=false, cur=-1, AC=null, an=null, buf=null, anM=null, bufM=null, lvS=0, root=document.documentElement;
   // Zeitplan der Untertitel: nach Textlänge über die echte Audiolänge verteilt
   function plan(d){ var w=LINES.map(function(l){return l.replace(/<[^>]+>/g,'').length+22}), sum=w.reduce(function(a,b){return a+b},0), t=0.35, out=[]; w.forEach(function(x){ out.push(t); t+= (d-0.6)*x/sum; }); return out; }
   // Zeitmarken: automatisch aus den Sprechpausen der Stimme gemessen
-  var T = [0, 2.0, 3.75, 8.8, 13.65, 16.4, 19.15, 22.9, 28.25, 31.75];
+  var T = [0, 2.53, 6.5, 10.33, 14.18, 20.49, 23.72, 25.87, 32.27, 35.47];
   function show(i){ if(i===cur) return; cur=i; cap.classList.add('out'); setTimeout(function(){ cap.classList.remove('out'); cap.innerHTML=LINES[i].split(/(\s+)/).map(function(p){return /^\s+$/.test(p)?p:'<span>'+p+'</span>'}).join(''); var s=cap.querySelectorAll('span'); s.forEach(function(x,k){ setTimeout(function(){x.classList.add('on')}, 30+k*45); }); }, cur===0?0:260); }
   // Staub im Licht
   var c=document.getElementById('dust'), g=c.getContext('2d'), P=[]; function rs(){c.width=innerWidth;c.height=innerHeight} rs(); addEventListener('resize',rs);
@@ -138,7 +138,7 @@
     setTimeout(function(){ v.volume=1; v.play().then(function(){}).catch(function(){ fallbackCaptions(); }); show(0); }, 1700);
     viz();
   }
-  function fallbackCaptions(){ var t0=performance.now(); (function f(n){ var t=(n-t0)/1000, k=0; for(var j=0;j<T.length;j++) if(t>=T[j]) k=j; if(!compStarted) show(k); if(t>34.3) return comp(); requestAnimationFrame(f); })(t0); }
+  function fallbackCaptions(){ var t0=performance.now(); (function f(n){ var t=(n-t0)/1000, k=0; for(var j=0;j<T.length;j++) if(t>=T[j]) k=j; if(!compStarted) show(k); if(t>37.5) return comp(); requestAnimationFrame(f); })(t0); }
   v.addEventListener('ended', comp);
   // Duck: Musik unter der Stimme leise, danach episch
   v.addEventListener('play', function(){ fade(m,0.25,800); });
@@ -146,7 +146,7 @@
     if(compStarted) return; compStarted=true; document.body.classList.add('comp'); fade(m,1,1400); cap.classList.add('out'); document.querySelector('.orb').style.opacity=0; document.querySelector('.who').style.opacity=0;
     var W=[].slice.call(document.querySelectorAll('.cmp .win')), n=W.length, last=W[n-1];
     // Finale auf den Höhepunkt der Musik legen (PEAK = Sekunde im Track)
-    var mt=(!m.paused&&m.currentTime>0)?m.currentTime:null, Lmin=n===1?3200:7000, Lg=mt===null?(n===1?3600:8500):Math.max(Lmin,Math.min(10500,(39.44-mt)*1000));
+    var mt=(!m.paused&&m.currentTime>0)?m.currentTime:null, Lmin=n===1?3200:7000, Lg=mt===null?(n===1?3600:8500):Math.max(Lmin,Math.min(10500,(43.14-mt)*1000));
     function out(w){ if(w.dataset.fx==='explode') explode(w); else { w.classList.add('tv'); flash(.35); setTimeout(function(){ w.classList.add('gone'); },950); } }
     if(n>=3){ W[0].classList.add('on'); setTimeout(function(){ out(W[0]); }, Math.min(1900,Lg-6400)); setTimeout(function(){ W[1].classList.add('on'); flash(.28); }, Lg-5500); setTimeout(function(){ out(W[1]); }, Lg-3800); }
     else if(n===2){ W[0].classList.add('on'); setTimeout(function(){ out(W[0]); }, Lg-3800); }
