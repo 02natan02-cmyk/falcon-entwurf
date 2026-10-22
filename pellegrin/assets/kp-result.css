@@ -279,7 +279,7 @@ html.kpr-on,html.kpr-on body{overflow:hidden!important}
   .kpx-hero{flex:1 1 100%;min-height:54px}
   .kpx-row{flex-wrap:nowrap;overflow-x:auto;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;padding-bottom:4px;margin:0 -10px;padding-left:10px;padding-right:10px;scrollbar-width:none}
   .kpx-row::-webkit-scrollbar{display:none}
-  .kpx-row button{scroll-snap-align:start;flex-direction:column;justify-content:center;gap:4px;min-width:86px;min-height:66px;padding:8px 10px;font-size:12px;white-space:normal;text-align:center;line-height:1.2}
+  .kpx-row button{flex:none;scroll-snap-align:start;flex-direction:column;justify-content:center;gap:4px;min-width:86px;max-width:118px;min-height:66px;padding:8px 10px;font-size:12px;white-space:normal;text-align:center;line-height:1.2;hyphens:manual;overflow-wrap:normal}
   .kpx-mine{align-self:flex-start}
   .kpx-mp{left:0;right:auto}
 }

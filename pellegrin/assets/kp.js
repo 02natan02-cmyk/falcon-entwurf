@@ -118,7 +118,7 @@
     return (band.find(r => L < r[0] && C >= r[1]) || band[band.length - 1])[2];
   }
   // Name einer Wunschfarbe: fast gleich einem Planer-Ton → dessen Name, sonst beschreibender Farbname
-  const wishName = hex => { const n = FRONTS.filter(x => !x[1].startsWith('wood')).reduce((b, x) => dE(x[1], hex) < dE(b[1], hex) ? x : b); return dE(n[1], hex) < 6 ? n[0] : toneName(hex); };
+  const wishName = hex => { const n = FRONTS.filter(x => !x[1].startsWith('wood')).concat(ALLC).reduce((b, x) => dE(x[1], hex) < dE(b[1], hex) ? x : b); return dE(n[1], hex) < 6 ? n[0] : toneName(hex); };
   const worldOf = st => st.wood ? 'holz' : (WORLDS.find(w => w.c.some(c => c[1] === st.front)) || { k: 'wunsch' }).k;
   const frontName = st => { const f = FRONTS.find(x => st.wood ? x[1] === 'wood:' + st.wood : x[1] === st.front); if (f) return f[0]; return isHex(st.front) ? `Wunschfarbe „${wishName(st.front)}“ ${st.front.toUpperCase()}` : 'Wunschfarbe'; };
   const frontShort = st => st.wood ? (st.wood === 'nuss' ? 'Nussbaum' : 'Eiche') : ((FRONTS.find(x => x[1] === st.front) || [])[0] || (isHex(st.front) ? wishName(st.front) : 'Weiß'));
@@ -128,12 +128,47 @@
     if (L < 32) return { top: 'keramik', handle: 'gold', wall: '#f3efe9', floor: 'eiche' };
     if (H >= 110 && H < 200) return WORLDS[2].pair; if (H >= 200 && H < 312) return WORLDS[3].pair;
     return L < 58 ? { top: 'keramik', handle: 'gold', wall: '#f3efe9', floor: 'eiche' } : { top: 'eiche', handle: 'schwarz', wall: '#f3efe9', floor: 'eiche' }; };
+  // Alle Farben (Natan 22.10.: „aus allen Farben eine Farbe … zum Beispiel rosa“): Farbfächer mit 12 Farbfamilien × zart/sanft/kräftig/tief + Neutraltöne
+  const FAN = [
+    ['Rot', [['Rosenholz', '#e6c3be'], ['Altrot', '#c98a83'], ['Signalrot', '#b8352e'], ['Bordeaux', '#6b2229']]],
+    ['Koralle', [['Pfirsich', '#f0cdb8'], ['Koralle', '#e08e74'], ['Ziegelrot', '#b5543a'], ['Rost', '#7a3523']]],
+    ['Orange', [['Apricot', '#f2d3ab'], ['Karamell', '#d79b5e'], ['Orange', '#d9752b'], ['Cognac', '#8a4f26']]],
+    ['Gelb', [['Vanille', '#f2e5b5'], ['Sonnengelb', '#e8c766'], ['Senfgelb', '#c99a2e'], ['Ocker', '#8c6a22']]],
+    ['Oliv', [['Lindgrün', '#e0e2b3'], ['Pistazie', '#bcc48a'], ['Olivgrün', '#8a8d3e'], ['Moosgrün', '#4f5530']]],
+    ['Grün', [['Blassgrün', '#cfe0c5'], ['Wiesengrün', '#9fb594'], ['Grasgrün', '#5d8c4a'], ['Waldgrün', '#2f4a34']]],
+    ['Jade', [['Mint', '#cde7da'], ['Jade', '#84bba2'], ['Smaragd', '#2f8a68'], ['Flaschengrün', '#1e4a3c']]],
+    ['Petrol', [['Aqua', '#c7e4e4'], ['Türkis', '#6fb3b2'], ['Petrol', '#23727a'], ['Tiefpetrol', '#1b4549']]],
+    ['Blau', [['Himmelblau', '#cddff0'], ['Hellblau', '#8fb4d6'], ['Königsblau', '#2f5ea8'], ['Marineblau', '#1f2f55']]],
+    ['Indigo', [['Lavendelblau', '#d3d3ee'], ['Kornblume', '#8e95cf'], ['Ultramarin', '#3c3f9a'], ['Indigo', '#272657']]],
+    ['Lila', [['Flieder', '#e2d2ea'], ['Lavendel', '#b49bc8'], ['Violett', '#7b4a9e'], ['Aubergine', '#3f2440']]],
+    ['Rosa', [['Puderrosa', '#f2d4dc'], ['Rosa', '#e7a6bb'], ['Pink', '#d0517f'], ['Beere', '#7a2a4b']]],
+  ];
+  const NEUT = [['Weiß', '#f4f2ed'], ['Creme', '#efe6d2'], ['Kaschmir', '#ddd2c0'], ['Sand', '#d8c8ac'], ['Greige', '#b8ada0'], ['Taupe', '#8f8275'], ['Mokka', '#5a463b'], ['Lichtgrau', '#d8d8d5'], ['Steingrau', '#9a9a96'], ['Schiefer', '#64686b'], ['Anthrazit', '#3a3d40'], ['Schwarz', '#1f1f21']];
+  const ALLC = FAN.flatMap(f => f[1]).concat(NEUT);
+  // RAL-Classic-Töne (Richtwerte am Bildschirm, Originalfächer gilt) – für Kunden als neutraler Farbcode, fürs Studio als Lack-Vorlage
+  const RAL = ('1000 Grünbeige cdba88|1001 Beige d0b084|1002 Sandgelb d2aa6d|1003 Signalgelb f9a800|1004 Goldgelb e49e00|1011 Braunbeige af8050|1013 Perlweiß e3d9c6|1014 Elfenbein ddc49a|1015 Hellelfenbein e6d2b5|1018 Zinkgelb faca30|1019 Graubeige a48f7a|1020 Olivgelb a08f65|1021 Rapsgelb f6b600|1024 Ockergelb ba8f4c|1032 Ginstergelb e2a300|1034 Pastellgelb eda459|' +
+    '2000 Gelborange da6e00|2001 Rotorange ba481b|2003 Pastellorange f67828|2004 Reinorange e25303|2010 Signalorange d4652f|2011 Tieforange e26e0e|2012 Lachsorange d5654d|' +
+    '3000 Feuerrot a72920|3002 Karminrot 9b2321|3003 Rubinrot 861a22|3004 Purpurrot 6b1c23|3005 Weinrot 59191f|3007 Schwarzrot 3e2022|3009 Oxidrot 6d342d|3011 Braunrot 792423|3012 Beigerot c6846d|3013 Tomatenrot 972e25|3014 Altrosa cb7375|3015 Hellrosa d8a0a6|3016 Korallenrot a63d2f|3017 Rosé cb555d|3018 Erdbeerrot c73f4a|3020 Verkehrsrot bb1e10|3022 Lachsrot cf6955|3027 Himbeerrot b42041|3031 Orientrot a52c33|' +
+    '4001 Rotlila 816183|4002 Rotviolett 8d3c4b|4003 Erikaviolett c4618c|4004 Bordeauxviolett 651e38|4005 Blaulila 76689a|4006 Verkehrspurpur 903373|4007 Purpurviolett 47243c|4008 Signalviolett 844c82|4009 Pastellviolett 9d8692|4010 Telemagenta bc4077|' +
+    '5000 Violettblau 384c70|5001 Grünblau 1f4764|5002 Ultramarinblau 2b2c7c|5003 Saphirblau 2a3756|5004 Schwarzblau 1d1f2a|5005 Signalblau 154889|5007 Brillantblau 41678d|5008 Graublau 313c48|5009 Azurblau 2e5978|5010 Enzianblau 13447c|5011 Stahlblau 232c3f|5012 Lichtblau 3481b8|5013 Kobaltblau 232d53|5014 Taubenblau 6c7c98|5015 Himmelblau 2874b2|5018 Türkisblau 0e929f|5020 Ozeanblau 1d4a54|5021 Wasserblau 00737a|5023 Fernblau 4d668e|5024 Pastellblau 6a93b0|' +
+    '6000 Patinagrün 3c7460|6002 Laubgrün 325928|6003 Olivgrün 50533c|6004 Blaugrün 024442|6005 Moosgrün 114232|6007 Flaschengrün 2f3a2f|6009 Tannengrün 26392f|6011 Resedagrün 68825b|6013 Schilfgrün 7d765a|6017 Maigrün 4c8f35|6018 Gelbgrün 57a639|6019 Weißgrün b9ceac|6021 Blassgrün 8a9977|6024 Verkehrsgrün 008351|6026 Opalgrün 005d52|6027 Lichtgrün 7ebab5|6028 Kieferngrün 2d5546|6029 Minzgrün 006f3d|6033 Minttürkis 3f888f|6034 Pastelltürkis 7aadac|' +
+    '7000 Fehgrau 7e8b92|7001 Silbergrau 8f999f|7004 Signalgrau 9ea0a1|7006 Beigegrau 6e6559|7011 Eisengrau 52595d|7012 Basaltgrau 575d5e|7015 Schiefergrau 51565c|7016 Anthrazitgrau 383e42|7021 Schwarzgrau 2f3234|7022 Umbragrau 4b4d46|7024 Graphitgrau 474a50|7030 Steingrau 939388|7032 Kieselgrau b9b9a8|7035 Lichtgrau cbd0cc|7036 Platingrau 9a9697|7037 Staubgrau 7a7b7a|7038 Achatgrau b4b8b0|7039 Quarzgrau 6b665e|7040 Fenstergrau 9da3a6|7044 Seidengrau cac4b0|7047 Telegrau 4 d0d0d0|' +
+    '8001 Ockerbraun 955f20|8002 Signalbraun 6c3b2a|8003 Lehmbraun 734222|8004 Kupferbraun 8e402a|8007 Rehbraun 6f4a2f|8011 Nussbraun 5a3826|8014 Sepiabraun 4a3526|8016 Mahagonibraun 4c2b20|8017 Schokoladenbraun 44322d|8019 Graubraun 3f3a3a|8024 Beigebraun 79553c|8025 Blassbraun 755847|8028 Terrabraun 4e3b2b|' +
+    '9001 Cremeweiß e9e0d2|9002 Grauweiß d7d5cb|9003 Signalweiß ecece7|9005 Tiefschwarz 0e0e10|9010 Reinweiß f1ece1|9011 Graphitschwarz 27292b|9016 Verkehrsweiß f1f0ea|9018 Papyrusweiß cfd3cd').split('|').map(x => { const [n, nm, h] = x.split(' '); return [n, nm, '#' + h]; });
+  const ralNear = hex => { let b = RAL[0], d = 1e9; RAL.forEach(r => { const e = dE(r[2], hex); if (e < d) { d = e; b = r; } }); return [b, d]; };
+  const nearW = d => d < 5 ? 'fast gleich' : d < 12 ? 'ähnlich' : d < 22 ? 'entfernt ähnlich' : 'nur grob';
+  // LCh → HEX (Gegenstück zu labC, außerhalb des Bildschirm-Farbraums wird geklemmt)
+  const lch2hex = (L, C, H) => { const a = C * Math.cos(H * Math.PI / 180), b = C * Math.sin(H * Math.PI / 180), fy = (L + 16) / 116, fx = fy + a / 500, fz = fy - b / 200, iv = t => t * t * t > .008856 ? t * t * t : (t - 16 / 116) / 7.787;
+    const X = iv(fx) * .95047, Y = iv(fy), Z = iv(fz) * 1.08883, g = v => { v = v > .0031308 ? 1.055 * Math.pow(v, 1 / 2.4) - .055 : 12.92 * v; return Math.round(Math.min(1, Math.max(0, v)) * 255).toString(16).padStart(2, '0'); };
+    return '#' + g(3.2406 * X - 1.5372 * Y - .4986 * Z) + g(-.9689 * X + 1.8758 * Y + .0415 * Z) + g(.0557 * X - .2040 * Y + 1.0570 * Z); };
+  // Studio-Hinweis zur Frontfarbe: je Marke der nächste Serienton mit Abstand, dazu der nächste RAL-Ton – nur in der Anfrage, nicht auf der Seite
   function herstHint(st) {
     const el = document.querySelector('[data-kp]'), list = String((el && el.dataset.herst) || '').split(',').map(x => x.trim().toLowerCase()).filter(x => HERST[x]);
     if (st.wood) return list.length ? HERSTWOOD[st.wood] || '' : '';
     if (!/^#[0-9a-f]{6}$/i.test(st.front || '')) return '';
-    if (!list.length) return `Farbwert ${st.front.toUpperCase()}`;
-    return list.map(b => { const best = HERST[b].reduce((x, y) => dE(y[1], st.front) < dE(x[1], st.front) ? y : x); return dE(best[1], st.front) < 22 ? `${HERSTN[b]} „${best[0]}“` : `${HERSTN[b]}: Sonderfarbe (Lack nach Muster)`; }).join(' · ') + ` · Farbwert ${st.front.toUpperCase()}`;
+    const [r, rd] = ralNear(st.front), ral = `RAL ${r[0]} ${r[1]} (${nearW(rd)})`;
+    if (!list.length) return `${ral} · Farbwert ${st.front.toUpperCase()}`;
+    return list.map(b => { const best = HERST[b].reduce((x, y) => dE(y[1], st.front) < dE(x[1], st.front) ? y : x), d = dE(best[1], st.front); return d < 22 ? `${HERSTN[b]} „${best[0]}“ (${nearW(d)})` : `${HERSTN[b]}: kein naher Serienton – Lack nach RAL/Muster (am nächsten „${best[0]}“)`; }).join(' · ') + ` · ${ral} · Farbwert ${st.front.toUpperCase()}`;
   }
   const HANDLES = [['grifflos', 'Grifflos'], ['bar', 'Edelstahl'], ['schwarz', 'Schwarz'], ['gold', 'Messing'], ['knopf', 'Knopf']];
   const TOPS = [['eiche', 'Eiche', '#b98a5c'], ['keramik', 'Stein hell', '#e7e4de'], ['beton', 'Beton', '#9b9893'], ['marmor', 'Marmor dunkel', '#1d1d1f']];
@@ -1170,6 +1205,7 @@
     if (eqSel && eqSel.k === 'dh' && k === 'hobV' && v === 'dd') eqSel = null;
     if (['back', 'backC', 'backWood', 'backLed', 'sink', 'tap', 'hood', 'pfDek', 'wgDek'].includes(k)) xfade();
     change();
+    const FK = { sink: 'sp', tap: 'sp', hobW: 'kf', hobV: 'kf', hood: 'dh', ihood: 'isl', back: 'bs', backC: 'bs', backWood: 'bs', backLed: 'bs' }; if (FK[k]) follow(FK[k]);
   }
   root.addEventListener('click', e => { const b = e.target.closest('[data-e]'); if (!b) return; e.preventDefault(); setEq(b.dataset.e, b.dataset.v); });
 
@@ -1207,7 +1243,7 @@
     const b = e.target.closest('[data-p]'); if (!b) return; const f = findSel(); if (!f) return; const { w, i, m, up } = f, c = M[m.t];
     const k = b.dataset.p, v = b.dataset.v;
     if (k === 'x') { sel = null; renderWalls(); return; }
-    if (k === 'o') { const on = K.toggle(m.id); if (on && K.focus) K.focus(m.id); if (on) openNow.add(String(m.id)); else openNow.delete(String(m.id)); renderPop(); if (innerWidth < 1000) $('.kp-stage').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); return; }
+    if (k === 'o') { const on = K.toggle(m.id); if (on && K.focus) K.focus(m.id); if (on) openNow.add(String(m.id)); else openNow.delete(String(m.id)); renderPop(); if (innerWidth < 1000 && !$('.kp-stage.kp-docked')) $('.kp-stage').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); return; }
     if (k === 'w-' || k === 'w+') {
       const old = m.w; m.w = stepW(c.ws, m.w, k === 'w+' ? 1 : -1);
       if (up) { const s = resolveUp(w, m, m.s - (m.w - old) / 2, true); if (s == null) { m.w = old; toast('Daneben hängt schon etwas – erst verschieben oder schmaler machen.'); } else m.s = s; }
@@ -1329,7 +1365,7 @@
   function placeToast() {
     tst.style.bottom = ''; if (innerWidth >= 1000) return;
     const st = $('.kp-stage'), cams = st && $('.kp-cams', st), r = st && st.getBoundingClientRect(), cr = cams && cams.getBoundingClientRect();
-    if (r && cr && cr.top > 110 && cr.bottom < innerHeight - 4) { tst.style.bottom = Math.round(innerHeight - cr.top + 8) + 'px'; return; }
+    if (r && cr && !st.classList.contains('kp-docked') && cr.top > 110 && cr.bottom < innerHeight - 4) { tst.style.bottom = Math.round(innerHeight - cr.top + 8) + 'px'; return; }
     const nx = $('[data-kpane].on .kp-next'), nr = nx && nx.getBoundingClientRect(); tst.style.bottom = (nr && nr.height && nr.top < innerHeight && nr.top > innerHeight - 140 ? Math.round(innerHeight - nr.top + 10) : 16) + 'px';
   }
 
@@ -1575,7 +1611,7 @@
 
   /* ---------------- Schritte & Bedienfelder ---------------- */
   const steps = $$('[data-kstep]'), panes = $$('[data-kpane]');
-  function go(i, quiet) { if (selCx) { selCx = null; try { renderWalls(); } catch (e) { } } steps.forEach((b, j) => { b.classList.toggle('on', j === i); b.classList.toggle('done', j < i); }); panes.forEach((p, j) => p.classList.toggle('on', j === i)); root.dataset.step = i; if (innerWidth < 1000 && !quiet) { const t = i === 3 ? $('[data-kpane].on') : $('.kp-stage'); if (t && i !== 1) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } renderPop(); }
+  function go(i, quiet) { if (selCx) { selCx = null; try { renderWalls(); } catch (e) { } } steps.forEach((b, j) => { b.classList.toggle('on', j === i); b.classList.toggle('done', j < i); }); panes.forEach((p, j) => p.classList.toggle('on', j === i)); root.dataset.step = i; if (innerWidth < 1000 && !quiet) { const t = i === 3 ? $('[data-kpane].on') : ($('.kp-stph.on') || $('.kp-stage')); if (t && i !== 1) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } renderPop(); }
   steps.forEach((b, i) => b.addEventListener('click', () => go(i)));
   $$('[data-kgo]').forEach(b => b.addEventListener('click', () => go(+b.dataset.kgo)));
   root.addEventListener('click', e => { const b = e.target.closest('[data-kp-lookinfo] [data-kgo]'); if (b) go(+b.dataset.kgo); });
@@ -1595,19 +1631,56 @@
   const swc = c => c.startsWith('wood') ? WOOD[c.slice(5)] : c;
   const fan = cols => cols.map(([, c], i, a) => `<i style="--c:${swc(c)};--i:${(i - (a.length - 1) / 2).toFixed(2)}"${c.startsWith('wood') ? ' class="wd"' : ''}></i>`).join('');
   { const we = $('[data-kp-worlds]'); if (we) we.innerHTML = WORLDS.map(w => `<button type="button" class="kp-world" data-world="${w.k}" aria-pressed="false"><span class="kp-fan" aria-hidden="true">${fan(w.c)}</span><b>${w.n}</b><small>${w.d}</small></button>`).join('') + `<button type="button" class="kp-world kp-wwish" data-world="wunsch" aria-pressed="false"><span class="kp-fan rb" aria-hidden="true"><i style="--i:-1.5"></i><i style="--i:-.5"></i><i style="--i:.5"></i><i style="--i:1.5"></i></span><b>Ihre Wunschfarbe</b><small>Jeder Farbton möglich</small></button>`; }
+  // Kamera folgt der Auswahl (Natan 22.10.: „Armatur auswählen … jedes Mal hoch und runter scrollen“) – Blick fährt zum geänderten Teil
+  let folT = 0;
+  function follow(k) { if (!K || !K.focusOn) return; clearTimeout(folT); folT = setTimeout(() => { try { if (K.focusOn(k)) $$('[data-cam]').forEach(b => b.classList.toggle('on', k === 'uebersicht' && b.dataset.cam === 'perspektive')); } catch (e) { } }, 150); }
   let wishT = 0;
-  { const inp = $('[data-kp-wcol]'); if (inp) {
-    const ap = () => { P.style.front = inp.value.toLowerCase(); P.style.wood = null; P.style.world = 'wunsch'; change(); renderPal(); };
-    inp.addEventListener('input', () => { const w = $('[data-kp-wish]'); if (w) w.style.setProperty('--c', inp.value); clearTimeout(wishT); wishT = setTimeout(ap, 160); });
-    inp.addEventListener('change', () => { clearTimeout(wishT); xfade(); ap(); });
-  } }
+  /* ---- Alle Farben: Fächer, Feinregler, Farbcode ---- */
+  const acEl = $('[data-kp-allc]');
+  if (acEl) {
+    const LV = ['zart', 'sanft', 'kräftig', 'tief'], who = acEl.dataset.person || 'Ihr Küchenstudio';
+    let grid = ''; for (let i = 0; i < 4; i++) FAN.forEach(([fn, t]) => { const [n, c] = t[i]; grid += `<button type="button" class="kp-acs" data-front="${c}" style="--c:${c}" title="${n}" aria-label="${n} (${fn}, ${LV[i]})"></button>`; });
+    grid += NEUT.map(([n, c]) => `<button type="button" class="kp-acs nt" data-front="${c}" style="--c:${c}" title="${n}" aria-label="${n}"></button>`).join('');
+    acEl.innerHTML = `<div class="kp-ac-cur" data-ac-cur aria-live="polite"></div>
+<div class="kp-ac-grid" data-ac-grid>${grid}</div>
+<button type="button" class="kp-ac-ft" data-ac-ft aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="16" cy="7" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="10" cy="17" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span><b>Ton fein abstimmen</b><small>Farbton, Helligkeit, Intensität – oder Farbcode eingeben</small></span></button>
+<div class="kp-ac-fb" data-ac-fb hidden>
+  <label class="kp-ac-r"><span>Farbton</span><input type="range" min="0" max="359" step="1" data-ac-h aria-label="Farbton"></label>
+  <label class="kp-ac-r"><span>Helligkeit</span><input type="range" min="14" max="97" step="1" data-ac-l aria-label="Helligkeit"></label>
+  <label class="kp-ac-r"><span>Intensität</span><input type="range" min="0" max="72" step="1" data-ac-c aria-label="Intensität"></label>
+  <form class="kp-ac-code" data-ac-code><input data-ac-in placeholder="z. B. RAL 3015 oder #D8A0A6" autocomplete="off" spellcheck="false" aria-label="Farbcode eingeben"><button type="submit">Übernehmen</button></form>
+</div>
+<p class="kp-p sm kp-ac-note">Am Bildschirm wirken Farben je nach Gerät etwas anders. ${who} bekommt mit Ihrer Anfrage den passenden Herstellerton dazu und zeigt Ihnen das Originalmuster.</p>`;
+    const H = $('[data-ac-h]', acEl), Lr = $('[data-ac-l]', acEl), Cr = $('[data-ac-c]', acEl), fb = $('[data-ac-fb]', acEl), ft = $('[data-ac-ft]', acEl);
+    const setFront = (hex, final) => { P.style.front = hex; P.style.wood = null; P.style.world = 'wunsch'; clearTimeout(wishT); if (final) { xfade(); change(); renderPal(); follow('front'); } else wishT = setTimeout(() => { change(); renderPal(); }, 160); };
+    const fromSl = final => setFront(lch2hex(+Lr.value, +Cr.value, +H.value), final);
+    [H, Lr, Cr].forEach(r => { r.addEventListener('input', () => { fromSl(false); acSync(true); }); r.addEventListener('change', () => fromSl(true)); });
+    ft.addEventListener('click', () => { const on = fb.hidden; fb.hidden = !on; ft.setAttribute('aria-expanded', on); if (on) acSync(); });
+    $('[data-ac-code]', acEl).addEventListener('submit', e => { e.preventDefault(); const inp = $('[data-ac-in]', acEl), v = inp.value.trim(); let hex = null;
+      const r = v.match(/(?:ral)?\s*(\d{4})\b/i), h = v.match(/#?([0-9a-f]{6})\b/i);
+      if (h && !/^\d{4}$/.test(v.replace(/\s|ral/gi, ''))) hex = '#' + h[1].toLowerCase(); else if (r) { const x = RAL.find(q => q[0] === r[1]); if (x) hex = x[2]; else { toast(`RAL ${r[1]} kennt der Planer nicht – bitte mit den Reglern annähern. ${who} bringt den Originalfächer mit.`); return; } }
+      if (!hex) { toast('Bitte einen RAL-Code (z. B. RAL 3015) oder einen Farbwert wie #D8A0A6 eingeben.'); return; }
+      inp.value = ''; inp.blur(); setFront(hex, true); });
+  }
+  // Anzeige „Ihr Ton“ + Regler-Stand + Verläufe der Regler-Spuren
+  function acSync(live) {
+    if (!acEl) return; const s = P.style, hex = !s.wood && isHex(s.front) ? s.front : null, cur = $('[data-ac-cur]', acEl);
+    if (cur) cur.innerHTML = hex ? `<i style="--c:${hex}"></i><span><b>${s.world === 'wunsch' || !WORLDS.some(w => w.c.some(c => c[1] === hex)) ? 'Ihre Wunschfarbe' : 'Ihr Ton'}: ${wishName(hex)}</b><small>${hex.toUpperCase()} · nah an RAL ${ralNear(hex)[0][0]} ${ralNear(hex)[0][1]}</small></span>` : `<i class="wd" style="--c:${WOOD[s.wood] || '#c39a6b'}"></i><span><b>Holzfront</b><small>Tippen Sie eine Farbe an, um zu lackierten Fronten zu wechseln.</small></span>`;
+    const H = $('[data-ac-h]', acEl), Lr = $('[data-ac-l]', acEl), Cr = $('[data-ac-c]', acEl); if (!H) return;
+    if (!live && hex) { const [L, C, h] = lch(hex); H.value = Math.round(h); Lr.value = Math.round(Math.min(97, Math.max(14, L))); Cr.value = Math.round(Math.min(72, C)); }
+    const L = +Lr.value, C = +Cr.value, h = +H.value, st = (f, n) => Array.from({ length: n }, (_, i) => f(i / (n - 1))).join(',');
+    H.style.setProperty('--tr', `linear-gradient(90deg,${st(t => lch2hex(Math.max(L, 45), Math.max(C, 34), t * 359), 13)})`);
+    Lr.style.setProperty('--tr', `linear-gradient(90deg,${st(t => lch2hex(14 + t * 83, C, h), 7)})`);
+    Cr.style.setProperty('--tr', `linear-gradient(90deg,${st(t => lch2hex(L, t * 72, h), 6)})`);
+    [H, Lr, Cr].forEach(r => r.style.setProperty('--th', hex || lch2hex(L, C, h)));
+  }
   function renderTones() {
     const box = $('[data-kp-fronts]'); if (!box) return; const s = P.style, wk = s.world && (s.world === 'wunsch' || WORLDS.some(w => w.k === s.world)) ? s.world : worldOf(s), W0 = WORLDS.find(w => w.k === wk);
     $$('[data-world]').forEach(b => { const on = b.dataset.world === wk; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
     box.innerHTML = W0 ? W0.c.map(([n, c]) => `<button type="button" class="kp-sw${c.startsWith('wood') ? ' wd' : ''}" data-front="${c}" style="--c:${swc(c)}"><i></i><span>${n}</span></button>`).join('') : '';
     box.hidden = !W0;
-    const wn = $('[data-kp-wn]'); if (wn) wn.innerHTML = W0 ? `<b>${W0.n}</b> · ${W0.m}` : '<b>Ihre Wunschfarbe</b> · Tippen Sie auf das Farbfeld und wählen Sie frei.';
-    const wish = $('[data-kp-wish]'); if (wish) { wish.hidden = wk !== 'wunsch'; const inp = $('[data-kp-wcol]', wish); if (inp && /^#[0-9a-f]{6}$/i.test(s.front || '') && !s.wood) { inp.value = s.front; wish.style.setProperty('--c', s.front); } const lb = $('[data-kp-wlab]', wish); if (lb) lb.innerHTML = wk === 'wunsch' && !s.wood && isHex(s.front) ? `<b>${wishName(s.front)}</b><small>${s.front.toUpperCase()}</small>` : '<b>Farbe wählen</b>'; }
+    const wn = $('[data-kp-wn]'); if (wn) wn.innerHTML = W0 ? `<b>${W0.n}</b> · ${W0.m}` : `<b>Ihre Wunschfarbe${isHex(s.front) && !s.wood ? ' „' + wishName(s.front) + '“' : ''}</b> · Unten unter „Alle Farben“ frei wählen.`;
+    acSync();
     const tip = $('[data-kp-wtip]'); if (tip) {
       const pr = W0 ? W0.pair : pairOf(s);
       const same = Object.keys(pr).every(k => s[k] === pr[k]);
@@ -1649,22 +1722,22 @@
   root.addEventListener('click', e => {
     const f = e.target.closest('[data-front]'), h = e.target.closest('[data-handle]'), t = e.target.closest('[data-top]'), st = e.target.closest('[data-style]');
     const fi = e.target.closest('[data-finish]'), bk = e.target.closest('[data-back]'), wc = e.target.closest('[data-wallc]'), fl = e.target.closest('[data-floor]'), fs = e.target.closest('[data-fstyle]'), lk = e.target.closest('[data-look]');
-    if (lk) { const L = LOOKS.find(x => x[0] === lk.dataset.look); if (!L) return; xfade(); Object.assign(P.style, L[3], { look: L[0] }); P.style.world = worldOf(P.style); change(); renderPal(); toast(`Stil „${L[1]}“ übernommen – in Schritt 3 können Sie alles fein anpassen.`); return; }
+    if (lk) { const L = LOOKS.find(x => x[0] === lk.dataset.look); if (!L) return; xfade(); Object.assign(P.style, L[3], { look: L[0] }); P.style.world = worldOf(P.style); change(); renderPal(); follow('uebersicht'); toast(`Stil „${L[1]}“ übernommen – in Schritt 3 können Sie alles fein anpassen.`); return; }
     const wb = e.target.closest('[data-world]');
     if (wb) {
       const k = wb.dataset.world; P.style.world = k;
-      if (k === 'wunsch') { P.style.world = 'wunsch'; renderTones(); const inp = $('[data-kp-wcol]'); if (inp) { inp.getBoundingClientRect(); try { inp.showPicker ? inp.showPicker() : inp.click(); } catch (er) { inp.click(); } } return; }
-      const W0 = WORLDS.find(w => w.k === k); if (W0 && !W0.c.some(c => P.style.wood ? c[1] === 'wood:' + P.style.wood : c[1] === P.style.front)) { const c = W0.c[W0.k === 'gruen' ? 2 : 0][1]; if (c.startsWith('wood:')) P.style.wood = c.slice(5); else { P.style.front = c; P.style.wood = null; } xfade(); change(); renderPal(); }
+      if (k === 'wunsch') { P.style.world = 'wunsch'; renderTones(); if (acEl) { const pn = acEl.closest('.kp-panel'), sc = pn && getComputedStyle(pn).overflowY !== 'visible' ? pn : null; if (sc) sc.scrollTo({ top: sc.scrollTop + acEl.getBoundingClientRect().top - sc.getBoundingClientRect().top - 40, behavior: RMO ? 'auto' : 'smooth' }); else acEl.scrollIntoView({ behavior: RMO ? 'auto' : 'smooth', block: 'center' }); acEl.classList.remove('kp-flash'); void acEl.offsetWidth; acEl.classList.add('kp-flash'); } return; }
+      const W0 = WORLDS.find(w => w.k === k); if (W0 && !W0.c.some(c => P.style.wood ? c[1] === 'wood:' + P.style.wood : c[1] === P.style.front)) { const c = W0.c[W0.k === 'gruen' ? 2 : 0][1]; if (c.startsWith('wood:')) P.style.wood = c.slice(5); else { P.style.front = c; P.style.wood = null; } xfade(); change(); renderPal(); follow('front'); }
       renderTones(); return;
     }
     if (e.target.closest('[data-kp-pair]')) { xfade(); Object.assign(P.style, pairOf(P.style)); change(); renderPal(); toast('Abgestimmt: Arbeitsplatte, Griffe und Wand passen jetzt zu Ihrer Farbe.'); return; }
-    if (fs) { xfade(); P.style.frame = +fs.dataset.fstyle; change(); renderPal(); return; }
-    if (fi || bk || wc || fl) { xfade(); if (fi) P.style.finish = fi.dataset.finish; if (bk) P.style.back = bk.dataset.back; if (wc) P.style.wall = wc.dataset.wallc; if (fl) P.style.floor = fl.dataset.floor; change(); return; }
+    if (fs) { xfade(); P.style.frame = +fs.dataset.fstyle; change(); renderPal(); follow('front'); return; }
+    if (fi || bk || wc || fl) { xfade(); if (fi) P.style.finish = fi.dataset.finish; if (bk) P.style.back = bk.dataset.back; if (wc) P.style.wall = wc.dataset.wallc; if (fl) P.style.floor = fl.dataset.floor; change(); follow(fi ? 'front' : bk ? 'bs' : 'uebersicht'); return; }
     if (f) { const v = f.dataset.front; if (v.startsWith('wood:')) P.style.wood = v.slice(5); else { P.style.front = v; P.style.wood = null; } P.style.world = worldOf(P.style); }
     else if (h) P.style.handle = h.dataset.handle; else if (t) P.style.top = t.dataset.top;
     else if (st) { const S = STY[st.dataset.style]; Object.assign(P.style, S); P.style.world = worldOf(P.style); }
     else return;
-    xfade(); change(); renderPal();
+    xfade(); change(); renderPal(); follow(f ? 'front' : h ? 'handle' : t ? 'top' : 'uebersicht');
   });
   const STY = { hell: { front: '#f1eee8', wood: null, handle: 'grifflos', top: 'eiche' }, dunkel: { front: '#232426', wood: null, handle: 'grifflos', top: 'eiche' }, natur: { front: '#d9cfbf', wood: null, handle: 'gold', top: 'keramik' }, holz: { wood: 'eiche', handle: 'schwarz', top: 'marmor' }, farbe: { front: '#7f8e77', wood: null, handle: 'gold', top: 'keramik' }, blau: { front: '#22304a', wood: null, handle: 'gold', top: 'keramik' } };
   function syncUI() {
@@ -1976,6 +2049,40 @@
   offerResume();
   const io = new IntersectionObserver(([en]) => { if (en.isIntersecting) { io.disconnect(); load3D(); } }); io.observe(host3);
   if (/[?&]foto=1/.test(location.search)) setTimeout(() => openFoto({}), 400);
+  /* ---- Mitlauf-3D am Handy (Natan 22.10.: „dass sie sich ein bisschen verkleinert und mitläuft, wenn man runter scrollt“) ----
+     Die Bühne dockt beim Runterscrollen verkleinert unter den Planer-Kopf. Griff: ziehen = Größe, tippen = einklappen. */
+  (function () {
+    const st = $('.kp-stage'), hd = $('.kp-head'); if (!st || !hd || !window.matchMedia) return;
+    const mq = matchMedia('(max-width:999px)'), H = document.documentElement;
+    const ph = document.createElement('div'); ph.className = 'kp-stph'; ph.setAttribute('aria-hidden', 'true'); st.parentNode.insertBefore(ph, st);
+    const bar = document.createElement('div'); bar.className = 'kp-dock';
+    bar.innerHTML = `<button type="button" data-dk-ov>Übersicht</button><button type="button" class="kp-dock-g" data-dk-grip aria-label="3D-Ansicht: ziehen für größer oder kleiner, tippen zum Ein- und Ausklappen"><i></i><span>3D zeigen</span></button><button type="button" data-dk-up aria-label="Zur großen 3D-Ansicht"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12 3h5v5M8 17H3v-5M17 3l-6 6M3 17l6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
+    st.appendChild(bar);
+    let on = false, mini = false, hh = 0, raf = 0, drag = null; const LS = 'kp-dock-h';
+    try { hh = +localStorage.getItem(LS) || 0; } catch (e) { }
+    const blocked = () => ['kpr-on', 'kpf-on', 'kpr-vfon', 'kp-lv-on'].some(c => H.classList.contains(c)) || !!document.fullscreenElement;
+    const defH = () => Math.round(Math.min(250, Math.max(150, innerHeight * .26)));
+    function apply() { const top = Math.round(hd.getBoundingClientRect().bottom); root.style.setProperty('--dkt', top + 'px'); root.style.setProperty('--dkh', (mini ? 0 : (hh || defH())) + 'px'); st.classList.toggle('kp-dkmini', mini); }
+    function set(v) { if (v === on) return; on = v; if (v) ph.style.height = st.offsetHeight + 'px'; st.classList.toggle('kp-docked', v); ph.classList.toggle('on', v); root.classList.toggle('kp-dockon', v); if (v) apply(); }
+    function upd() {
+      raf = 0; if (!mq.matches || blocked()) { set(false); return; }
+      const ref = (on ? ph : st).getBoundingClientRect(), top = hd.getBoundingClientRect().bottom, end = root.getBoundingClientRect().bottom;
+      set(ref.bottom < top + ref.height * .45 && end > top + 320); if (on) apply();
+    }
+    const q = () => { if (!raf) raf = requestAnimationFrame(upd); };
+    addEventListener('scroll', q, { passive: true }); addEventListener('resize', q); new MutationObserver(q).observe(H, { attributes: true, attributeFilter: ['class'] });
+    bar.addEventListener('click', e => {
+      if (e.target.closest('[data-dk-ov]')) { if (K && K.view) { K.view('perspektive'); $$('[data-cam]').forEach(x => x.classList.toggle('on', x.dataset.cam === 'perspektive')); } return; }
+      if (e.target.closest('[data-dk-up]')) { const y = ph.getBoundingClientRect().top + scrollY - hd.getBoundingClientRect().bottom; scrollTo({ top: Math.max(0, y), behavior: RMO ? 'auto' : 'smooth' }); return; }
+      if (e.target.closest('[data-dk-grip]') && e.detail === 0) { mini = !mini; apply(); }   // Tastatur
+    });
+    const grip = $('[data-dk-grip]', bar);
+    grip.addEventListener('pointerdown', e => { drag = { y: e.clientY, h: mini ? 0 : (hh || defH()), m: 0 }; try { grip.setPointerCapture(e.pointerId); } catch (er) { } });
+    grip.addEventListener('pointermove', e => { if (!drag) return; const d = e.clientY - drag.y; if (Math.abs(d) > 5) drag.m = 1; if (!drag.m) return; const v = Math.max(0, Math.min(innerHeight * .55, drag.h + d)); st.classList.add('kp-dkdrag'); root.style.setProperty('--dkh', v + 'px'); st.classList.toggle('kp-dkmini', v < 60); drag.v = v; });
+    const endDrag = () => { if (!drag) return; const w = drag; drag = null; st.classList.remove('kp-dkdrag'); if (!w.m) mini = !mini; else if (w.v < 70) mini = true; else { mini = false; hh = Math.round(Math.max(110, w.v)); try { localStorage.setItem(LS, String(hh)); } catch (e) { } } apply(); };
+    grip.addEventListener('pointerup', endDrag); grip.addEventListener('pointercancel', endDrag);
+    upd();
+  })();
   // Einmaliger Hinweis
   setTimeout(() => toast(innerWidth < 1000 ? 'Tipp: Schrank unten antippen oder nach oben in die Wand ziehen.' : 'Tipp: Schränke links anfassen und in die Wand ziehen.'), 900);
 })();

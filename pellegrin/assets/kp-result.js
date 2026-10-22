@@ -1549,7 +1549,7 @@
   <button type="button" data-kpx="here">${XI.cam}<span>Foto von hier</span></button>
   <button type="button" data-kpx="top">${XI.top}<span>Draufsicht</span></button>
   <button type="button" data-kpx="plan">${XI.plan}<span>Grundriss &amp; Wände</span></button>
-  <button type="button" data-kpx="inst">${XI.inst}<span>Installationsplan</span></button>
+  <button type="button" data-kpx="inst">${XI.inst}<span>Installations­plan</span></button>
   <button type="button" data-kpx="list">${XI.list}<span>Details</span></button>
   <button type="button" data-kpx="img">${XI.img}<span>Bild speichern</span></button>
   <button type="button" data-kpx="save">${XI.save}<span>Küche speichern</span></button>

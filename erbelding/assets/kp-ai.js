@@ -1257,7 +1257,7 @@
   }
   // Handy: zur 3D-Bühne scrollen – unter dem klebenden Kopf (Seitenkopf + Planer-Schritte)
   function toStage() {
-    const st = document.querySelector('.kp-stage'), hd = document.querySelector('.kp-head'); if (!st) return;
+    const st = document.querySelector('.kp-stph.on') || document.querySelector('.kp-stage'), hd = document.querySelector('.kp-head'); if (!st) return;
     let off = 0; try { off = hd ? (parseFloat(getComputedStyle(hd).top) || 0) + hd.offsetHeight : 0; } catch (e) { off = 0; }
     const y = Math.max(0, st.getBoundingClientRect().top + scrollY - off - 2), L = window.__lenis;
     if (L && typeof L.scrollTo === 'function') { try { L.scrollTo(y, { immediate: RMO }); return; } catch (e) { } }
