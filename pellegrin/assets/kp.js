@@ -128,7 +128,7 @@
     if (L < 32) return { top: 'keramik', handle: 'gold', wall: '#f3efe9', floor: 'eiche' };
     if (H >= 110 && H < 200) return WORLDS[2].pair; if (H >= 200 && H < 312) return WORLDS[3].pair;
     return L < 58 ? { top: 'keramik', handle: 'gold', wall: '#f3efe9', floor: 'eiche' } : { top: 'eiche', handle: 'schwarz', wall: '#f3efe9', floor: 'eiche' }; };
-  // Alle Farben (Natan 22.10.: „aus allen Farben eine Farbe … zum Beispiel rosa“): Farbfächer mit 12 Farbfamilien × zart/sanft/kräftig/tief + Neutraltöne
+  // Alle Farben: Farbfächer mit 12 Farbfamilien × zart/sanft/kräftig/tief + Neutraltöne
   const FAN = [
     ['Rot', [['Rosenholz', '#e6c3be'], ['Altrot', '#c98a83'], ['Signalrot', '#b8352e'], ['Bordeaux', '#6b2229']]],
     ['Koralle', [['Pfirsich', '#f0cdb8'], ['Koralle', '#e08e74'], ['Ziegelrot', '#b5543a'], ['Rost', '#7a3523']]],
@@ -1631,7 +1631,7 @@
   const swc = c => c.startsWith('wood') ? WOOD[c.slice(5)] : c;
   const fan = cols => cols.map(([, c], i, a) => `<i style="--c:${swc(c)};--i:${(i - (a.length - 1) / 2).toFixed(2)}"${c.startsWith('wood') ? ' class="wd"' : ''}></i>`).join('');
   { const we = $('[data-kp-worlds]'); if (we) we.innerHTML = WORLDS.map(w => `<button type="button" class="kp-world" data-world="${w.k}" aria-pressed="false"><span class="kp-fan" aria-hidden="true">${fan(w.c)}</span><b>${w.n}</b><small>${w.d}</small></button>`).join('') + `<button type="button" class="kp-world kp-wwish" data-world="wunsch" aria-pressed="false"><span class="kp-fan rb" aria-hidden="true"><i style="--i:-1.5"></i><i style="--i:-.5"></i><i style="--i:.5"></i><i style="--i:1.5"></i></span><b>Ihre Wunschfarbe</b><small>Jeder Farbton möglich</small></button>`; }
-  // Kamera folgt der Auswahl (Natan 22.10.: „Armatur auswählen … jedes Mal hoch und runter scrollen“) – Blick fährt zum geänderten Teil
+  // Kamera folgt der Auswahl – Blick fährt zum geänderten Teil
   let folT = 0;
   function follow(k) { if (!K || !K.focusOn) return; clearTimeout(folT); folT = setTimeout(() => { try { if (K.focusOn(k)) $$('[data-cam]').forEach(b => b.classList.toggle('on', k === 'uebersicht' && b.dataset.cam === 'perspektive')); } catch (e) { } }, 150); }
   let wishT = 0;
@@ -2049,7 +2049,7 @@
   offerResume();
   const io = new IntersectionObserver(([en]) => { if (en.isIntersecting) { io.disconnect(); load3D(); } }); io.observe(host3);
   if (/[?&]foto=1/.test(location.search)) setTimeout(() => openFoto({}), 400);
-  /* ---- Mitlauf-3D am Handy (Natan 22.10.: „dass sie sich ein bisschen verkleinert und mitläuft, wenn man runter scrollt“) ----
+  /* ---- Mitlauf-3D am Handy ----
      Die Bühne dockt beim Runterscrollen verkleinert unter den Planer-Kopf. Griff: ziehen = Größe, tippen = einklappen. */
   (function () {
     const st = $('.kp-stage'), hd = $('.kp-head'); if (!st || !hd || !window.matchMedia) return;
