@@ -90,7 +90,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--signal);outline-off
 .phone::before{right:calc(var(--pw) * -.012);top:25%;height:11%;background:linear-gradient(90deg,#3a424c,#7a8490)}
 .phone::after{left:calc(var(--pw) * -.012);top:18%;height:17%;background:linear-gradient(#6a7480 0 40%,transparent 40% 56%,#6a7480 56%)}
 .scrn{position:relative;overflow:hidden;background:#05080d}
-.phone .scrn{border-radius:calc(var(--pw) * .13);clip-path:inset(0 round calc(var(--pw) * .13))}
+.phone .scrn{border-radius:calc(var(--pw) * .13);transform:translateZ(0);isolation:isolate}
 .sbar{position:relative;z-index:3;height:calc(var(--pw) * .115);display:flex;align-items:center;justify-content:space-between;padding:calc(var(--pw) * .02) calc(var(--pw) * .08) 0 calc(var(--pw) * .105);background:var(--sc,#0b0e12);color:var(--sf,#fff);font:700 calc(var(--pw) * .056) / 1 -apple-system,"SF Pro Text",system-ui,sans-serif;letter-spacing:-.01em;transition:background-color .5s,color .5s}
 .sbar::after{content:"";position:absolute;left:50%;top:calc(var(--pw) * .024);width:31%;height:calc(var(--pw) * .075);margin-left:-15.5%;border-radius:99px;background:#000}
 .sic{display:flex;align-items:center;gap:calc(var(--pw) * .016)}
@@ -109,7 +109,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--signal);outline-off
 @keyframes glr{from{background-position:130% 0,0 0}to{background-position:-40% 0,0 0}}
 .tab{--tw:150px;width:calc(var(--tw) * 1.08);padding:calc(var(--tw) * .04);border-radius:calc(var(--tw) * .08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.24),inset 0 0 0 calc(var(--tw) * .014) #06080b,0 26px 50px -18px rgba(0,0,0,.9),0 0 60px -20px rgba(29,90,151,.75)}
 .tab::before{content:"";position:absolute;top:calc(var(--tw) * .013);left:50%;width:calc(var(--tw) * .016);height:calc(var(--tw) * .016);margin-left:calc(var(--tw) * -.008);border-radius:50%;background:#1b2530;box-shadow:inset 0 0 0 1px #33465a}
-.tab .scrn{border-radius:calc(var(--tw) * .035);clip-path:inset(0 round calc(var(--tw) * .035))}
+.tab .scrn{border-radius:calc(var(--tw) * .035);transform:translateZ(0);isolation:isolate}
 .tab .vw{aspect-ratio:768/1024}
 .lap{--lw:300px;width:var(--lw)}
 .lid{position:relative;padding:calc(var(--lw) * .028) calc(var(--lw) * .028) calc(var(--lw) * .042);border-radius:calc(var(--lw) * .032) calc(var(--lw) * .032) 3px 3px;background:#07090c;box-shadow:inset 0 0 0 1.5px #3e4650,0 0 0 1px #11161b,0 30px 50px -24px rgba(0,0,0,.9),0 0 90px -30px rgba(29,90,151,.85)}
@@ -612,9 +612,14 @@ function phone(pw, n, inner, cls){ var c=sc(n); return '<div class="phone metal'
 function vw(content, cls){ return '<div class="vw'+(cls?' '+cls:'')+'">'+content+'</div>'; }
 function safari(url){ return '<div class="sfb"><div class="url">'+LOCK+url+'</div><div class="tb">'+TB+'</div></div>'; }
 function vtag(n, extra){ return '<video data-v="'+n+'"'+(extra||'')+' muted playsinline preload="auto"></video>'; }
-function hydrate(root){ root.querySelectorAll('video[data-v]').forEach(function(v){ var n=v.getAttribute('data-v'); v.muted=true; v.defaultMuted=true; v.playsInline=true; v.setAttribute('playsinline',''); v.setAttribute('muted',''); v.preload='auto'; v.poster='clips/'+n+'.webp'; v.src=src('clips/'+n+'.mp4'); }); }
-function playV(v, t){ if(!v) return; try{ v.currentTime=t||0; }catch(e){} var p=v.play(); if(p&&p.catch) p.catch(function(){}); }
-function stopV(sel){ document.querySelectorAll(sel).forEach(function(v){ try{ v.pause(); }catch(e){} }); }
+/* Videos bekommen ihre Quelle erst, wenn sie spielen sollen, und geben sie danach wieder ab.
+   Handys haben nur wenige Video-Decoder: Bei zu vielen geladenen Videos bleiben neue schwarz. */
+function hydrate(root){ root.querySelectorAll('video[data-v]').forEach(function(v){ var n=v.getAttribute('data-v'); v.muted=true; v.defaultMuted=true; v.playsInline=true; v.setAttribute('playsinline',''); v.setAttribute('webkit-playsinline',''); v.setAttribute('muted',''); v.preload='none'; v.poster='clips/'+n+'.webp'; }); }
+function loadV(v){ if(v && !v.getAttribute('src')){ v.preload='auto'; v.onerror=function(){ freeV(v); }; v.src=src('clips/'+v.getAttribute('data-v')+'.mp4'); } }
+function playV(v, t){ if(!v) return; loadV(v); t=t||0; var go=function(){ try{ if(Math.abs(v.currentTime-t)>.04) v.currentTime=t; }catch(e){} var p=v.play(); if(p&&p.catch) p.catch(function(){}); }; if(v.readyState>=1) go(); else { v.addEventListener('loadedmetadata', go, {once:true}); var p=v.play(); if(p&&p.catch) p.catch(function(){}); } }
+function freeV(v){ if(!v) return; try{ v.pause(); }catch(e){} if(v.getAttribute('src')){ v.removeAttribute('src'); try{ v.load(); }catch(e){} } }
+function stopV(sel){ document.querySelectorAll(sel).forEach(freeV); }
+function holdV(sel){ document.querySelectorAll(sel).forEach(function(v){ try{ v.pause(); }catch(e){} }); }
 function recolor(ph, n){ if(!ph) return; var c=sc(n); ph.style.setProperty('--sc',c[0]); ph.style.setProperty('--sf',c[1]); }
 
 /* Versprechen: Handy, Tablet, Laptop, Ring aus acht echten Seiten, Bauplan */
@@ -656,9 +661,9 @@ function buildReel(){
 }
 var curCard=-1;
 function showCard(i){
-  cards.forEach(function(o,k){ if(k!==i && o.classList.contains('on')){ o.classList.remove('on'); o.classList.add('out'); setTimeout(function(){ o.classList.remove('out'); if(!o.classList.contains('on')) o.querySelectorAll('video').forEach(function(v){ v.pause(); }); }, 700); } });
+  cards.forEach(function(o,k){ if(k!==i && o.classList.contains('on')){ o.classList.remove('on'); o.classList.add('out'); setTimeout(function(){ o.classList.remove('out'); if(!o.classList.contains('on')) o.querySelectorAll('video').forEach(freeV); }, 700); } });
   curCard=i; if(i<0||!cards[i]) return;
-  var c=cards[i]; c.querySelectorAll('video').forEach(function(v,k){ try{ v.currentTime= k? 0 : .3; }catch(e){} if(!k){ var p=v.play(); if(p&&p.catch) p.catch(function(){}); } });
+  var c=cards[i]; playV(c.querySelector('video'), .3);
   var kb=c.querySelector('.kb'); if(kb){ kb.style.animation='none'; kb.offsetWidth; kb.style.animation=''; }
   requestAnimationFrame(function(){ if(curCard===i){ c.classList.remove('out'); c.classList.add('on'); } });
   warp(9, 650); whoosh();
@@ -703,7 +708,7 @@ function fState(n){
   var vids=document.querySelectorAll('#fp .fv'), o=FEATS[n];
   if(n===0){ vids[0].classList.add('on'); }
   if(o){
-    vids.forEach(function(v,i){ if(i===n-1){ v.classList.remove('off'); v.classList.add('on'); playV(v,o.t0||0); } else if(v.classList.contains('on')){ v.classList.remove('on'); v.classList.add('off'); try{ v.pause(); }catch(e){} } });
+    vids.forEach(function(v,i){ if(i===n-1){ v.classList.remove('off'); v.classList.add('on'); playV(v,o.t0||0); } else if(v.classList.contains('on')){ v.classList.remove('on'); v.classList.add('off'); try{ v.pause(); }catch(e){} setTimeout(function(){ if(!v.classList.contains('on')) freeV(v); }, 650); } });
     fVid=vids[n-1]; fTaps=((D.taps||{})[o.v]||[]).filter(function(t){ return t[1]>.02&&t[1]<.98&&t[2]>.02&&t[2]<.98; }).slice();
     var ph=q('#fp .phone'); if(o.sb){ ph.style.setProperty('--sc',o.sb[0]); ph.style.setProperty('--sf',o.sb[1]); } else recolor(ph, o.v);
     if(n>1){ var fp=$('fp'); fp.classList.remove('sw'); void fp.offsetWidth; fp.classList.add('sw'); }
@@ -780,13 +785,13 @@ var CUES_A = function(){ var c=[];
   c.push([L('A',0), function(){ scene('s-welcome'); chap(0); words($('welcome-h'),'Willkommen in der neuen Welt der Webseiten.'); warp(4,1800); }]);
   c.push([L('A',1)-.25, function(){ $('welcome-h').classList.add('away'); $('hello').classList.add('on'); }]);
   c.push([L('A',2), function(){ $('orb').classList.add('on'); }]);
-  c.push([L('A',3), function(){ scene('s-promise'); chap(1); pState(1); var v=$('mv1'); try{ v.pause(); v.currentTime=0; }catch(e){} whoosh(); }]);
+  c.push([L('A',3), function(){ scene('s-promise'); chap(1); pState(1); whoosh(); }]);
   c.push([L('A',3)+1.12, function(){ $('s-promise').classList.add('snap'); playV($('mv1'),0); thump(); }]);
   c.push([L('A',4), function(){ pState(2); playV($('mv1'),0); playV(q('#mt video'),0); playV(q('#ml video'),0); whoosh(); }]);
   c.push([L('A',5), function(){ pState(3); whoosh(); warp(5,700); }]);
   c.push([L('A',5)+.9, function(){ stopV('#mt video,#ml video'); }]);
   c.push([L('A',5)+1.1, function(){ $('s-promise').classList.add('n3'); tick(); }]);
-  c.push([L('A',6), function(){ pState(4); stopV('#mv1'); var v=$('mv2'); try{ v.pause(); v.currentTime=0; }catch(e){} barTo('pbar','pct',0,0,10); whoosh(); }]);
+  c.push([L('A',6), function(){ pState(4); holdV('#mv1'); loadV($('mv2')); barTo('pbar','pct',0,0,10); whoosh(); }]);
   c.push([L('A',6)+.55, function(){ $('s-promise').classList.add('b1'); tick(); barTo('pbar','pct',0,42,800); }]);
   c.push([L('A',6)+1.35, function(){ $('s-promise').classList.add('b2'); playV($('mv2'),0); recolor(q('#mp .phone'),'gartentraum'); barTo('pbar','pct',42,100,1000); tick(); }]);
   c.push([L('A',6)+2.45, function(){ $('s-promise').classList.add('s4'); thump(); flash(.12); }]);
