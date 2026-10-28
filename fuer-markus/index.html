@@ -442,6 +442,25 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--signal);outline-off
 .start p{margin:0;font:13px/1.5 var(--osd);letter-spacing:.06em;color:#bfc6cc}
 .flash{position:absolute;inset:0;z-index:35;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s}
 @media (prefers-reduced-motion:reduce){.rays,#code,.ring,.flt{animation:none!important}}
+
+/* Großer Link am Ende (28.10.) */
+.portal{position:relative;display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px 12px;padding:10px 14px 12px;border-radius:18px;background:var(--signal);color:#000;text-decoration:none;overflow:hidden;box-shadow:0 0 0 0 color-mix(in srgb,var(--signal) 70%,transparent),0 18px 40px -12px color-mix(in srgb,var(--signal) 60%,transparent);animation:ptGlow 2.4s ease-in-out infinite}
+.portal::after{content:"";position:absolute;inset:-40% auto -40% -30%;width:30%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.65),transparent);transform:skewX(-18deg);animation:ptShine 3.2s ease-in-out infinite;pointer-events:none}
+.pt-strip{grid-column:1/-1;height:min(13vh,92px);overflow:hidden;border-radius:12px;background:rgba(0,0,0,.12);-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.pt-track{display:flex;gap:8px;height:100%;padding:6px 0;width:max-content;animation:ptRun 22s linear infinite}
+.pt-track img{height:100%;width:auto;aspect-ratio:9/19;object-fit:cover;object-position:top;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.35);transform:rotate(-2deg)}
+.pt-track img:nth-child(even){transform:rotate(2deg) translateY(2px)}
+.pt-txt b{display:block;font:800 clamp(18px,5.2vw,24px)/1.1 var(--body);letter-spacing:-.01em}
+.pt-txt small{display:block;margin-top:3px;font:600 12px var(--osd);letter-spacing:.08em;opacity:.75}
+.pt-go{width:46px;height:46px;border-radius:50%;background:#000;color:var(--signal);display:grid;place-items:center;animation:ptNudge 1.2s ease-in-out infinite}
+.pt-go svg{width:24px;height:24px}
+.portal:active{transform:scale(.98)}
+@keyframes ptRun{to{transform:translateX(-50%)}}
+@keyframes ptShine{0%,55%{left:-30%}100%{left:130%}}
+@keyframes ptNudge{0%,100%{transform:none}50%{transform:translateX(5px)}}
+@keyframes ptGlow{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--signal) 55%,transparent),0 18px 40px -12px color-mix(in srgb,var(--signal) 60%,transparent)}50%{box-shadow:0 0 0 8px transparent,0 18px 40px -12px color-mix(in srgb,var(--signal) 60%,transparent)}}
+@media (max-height:720px){.has-contact .who{display:none}.pt-strip{height:9vh}.has-contact .logo{width:min(36vw,150px)}}
+@media (prefers-reduced-motion:reduce){.portal,.portal::after,.pt-track,.pt-go{animation:none}}
 </style>
 </head>
 <body>
@@ -529,6 +548,11 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--signal);outline-off
     <div class="logo"><img class="bird" src="media/bird.png" alt="" width="934" height="207"><img class="wm" src="media/wordmark.png" alt="Falcon Eye" width="956" height="175"></div>
     <div class="fin-h"><h2 class="big" id="fin-h"></h2></div>
     <div class="contact" id="contact">
+      <a class="portal" id="portal" href="https://falcon-eye.de/webdesign" aria-label="Alle Websites und Entwürfe ansehen auf falcon-eye.de/webdesign">
+        <span class="pt-strip" aria-hidden="true"><span class="pt-track"><img src="clips/pellegrin.webp" alt="" loading="lazy" decoding="async"><img src="clips/hudalla.webp" alt="" loading="lazy" decoding="async"><img src="clips/gartentraum.webp" alt="" loading="lazy" decoding="async"><img src="clips/waescherei.webp" alt="" loading="lazy" decoding="async"><img src="clips/verena.webp" alt="" loading="lazy" decoding="async"><img src="clips/zh_bestand.webp" alt="" loading="lazy" decoding="async"><img src="clips/natan.webp" alt="" loading="lazy" decoding="async"><img src="clips/holding.webp" alt="" loading="lazy" decoding="async"><img src="clips/kp_3d.webp" alt="" loading="lazy" decoding="async"><img src="clips/karosserie.webp" alt="" loading="lazy" decoding="async"><img src="clips/pellegrin.webp" alt="" loading="lazy" decoding="async"><img src="clips/hudalla.webp" alt="" loading="lazy" decoding="async"><img src="clips/gartentraum.webp" alt="" loading="lazy" decoding="async"><img src="clips/waescherei.webp" alt="" loading="lazy" decoding="async"><img src="clips/verena.webp" alt="" loading="lazy" decoding="async"><img src="clips/zh_bestand.webp" alt="" loading="lazy" decoding="async"><img src="clips/natan.webp" alt="" loading="lazy" decoding="async"><img src="clips/holding.webp" alt="" loading="lazy" decoding="async"><img src="clips/kp_3d.webp" alt="" loading="lazy" decoding="async"><img src="clips/karosserie.webp" alt="" loading="lazy" decoding="async"></span></span>
+        <span class="pt-txt"><b>Alle Websites &amp; Entwürfe ansehen</b><small>falcon-eye.de/webdesign</small></span>
+        <span class="pt-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
       <div class="who">Natan · Falcon Eye<small>FPV-Drohnenfilme &amp; Webdesign · Saarbrücken</small></div>
       <div class="btns">
         <a class="b wa" id="wa" href="https://wa.me/4915156743442?text=Hallo%20Natan%2C%20lass%20uns%20zusammenarbeiten!%20%E2%80%93%20Markus"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.1 5.1 0 0 0 1.1 2.7 11.7 11.7 0 0 0 4.5 4c1.7.7 2.3.8 3.1.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.2c0-.1-.2-.2-.5-.3Z"/></svg>Natan auf WhatsApp schreiben</a>
@@ -537,7 +561,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--signal);outline-off
         <button class="b" id="share" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0-12-4 4m4-4 4 4M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>Link teilen</button>
         <a class="b" href="https://falcon-eye.de/webdesign"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg>Webdesign</a>
       </div>
-      <div class="go-on" id="goon"><span id="cdt">Weiter zu Webdesign in 20 s</span><span class="cd"><b id="cdb"></b></span><button type="button" id="stay">Hier bleiben</button></div>
+      <div class="go-on" id="goon"><span id="cdt">Weiter zu allen Websites in 20 s</span><span class="cd"><b id="cdb"></b></span><button type="button" id="stay">Hier bleiben</button></div>
       <button class="again" type="button" id="again">Nochmal abspielen</button>
     </div>
   </section>
@@ -897,7 +921,7 @@ function finale(){ scene('s-final'); app.classList.add('fin'); warp(1.2,10); bas
 var cdTimer=null, cdLeft=20;
 function endAll(){ part=null; showCap(''); setTimeout(function(){ $('s-final').classList.add('has-contact'); requestAnimationFrame(function(){ requestAnimationFrame(function(){ $('contact').classList.add('on'); }); }); startCountdown(); if(gM) ramp(gM,.55,3); }, 900); }
 function startCountdown(){ cdLeft=20; var b=$('cdb'); b.style.transition='none'; b.style.transform='scaleX(1)'; b.offsetWidth; b.style.transition='transform 20s linear'; b.style.transform='scaleX(0)';
-  clearInterval(cdTimer); cdTimer=setInterval(function(){ if(paused) return; cdLeft--; $('cdt').textContent='Weiter zu Webdesign in '+cdLeft+' s'; if(cdLeft<=0){ clearInterval(cdTimer); if(gM) ramp(gM,0,1.2); setTimeout(function(){ location.href=TARGET; }, 1100); } }, 1000); $('cdt').textContent='Weiter zu Webdesign in 20 s'; }
+  clearInterval(cdTimer); cdTimer=setInterval(function(){ if(paused) return; cdLeft--; $('cdt').textContent='Weiter zu allen Websites in '+cdLeft+' s'; if(cdLeft<=0){ clearInterval(cdTimer); if(gM) ramp(gM,0,1.2); setTimeout(function(){ location.href=TARGET; }, 1100); } }, 1000); $('cdt').textContent='Weiter zu allen Websites in 20 s'; }
 $('stay').addEventListener('click', function(){ clearInterval(cdTimer); $('goon').style.display='none'; if(gM) ramp(gM,.35,2); });
 $('again').addEventListener('click', function(){ location.reload(); });
 $('vcf').addEventListener('click', function(){ var v='BEGIN:VCARD\r\nVERSION:3.0\r\nN:;Natan;;;\r\nFN:Natan\r\nORG:Falcon Eye\r\nTITLE:FPV-Drohnenfilme & Webdesign\r\nTEL;TYPE=CELL:+4915156743442\r\nEMAIL:info@falcon-eye.de\r\nURL:https://falcon-eye.de/webdesign\r\nADR;TYPE=WORK:;;Römerstr. 25;Saarbrücken;;66125;Deutschland\r\nEND:VCARD\r\n'; var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([v],{type:'text/vcard'})); a.download='Natan-Falcon-Eye.vcf'; document.body.appendChild(a); a.click(); a.remove(); });
