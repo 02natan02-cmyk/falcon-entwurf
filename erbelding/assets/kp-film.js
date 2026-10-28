@@ -24,7 +24,7 @@
   const TOT = S.reduce((a, s) => a + s.t, 0);
   let el = null, i = 0, tm = 0, t0 = 0, left = 0, paused = false, last = null;
   function build() {
-    el = document.createElement('div'); el.className = 'kpfm'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', `So geht's – der Küchenplaner in ${Math.round(TOT)} Sekunden`);
+    el = document.createElement('div'); el.className = 'kpfm'; el.setAttribute('role', 'dialog'); el.tabIndex = -1; el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', `So geht's – der Küchenplaner in ${Math.round(TOT)} Sekunden`);
     el.innerHTML = `<div class="kpfm-bar">${S.map(() => '<i><b></b></i>').join('')}</div>
 <button type="button" class="kpfm-skip" data-fm-skip>Überspringen</button>
 <div class="kpfm-stage">${S.map((s, j) => `<section class="kpfm-s" data-s="${j}" aria-hidden="true"><svg viewBox="0 0 320 230" aria-hidden="true">${s.svg}</svg><p class="kpfm-k">${s.k}</p><h2>${s.h}</h2><p class="kpfm-p">${s.p}</p></section>`).join('')}</div>
@@ -51,7 +51,7 @@
   }
   function open() {
     if (el) return; last = document.activeElement; build(); document.documentElement.classList.add('kpfm-on');
-    requestAnimationFrame(() => { el.classList.add('in'); show(0); el.querySelector('[data-fm-go]').focus({ preventScroll: true }); });
+    requestAnimationFrame(() => { el.classList.add('in'); show(0); el.focus({ preventScroll: true }); });
   }
   function close() {
     if (!el) return; clearTimeout(tm); try { localStorage.setItem(KEY, String(Date.now())); } catch (e) { }

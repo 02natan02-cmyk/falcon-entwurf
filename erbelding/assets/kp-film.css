@@ -11,8 +11,9 @@ html.kpfm-on,html.kpfm-on body{overflow:hidden}
 @keyframes kpfmBar{to{width:100%}}
 .kpfm-skip{position:absolute;z-index:3;right:14px;top:calc(26px + env(safe-area-inset-top,0px));padding:9px 14px;border:1px solid rgba(255,255,255,.35);border-radius:999px;background:rgba(0,0,0,.25);color:#fff;font:600 13px var(--sans,system-ui);cursor:pointer}
 .kpfm-stage{position:relative;display:grid;place-items:center;min-height:0;cursor:pointer}
-.kpfm-s{position:absolute;inset:0;display:grid;align-content:center;justify-items:center;gap:6px;text-align:center;padding:30px 4px 0;opacity:0;transform:translateY(14px) scale(.98);transition:opacity .45s,transform .55s cubic-bezier(.2,.8,.2,1);pointer-events:none}
-.kpfm-s.on{opacity:1;transform:none}
+.kpfm-s{position:absolute;inset:0;display:grid;align-content:center;justify-items:center;gap:6px;text-align:center;padding:30px 4px 0;opacity:0;transform:translateY(-10px);transition:opacity .16s,transform .2s;pointer-events:none}
+.kpfm-s.on{opacity:1;transform:none;transition:opacity .42s .18s,transform .55s .18s cubic-bezier(.2,.8,.2,1)}
+.kpfm:focus{outline:none}
 .kpfm-s svg{width:min(88vw,440px);height:auto;max-height:42vh;overflow:visible;margin-bottom:8px}
 .kpfm-k{margin:0;font:700 12px var(--sans,system-ui);letter-spacing:.16em;text-transform:uppercase;color:color-mix(in srgb,var(--a) 55%,#fff)}
 .kpfm-s h2{margin:0;font:400 clamp(30px,8vw,52px)/1.05 var(--serif,Georgia,serif);max-width:16ch}
