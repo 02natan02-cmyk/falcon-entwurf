@@ -556,7 +556,7 @@
   }
 
   /* ---------- klatka ---------- */
-  function frame(ts) {
+  function frame(ts, once) {
     tNow = ts || performance.now();
     sy = scrollY; front = sy + vh * (mobile ? .8 : .74);
     if (!introDone && (tNow - introT0) / 1000 > 3.2) finishIntro();
@@ -569,7 +569,7 @@
     for (const L of lamps) if (L.y > sy - 30 && L.y < sy + vh + 30) drawLampPost(g, L, sy, lampOn(L));
     drawDoor(); drawCompactor(); if (PR) { q = T(); } lightPass(); if (PR) { PR.light = (PR.light || 0) + T() - q; PR.n = (PR.n || 0) + 1; }
     if (W.onFrame) W.onFrame(sy, front);
-    if (!RM || !introDone) requestAnimationFrame(frame);
+    if (once) return; if (!RM || !introDone) requestAnimationFrame(frame);
   }
   function finishIntro() { introDone = true; plazas.forEach(p => { if (p.intro) { for (const k2 of [...bands.keys()]) bands.delete(k2); bandOrder = []; } }); document.documentElement.classList.add('intro-gotowe'); }
 
@@ -600,6 +600,9 @@
       p.anim = { t0: performance.now(), dur: 1.1 }; clearTimeout(p.animT); p.animT = setTimeout(() => { p.anim = null; bands.clear(); bandOrder = []; }, 2400);
       bands.clear(); bandOrder = []; if (RM) { p.anim = null; frame(); } },
     skipIntro() { introT0 = -1e6; },
+    bench(step) { const H = document.documentElement.scrollHeight - innerHeight, ts = []; const px = g.getImageData ? () => g.getImageData(0, 0, 1, 1) : () => 0; scrollTo(0, 0);
+      for (let y = 0; y < H; y += step || 20) { scrollTo(0, y); const t0 = performance.now(); frame(t0, true); px(); ts.push(performance.now() - t0); }
+      ts.sort((a, b) => a - b); return { n: ts.length, avg: +(ts.reduce((a, b) => a + b, 0) / ts.length).toFixed(1), p50: +ts[ts.length / 2 | 0].toFixed(1), p90: +ts[ts.length * .9 | 0].toFixed(1), p99: +ts[ts.length * .99 | 0].toFixed(1), max: +ts[ts.length - 1].toFixed(1) }; },
     swatch(c, pat, pal, opt) { // próbka wzoru w osobnym płótnie (skład, gra, planer)
       opt = opt || {}; const saveD = DPR, saveK = k; const W2 = c.width, H2 = c.height; DPR = opt.dpr || 1; k = opt.k || 0.3;
       const x = c.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = bedPat || '#c9b18a'; x.fillRect(0, 0, W2, H2);
