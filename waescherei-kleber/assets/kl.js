@@ -25,7 +25,7 @@
     const kill = () => { if (gone) return; gone = true; n.classList.remove('on'); n.classList.add('bye'); setTimeout(() => n.remove(), 600); };
     on.forEach(t => t && ['pointerdown', 'keydown', 'input'].forEach(ev => t.addEventListener(ev, e => { if (e.isTrusted) kill(); }, { passive: true })));
     if (RM) n.classList.add('rm');
-    inView(host, v => { if (v && !shown && !gone) { shown = true; setTimeout(() => { if (!gone) n.classList.add('on'); }, delay); } }, '-12% 0px');
+    inView(host, v => { if (v && !shown && !gone) { shown = true; setTimeout(() => { if (!gone) { n.classList.add('on'); setTimeout(kill, 5200); } }, delay); } }, '-12% 0px');
     return { kill, el: n };
   }
 
@@ -50,14 +50,23 @@
   const intro = $('[data-intro]');
   const ready = () => { document.body.classList.remove('is-loading'); document.dispatchEvent(new Event('kl-ready')); };
   const onReady = fn => { if (document.body.classList.contains('is-loading')) document.addEventListener('kl-ready', fn, { once: true }); else fn(); };
+  // Intro nur beim allerersten Besuch (localStorage), mit „Überspringen“; ?intro zeigt es zur Vorführung noch einmal
   if (intro) {
-    if (RM || sget('kl-intro')) { intro.remove(); ready(); }
+    const force = /[?&]intro(&|=|$)/.test(location.search);
+    if (!force && (RM || document.documentElement.classList.contains('no-intro') || store.get('kl-intro') || sget('kl-intro'))) { intro.remove(); ready(); }
     else {
+      store.set('kl-intro', 1); sset('kl-intro', 1);
       requestAnimationFrame(() => requestAnimationFrame(() => intro.classList.add('go')));
-      const end = () => { if (intro.classList.contains('out')) return; intro.classList.add('out'); ready(); sset('kl-intro', 1); setTimeout(() => intro.remove(), 900); };
+      const end = () => { if (intro.classList.contains('out')) return; intro.classList.add('out'); ready(); setTimeout(() => intro.remove(), 900); };
       setTimeout(end, 2300); intro.addEventListener('click', end);
+      const sk = $('[data-introskip]', intro); if (sk) { sk.addEventListener('click', end); setTimeout(() => { try { sk.focus({ preventScroll: true }); } catch (e) {} }, 50); }
     }
   } else ready();
+
+  /* ---------------- Größere Schrift (A+) ---------------- */
+  const root = document.documentElement, apl = $$('[data-aplus]');
+  const setGross = on => { root.classList.toggle('gross', on); apl.forEach(b => b.setAttribute('aria-pressed', on)); if (on) store.set('kl-gross', 1); else { try { localStorage.removeItem('kl-gross'); } catch (e) {} } dispatchEvent(new Event('resize')); };
+  apl.forEach(b => { b.setAttribute('aria-pressed', root.classList.contains('gross')); b.addEventListener('click', () => { const on = !root.classList.contains('gross'); setGross(on); toast(on ? 'Größere Schrift ist eingeschaltet.' : 'Normale Schriftgröße.'); }); });
 
   /* ---------------- Header / Menü ---------------- */
   const hdr = $('[data-hdr]'), burger = $('[data-burger]'), mnav = $('[data-mnav]'); let ly = 0;
@@ -84,6 +93,61 @@
     const todayIdx = (d + 1) % 7; $$('[data-hours] li').forEach(li => li.classList.toggle('today', +li.dataset.day === todayIdx));
   }
   status(); setInterval(status, 60000);
+
+  /* ---------------- Öffnungszeiten-Karte im Hero (groß, live, mit Vorlesen) ---------------- */
+  const oz = $('[data-oz]');
+  const hu = t => { const [h, m] = t.split(':'); return +m ? `${+h}:${m}` : `${+h}`; };   // „9:00“ → „9“
+  const hr = h => h ? `${hu(h[0])} – ${hu(h[1])} Uhr` : 'geschlossen';
+  const sayT = t => { const [h, m] = t.split(':'); return +m ? `${+h} Uhr ${+m}` : `${+h} Uhr`; };
+  function ozInfo() {
+    const { d, m } = berlin(), h = H[d];
+    const open = !!(h && m >= mins(h[0]) && m < mins(h[1]));
+    let nx = null; if (!open) for (let i = 0; i < 8; i++) { const dd = (d + i) % 7, hh = H[dd]; if (!hh) continue; if (i === 0 && m >= mins(hh[0])) continue; nx = { i, dd, t: hh[0] }; break; }
+    return { d, h, open, nx };
+  }
+  const whenTxt = nx => nx.i === 0 ? 'heute' : nx.i === 1 ? 'morgen, ' + DN[nx.dd] + ',' : 'am ' + DN[nx.dd];
+  function ozUpd() {
+    if (!oz) return;
+    const { d, h, open, nx } = ozInfo();
+    oz.classList.toggle('open', open); oz.classList.toggle('closed', !open);
+    $('[data-ozstt]', oz).innerHTML = open ? `Jetzt geöffnet <span class="oz-bis">· bis ${hu(h[1])} Uhr</span>` : 'Jetzt geschlossen';
+    const ne = $('[data-oznext]', oz); ne.hidden = open || !nx; if (nx && !open) ne.textContent = `Wir öffnen ${whenTxt(nx)} um ${hu(nx.t)} Uhr.`;
+    $('[data-oztoday]', oz).innerHTML = `Heute, ${DN[d]}: <b>${hr(h)}</b>`;
+  }
+  ozUpd(); setInterval(ozUpd, 30000);
+  if (oz) {
+    // ganze Woche auf schmalen Bildschirmen aufklappen
+    const more = $('[data-ozmore]', oz);
+    more.addEventListener('click', () => { const on = !oz.classList.contains('wk'); oz.classList.toggle('wk', on); more.setAttribute('aria-expanded', on); more.firstChild.textContent = on ? 'Woche zuklappen ' : 'Ganze Woche '; });
+    // Vorlesen (Web Speech API, nur wenn vorhanden): Status, heutige Zeiten, Adresse, Telefon
+    const say = $('[data-ozsay]', oz), sayL = $('[data-ozsayt]', oz), sayI = $('.oz-ic', say), SS = window.speechSynthesis;
+    if (say && SS && window.SpeechSynthesisUtterance) {
+      say.hidden = false;
+      const txt = () => {
+        const { d, h, open, nx } = ozInfo();
+        const t = ['Wäscherei Kleber.'];
+        if (open) t.push(`Wir haben jetzt geöffnet. Heute, ${DN[d]}, von ${sayT(h[0])} bis ${sayT(h[1])}.`);
+        else if (h && nx && nx.i === 0) t.push(`Wir haben jetzt noch geschlossen. Heute, ${DN[d]}, sind wir von ${sayT(h[0])} bis ${sayT(h[1])} für Sie da.`);
+        else { t.push(h ? `Wir haben jetzt geschlossen. Heute, ${DN[d]}, hatten wir von ${sayT(h[0])} bis ${sayT(h[1])} geöffnet.` : `Heute, ${DN[d]}, haben wir geschlossen.`); if (nx) t.push(`Wir öffnen ${whenTxt(nx)} um ${sayT(nx.t)}.`); }
+        t.push('Sie finden uns in der Gersweilerstraße 20 in Saarbrücken.', 'Telefon: 0 6 8 1 – 5 6 8 0 0.');
+        return t.join(' ');
+      };
+      const voice = () => { const v = SS.getVoices().filter(x => /^de(-|_|$)/i.test(x.lang)); return v.find(x => x.localService && /de-DE/i.test(x.lang)) || v.find(x => x.localService) || v.find(x => /de-DE/i.test(x.lang)) || v[0] || null; };
+      try { SS.getVoices(); } catch (e) {}
+      const setBtn = on => { say.classList.toggle('on', on); sayL.textContent = on ? 'Stopp' : 'Vorlesen'; sayI.textContent = on ? '■' : '🔊'; say.setAttribute('aria-pressed', on); };
+      let speaking = false;
+      say.addEventListener('click', () => {
+        if (speaking) { speaking = false; SS.cancel(); setBtn(false); return; }
+        try {
+          SS.cancel();
+          const u = new SpeechSynthesisUtterance(txt()); u.lang = 'de-DE'; u.rate = .9; u.pitch = 1; const v = voice(); if (v) u.voice = v;
+          u.onend = u.onerror = () => { speaking = false; setBtn(false); };
+          speaking = true; setBtn(true); SS.speak(u);
+        } catch (e) { speaking = false; setBtn(false); }
+      });
+      addEventListener('pagehide', () => { try { SS.cancel(); } catch (e) {} });
+    }
+  }
 
   /* ---------------- Türschild klappt auf: alle Öffnungszeiten ---------------- */
   const dsw = $('[data-dsw]');
@@ -144,12 +208,12 @@
     const rs = () => { W = hero.clientWidth; Hh = hero.clientHeight; bcv.width = W * DPR; bcv.height = Hh * DPR; x.setTransform(DPR, 0, 0, DPR, 0, 0); };
     rs(); addEventListener('resize', rs); inView(hero, v => vis = v, '0px');
     const mk = (y) => ({ x: Math.random() * W, y: y ?? Hh + 30, r: 6 + Math.random() * 22, v: .3 + Math.random() * .7, ph: Math.random() * 6.28, h: Math.random() * 360 });
-    for (let i = 0; i < (innerWidth < 700 ? 10 : 20); i++) bs.push(mk(Math.random() * Hh));
+    const NB = innerWidth < 700 ? 6 : 12; for (let i = 0; i < NB; i++) bs.push(mk(Math.random() * Hh));
     hero.addEventListener('pointerdown', e => { const r = hero.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top; bs = bs.filter(b => { if (Math.hypot(b.x - px, b.y - py) < b.r + 6) { for (let i = 0; i < 10; i++) pops.push({ x: b.x, y: b.y, vx: Math.cos(i / 10 * 6.28) * 2.4, vy: Math.sin(i / 10 * 6.28) * 2.4, a: 1 }); return false; } return true; }); });
     const loop = () => {
       if (vis && !RM) {
         x.clearRect(0, 0, W, Hh);
-        while (bs.length < (innerWidth < 700 ? 10 : 20)) bs.push(mk());
+        while (bs.length < NB) bs.push(mk());
         for (const b of bs) {
           b.y -= b.v; b.ph += .02; b.x += Math.sin(b.ph) * .4; if (b.y < -40) Object.assign(b, mk());
           const g = x.createRadialGradient(b.x - b.r * .3, b.y - b.r * .3, b.r * .1, b.x, b.y, b.r);
@@ -353,7 +417,6 @@
     const demo = () => {
       if (RM || touched || !vis || document.hidden) return;
       knob.classList.add('demo'); setTimeout(() => knob.classList.remove('demo'), 1300);
-      const sb = $('[data-addw="sock"]'); if (sb) setTimeout(() => { if (touched) return; sb.classList.add('demo'); drop(sb); setTimeout(() => sb.classList.remove('demo'), 700); }, 900);
     };
     onReady(() => setTimeout(demo, 3400));
     let acc = 0, rmUntil = 0;
@@ -627,6 +690,7 @@
     rail.addEventListener('pointerdown', e => { if (e.button) return; drag = { x: e.clientX, y: e.clientY, o: off, t: performance.now(), axis: null, id: e.pointerId }; moved = 0; });
     addEventListener('pointermove', e => { if (!drag || e.pointerId !== drag.id) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (!drag.axis) { if (Math.abs(dx) > 6 || Math.abs(dy) > 6) { drag.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'; if (drag.axis === 'x') rail.classList.add('drag'); } return; } if (drag.axis !== 'x') return; const now = performance.now(), no = drag.o + dx; vel = (no - off) / Math.max(1, now - drag.t) * 16; drag.t = now; off = no; moved = Math.abs(dx); });
     const up = () => { if (drag) { rail.classList.remove('drag'); drag = null; } }; addEventListener('pointerup', up); addEventListener('pointercancel', up);
+    $$('[data-rk]').forEach(b => b.addEventListener('click', () => { belt = false; bb.setAttribute('aria-pressed', false); bb.textContent = '▶︎ Förderband'; const hw = hgs[0] ? hgs[0].offsetWidth + 16 : 220; vel = +b.dataset.rk * hw * 2 * .06; }));
     const bb = $('[data-belt]'); bb.addEventListener('click', () => { belt = !belt; bb.setAttribute('aria-pressed', belt); bb.textContent = belt ? '❚❚ Förderband stoppen' : '▶︎ Förderband'; });
     $$('.hg-tag', inner).forEach(t => t.addEventListener('click', e => { if (moved > 8) { e.preventDefault(); return; } if (picked.has(t.dataset.pick)) unpickSvc(t.dataset.pick); else pickSvc(t.dataset.pick, t); }));
     nudge(rail, 'Stange ziehen', { kind: 'drag', on: [rail, bb], delay: 900, cls: 'nd-rail' });
@@ -648,7 +712,7 @@
   /* ================= Wäschezettel ================= */
   const tk = $('[data-tk]');
   if (tk) {
-    const no = String(Math.floor(1000 + Math.random() * 8999)); $('[data-tkno]').textContent = no; $('[data-tkno2]').textContent = no; $('[data-tknoin]').value = no;
+    const no = String(Math.floor(1000 + Math.random() * 8999)); $('[data-tkno]').textContent = no; $('[data-tkno2]').textContent = no;
     $$('input[name="Kunde"]', tk).forEach(r => r.addEventListener('change', () => tk.classList.toggle('biz', $('input[name="Kunde"]:checked', tk).value !== 'Privat')));
     $$('input[name="Leistung"]', tk).forEach(cb => cb.addEventListener('change', () => { if (cb.checked) picked.add(cb.value); else picked.delete(cb.value); syncTags(); }));
     // „So geht's“: Schritte haken sich mit dem Zettel ab
@@ -660,14 +724,34 @@
       steps.forEach((li, i) => { li.classList.toggle('done', done[i]); li.classList.toggle('cur', i === cur); });
     };
     tk.addEventListener('change', tkProg); tkProg();
-    tk.addEventListener('submit', async e => {
-      e.preventDefault(); const btn = $('[data-tksend]', tk); btn.disabled = true; btn.textContent = 'Wird abgegeben …';
-      const fd = new FormData(tk); const data = {}; fd.forEach((v, k) => { data[k] = data[k] ? data[k] + ', ' + v : v; });
-      try {
-        const r = await fetch(tk.action, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(data) });
-        if (!r.ok) throw 0;
-        $('[data-stampdate]').textContent = new Date().toLocaleDateString('de-DE'); tk.classList.add('sent'); $('[data-tkok]').hidden = false; $('[data-tkerr]').hidden = true; btn.textContent = 'Abgegeben ✓'; tkProg();
-      } catch (er) { $('[data-tkerr]').hidden = false; btn.disabled = false; btn.textContent = 'Zettel abgeben'; }
+    // Abgeben per WhatsApp: sauberen Nachrichtentext bauen und WhatsApp öffnen (kein Formulardienst, kein Server)
+    const nameIn = $('[data-tkname]'), err = $('[data-tkerr]'), ok = $('[data-tkok]'), waLink = $('[data-tkwa]');
+    const val = n => { const el = tk.elements[n]; return el && el.value ? el.value.trim() : ''; };
+    function waText() {
+      const svc = $$('input[name="Leistung"]:checked', tk).map(c => c.value), biz = $('input[name="Kunde"]:checked', tk).value !== 'Privat';
+      const L = [`*Wäschezettel Nr. ${no}* – Wäscherei Kleber`, ''];
+      L.push('*Was dürfen wir tun?*'); if (svc.length) svc.forEach(v => L.push('• ' + v)); else L.push('(noch nichts angekreuzt)');
+      L.push('', '*Für:* ' + (biz ? 'Praxis / Firma' : 'Privat'), '*Name:* ' + val('Name'));
+      const add = (k, n) => { const v = val(n); if (v) L.push(`*${k}:* ${v}`); };
+      add('Telefon', 'Telefon'); if (biz) add('Firma / Praxis', 'Firma'); add('Abholadresse', 'Abholadresse');
+      const msg = val('Nachricht'); if (msg) L.push('', '*Nachricht:*', msg);
+      return L.join('\n');
+    }
+    const openWA = url => {
+      // Handy: WhatsApp-App direkt (gleiches Fenster), PC: WhatsApp Web in neuem Tab – wenn blockiert, gleiches Fenster
+      if (TOUCH) { location.href = url; return; }
+      let w = null; try { w = window.open(url, '_blank', 'noopener'); } catch (e) {} if (!w) location.href = url;
+    };
+    if (nameIn) nameIn.addEventListener('input', () => { if (nameIn.value.trim()) { err.hidden = true; nameIn.removeAttribute('aria-invalid'); } });
+    tk.addEventListener('submit', e => {
+      e.preventDefault();
+      if (!val('Name')) { err.hidden = false; nameIn.setAttribute('aria-invalid', 'true'); nameIn.focus(); return; }
+      err.hidden = true;
+      const url = `https://wa.me/${tk.dataset.wa}?text=${encodeURIComponent(waText())}`;
+      if (waLink) waLink.href = url;
+      $('[data-stampdate]').textContent = new Date().toLocaleDateString('de-DE'); tk.classList.add('sent'); ok.hidden = false; tkProg();
+      const btn = $('[data-tksend] span', tk); if (btn) btn.textContent = 'Nochmal per WhatsApp abgeben';
+      openWA(url);
     });
   }
 
@@ -682,5 +766,5 @@
   }
 
   /* ================= Dock ================= */
-  const dock = $('[data-dock]'); if (dock) { const z = $('#zettel'); inView(z, v => $$('a', dock)[1].classList.toggle('on', !v), '0px'); }
+  const dock = $('[data-dock]'), dz = $('.dk-z'); if (dock && dz) { const z = $('#zettel'); inView(z, v => dz.classList.toggle('on', !v), '0px'); }
 })();

@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<script data-fe="intro">/* Intro bei jedem Oeffnen (auch Neuladen), nicht beim Zurueckklicken innerhalb der Seite; ?nointro ueberspringt */try{(function(k){var s=location.search;if(/[?&]nointro/.test(s)){sessionStorage.setItem(k,'1');return}var t=(performance.getEntriesByType('navigation')[0]||{}).type||'',i=false;if(t==='back_forward')return;try{var r=new URL(document.referrer);i=r.origin===location.origin&&r.pathname.indexOf(location.pathname.replace(/[^/]*$/,''))===0}catch(e){}if(/[?&]intro(&|=|$)/.test(s)||t==='reload'||!i)sessionStorage.removeItem(k)})('kl-intro')}catch(e){}</script>
+<script data-fe="intro">/* Intro nur beim allerersten Besuch (localStorage); ?nointro überspringt, ?intro zeigt es noch einmal. Größere Schrift wird gemerkt. */try{(function(d,s){var l=localStorage;if(l.getItem('kl-gross'))d.classList.add('gross');if(/[?&]intro(&|=|$)/.test(s))return;if(/[?&]nointro/.test(s)||l.getItem('kl-intro'))d.classList.add('no-intro')})(document.documentElement,location.search)}catch(e){}</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Impressum | Wäscherei Kleber</title>
 <meta name="description" content="Impressum – Wäscherei Kleber, Saarbrücken">
@@ -14,12 +14,12 @@
 <meta name="theme-color" content="#1546a8">
 <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="fonts/archivo-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/kl.css?v=1792617199">
+<link rel="stylesheet" href="assets/kl.css?v=1793228939">
 
 </head>
 <body class="sub">
 <a class="skip" href="#main">Zum Inhalt springen</a>
-<header class="hdr solid"><div class="hdr-in"><a class="logo" href="index.html"><span class="logo-sign">Wäscherei Kleber</span><small>seit 1971 · Saarbrücken</small><span class="sr"> – Startseite</span></a><div class="hdr-r"><a class="b b-ghost sm" href="index.html">← Startseite</a></div></div></header>
+<header class="hdr solid"><div class="hdr-in"><a class="logo" href="index.html"><span class="logo-sign">Wäscherei Kleber</span><small>seit 1971 · Saarbrücken</small><span class="sr"> – Startseite</span></a><div class="hdr-r"><button type="button" class="aplus" data-aplus aria-pressed="false" title="Größere Schrift ein- oder ausschalten"><b aria-hidden="true">A+</b><span class="aplus-t">Größere Schrift</span></button><a class="b b-ghost sm hdr-home" href="index.html"><span aria-hidden="true">← </span>Startseite</a></div></div></header>
 <main id="main" class="legal wrap"><h1 class="h2">Impressum</h1><h2>Angaben gemäß § 5 DDG</h2><p>Wäscherei Kleber<br>Inhaber: Peter Kleber<br>Gersweilerstraße 20<br>66117 Saarbrücken</p>
 <h2>Kontakt</h2><p>Telefon: <a href="tel:+4968156800">0681 56800</a><br>Fax: 0681 56842<br>E-Mail: <a href="mailto:info@waescherei-kleber.de">info@waescherei-kleber.de</a></p>
 <h2>Verantwortlich für den Inhalt</h2><p>Peter Kleber, Anschrift wie oben</p>
@@ -30,10 +30,10 @@
   <div class="wrap ftr-in">
     <div><a class="logo" href="index.html"><span class="logo-sign">Wäscherei Kleber</span><small>seit 1971 · Saarbrücken</small><span class="sr"> – Startseite</span></a><p>Wäscherei, Heißmangel, Gardinen- und Lamellenservice. Familienbetrieb in Alt-Saarbrücken – seit 1971.</p></div>
     <div><h4>Besuchen</h4><p>Gersweilerstraße 20<br>66117 Saarbrücken<br><a href="https://www.google.com/maps/search/?api=1&query=W%C3%A4scherei%20Kleber%2C%20Gersweilerstra%C3%9Fe%2020%2C%2066117%20Saarbr%C3%BCcken" target="_blank" rel="noopener">Route planen →</a></p></div>
-    <div><h4>Kontakt</h4><p><a href="tel:+4968156800">Tel. 0681 56800</a><br>Fax 0681 56842<br><a href="mailto:info@waescherei-kleber.de">info@waescherei-kleber.de</a></p></div>
+    <div><h4>Kontakt</h4><p><a href="tel:+4968156800">Tel. 0681 56800</a><br><a href="https://wa.me/4916093742103?text=Guten%20Tag%2C%20ich%20habe%20eine%20Frage%20an%20die%20W%C3%A4scherei%20Kleber%3A%20" target="_blank" rel="noopener">WhatsApp schreiben</a><br>Fax 0681 56842<br><a href="mailto:info@waescherei-kleber.de">info@waescherei-kleber.de</a></p></div>
     <div><h4>Öffnungszeiten</h4><p>Mo &amp; Do 10–17 Uhr<br>Di &amp; Fr 9–17 Uhr<br>Mi &amp; Sa 9–13 Uhr<br>So geschlossen</p></div>
   </div>
   <div class="wrap ftr-b"><span>© Wäscherei Kleber · Inhaber Peter Kleber</span><span><a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a></span><span class="ftr-concept">Entwurf von Falcon Eye · nicht die offizielle Seite</span></div>
 </footer>
 <a class="concept" href="https://falcon-eye.de" target="_blank" rel="noopener"><span class="cc-a">Entwurf</span><span class="cc-b"> von <b>Falcon Eye</b> · nicht die offizielle Seite</span></a>
-<script src="assets/kl.js?v=1792617199" defer></script></body></html>
+<script src="assets/kl.js?v=1793228939" defer></script></body></html>
