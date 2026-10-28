@@ -241,7 +241,7 @@
     if (P.rows.N) { fillRest('N'); normCorners(); }
     for (const w in seq) if (w !== 'N') fillRest(w);
     const sp = locate('N', P.rows.N.findIndex(m => m.t === 'sp'));
-    const L = wallLen('N'), win = { id: uid++, t: 'fenster', wall: 'N', w: 120, s: 0 }; win.s = clampOp(win, sp ? sp.x0 + sp.w / 2 - 60 : L / 2 - 60);
+    const L = wallLen('N'), win = { id: uid++, t: 'fenster', wall: 'N', w: 120, s: 0, y0: 125 }; win.s = clampOp(win, sp ? sp.x0 + sp.w / 2 - 60 : L / 2 - 60);
     P.op = [win, defaultDoor()];
     return P;
   }
@@ -941,6 +941,7 @@
   function catsNudge() { if (palFx.catsDone || RMO || drag || !MOBQ.matches || !ovX(catsEl)) return; palFx.catsDone = true; nudgeX(catsEl, 48); }
   function palFirstView() {
     if (palFx.seen || palFx.done || !MOBQ.matches || !ovX(palEl)) return; palFx.seen = true;
+    try { if (localStorage.getItem('kp-palseen')) { palFx.done = true; return; } localStorage.setItem('kp-palseen', '1'); } catch (e) { }
     const t0 = Date.now();
     // erst wenn die 3D-Ansicht steht (sonst ruckelt es am Handy) – spätestens ~2,6 s nach dem ersten Sehen
     const wait = () => { if (palFx.done) return; if (document.hidden || (!K && Date.now() - t0 < 2600)) { setTimeout(wait, 200); return; } setTimeout(go2, K ? 450 : 0); };
@@ -1207,6 +1208,7 @@
     change();
     const FK = { sink: 'sp', tap: 'sp', hobW: 'kf', hobV: 'kf', hood: 'dh', ihood: 'isl', back: 'bs', backC: 'bs', backWood: 'bs', backLed: 'bs' }; if (FK[k]) follow(FK[k]);
   }
+  root.addEventListener('click', e => { if (e.target.closest('[data-kp-tipsall]')) { $('[data-kp-tips]').classList.toggle('all'); renderTips(); } });
   root.addEventListener('click', e => { const b = e.target.closest('[data-e]'); if (!b) return; e.preventDefault(); setEq(b.dataset.e, b.dataset.v); });
 
   pop.addEventListener('click', e => {
@@ -1358,7 +1360,16 @@
 
   /* ---------------- Toast ---------------- */
   const tst = $('[data-kp-toast]'); let tT = 0;
-  function toast(msg, und) { tst.classList.remove('kp-ask'); tst.innerHTML = `<span>${msg}</span>${und ? '<button type="button">Rückgängig</button>' : ''}`; placeToast(); tst.hidden = false; tst.classList.add('on'); clearTimeout(tT); tT = setTimeout(() => { tst.classList.remove('on'); }, und ? 5200 : 4200); const b = $('button', tst); if (b) b.onclick = () => { und(); tst.classList.remove('on'); }; }
+  // Meldungs-Ruhe (28.10.): Probleme und „Rückgängig“ immer; reine Bestätigungen/Anleitungen nur einmal je Gerät; am Handy höchstens eine Info alle 12 s
+  const ONCE = /eingesetzt|übernommen|^Abgestimmt|sind offen|^Alles wieder zu|Muldenlüfter gewählt|^Normales Kochfeld|^Tipp:|Ihr Motiv ist jetzt|ist wieder da/, PROB = /kein(en)? (freien )?Platz|zu lang|passen nicht|passt nicht|Achtung|nicht öffnen|geht es nicht|im Weg|nicht mehr unter|nur in die Ecken|gibt es in L-/;
+  let infoT = 0; const onceGet = () => { try { return JSON.parse(localStorage.getItem('kp-once') || '[]'); } catch (e) { return []; } };
+  function quiet(msg, und) {
+    if (und || PROB.test(msg)) return false;
+    const k = String(msg).replace(/<[^>]+>/g, '').replace(/\d+/g, '#').slice(0, 48);
+    if (ONCE.test(msg)) { const L = onceGet(); if (L.includes(k)) return true; L.push(k); try { localStorage.setItem('kp-once', JSON.stringify(L.slice(-60))); } catch (e) { } }
+    if (innerWidth < 1000 && Date.now() - infoT < 12000) return true; infoT = Date.now(); return false;
+  }
+  function toast(msg, und) { if (quiet(msg, und)) return; tst.classList.remove('kp-ask'); tst.innerHTML = `<span>${msg}</span>${und ? '<button type="button">Rückgängig</button>' : ''}`; placeToast(); tst.hidden = false; tst.classList.add('on'); clearTimeout(tT); tT = setTimeout(() => { tst.classList.remove('on'); }, und ? 5200 : innerWidth < 1000 ? 3200 : 4200); const b = $('button', tst); if (b) b.onclick = () => { und(); tst.classList.remove('on'); }; }
   // Rückfrage im Toast: nichts passiert, solange nicht „Ja“ getippt wird
   function ask(msg, yes, fn) { tst.classList.add('kp-ask'); tst.innerHTML = `<span>${msg}</span><span class="kp-askb"><button type="button" data-a="1">${yes}</button><button type="button" data-a="0">Nein</button></span>`; placeToast(); tst.hidden = false; tst.classList.add('on'); clearTimeout(tT); tT = setTimeout(() => tst.classList.remove('on'), 9000); $$('[data-a]', tst).forEach(b => b.onclick = () => { tst.classList.remove('on'); if (b.dataset.a === '1') fn(); }); }
   // Handy: Toast unten mittig über den Kamera-Knöpfen der 3D-Bühne (verdeckt nie die „live in 3D“-Pille); sonst über dem Weiter-Knopf
@@ -1456,7 +1467,7 @@
   }
   function renderTips() {
     const t = tips(), w = t.filter(x => x[0] === 'warn');
-    $('[data-kp-tips]').innerHTML = (w.length ? w : [['ok', 'Alles im grünen Bereich – so würde ' + PERSON + ' das auch planen.']]).slice(0, 3).map(([k, s]) => `<li class="${k}"><i>${k === 'ok' ? '✓' : '!'}</i>${s}</li>`).join('');
+    const tl = $('[data-kp-tips]'); tl.innerHTML = (w.length ? w : [['ok', 'Alles im grünen Bereich – so würde ' + PERSON + ' das auch planen.']]).slice(0, 3).map(([k, s]) => `<li class="${k}"><i>${k === 'ok' ? '✓' : '!'}</i>${s}</li>`).join('') + (Math.min(3, w.length) > 1 ? `<li class="more"><button type="button" data-kp-tipsall aria-expanded="${tl.classList.contains('all')}">${tl.classList.contains('all') ? 'weniger' : '+' + (Math.min(3, w.length) - 1) + ' weitere Tipps'}</button></li>` : '');
     $$('[data-kp-score]').forEach(el => { el.textContent = w.length ? `${w.length} Tipp${w.length > 1 ? 's' : ''}` : 'Passt ✓'; el.classList.toggle('ok', !w.length); });
   }
 
@@ -1755,6 +1766,7 @@
     $$('[data-floor]').forEach(b => b.classList.toggle('on', b.dataset.floor === (s.floor || 'eiche')));
     $$('.kp-bk').forEach(i => { i.style.setProperty('--tc', topCol()); i.style.setProperty('--fc', s.wood ? '#2a2420' : s.front); });
     $$('[data-form]').forEach(b => b.classList.toggle('on', b.dataset.form === P.form));
+    { const d = $('[data-kp-cxmore]'); if (d && P.cx && P.cx.length && !d.dataset.auto) { d.open = true; d.dataset.auto = '1'; } }   // vorhandene Anschlüsse: aufgeklappt zeigen
     $$('[data-kp-top]').forEach(b => { const on = anyTop(); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
     rw.value = P.room.w; rd.value = P.room.d; syncRoomOut();
     const n = Object.values(P.rows).reduce((a, r) => a + r.length, 0) + Object.keys(P.rows).reduce((a, w) => a + upList(w).length, 0) + (P.form === 'insel' ? 1 : 0);
@@ -1968,7 +1980,7 @@
   /* ---------------- Nicht aus Versehen rausfliegen ---------------- */
   // Sobald jemand selbst geplant hat: Rückfrage beim Zurückwischen, bei Links weg vom Planer und beim Schließen des Tabs.
   // Außerdem bleibt die letzte Planung auf diesem Gerät – beim nächsten Öffnen ohne Link: „Weiterplanen“.
-  const AS_KEY = 'kp-auto:' + location.pathname.replace(/[^/]*$/, ''), SENT = /[?&]gesendet=1/.test(location.search), HASH0 = /^#k=/.test(location.hash);
+  const AS_KEY = 'kp-auto:' + location.pathname.replace(/[^/]*$/, ''), SENT = /[?&]gesendet=1/.test(location.search), HASH0 = /^#k=/.test(location.hash); if (HASH0) root.dataset.hash0 = '1';
   let gActed = false, gDirty = false, gArmed = false, gLeaveOk = false, gLvEl = null, gLvT = 0;
   ['pointerdown', 'keydown'].forEach(ev => addEventListener(ev, e => { if (e.isTrusted) gActed = true; }, { capture: true, passive: true }));
   const LV = window.KPLeave = { ok(ms) { gLeaveOk = true; clearTimeout(gLvT); gLvT = setTimeout(() => { gLeaveOk = false; }, ms || 4000); }, dirty: () => gDirty, show: () => showLeave(() => { }) };
@@ -2084,5 +2096,5 @@
     upd();
   })();
   // Einmaliger Hinweis
-  setTimeout(() => toast(innerWidth < 1000 ? 'Tipp: Schrank unten antippen oder nach oben in die Wand ziehen.' : 'Tipp: Schränke links anfassen und in die Wand ziehen.'), 900);
+
 })();

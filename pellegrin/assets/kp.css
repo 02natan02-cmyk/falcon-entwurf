@@ -740,3 +740,20 @@ html.kp-lv-on{overflow:hidden}
 }
 @keyframes kpDkIn{from{transform:translateY(-26px);opacity:.2}}
 @media (prefers-reduced-motion:reduce){.kp-stage.kp-docked{animation:none;transition:none}}
+/* Tipps (28.10.): am PC alle, am Handy nur der wichtigste – „+n weitere“ klappt auf */
+.kp-tips li.more{display:none;padding:0;background:none}
+.kp-tips li.more button{border:1px dashed #d9b57a;background:none;border-radius:999px;padding:8px 13px;font:600 13px var(--sans);color:#7a4d0f;cursor:pointer}
+@media (max-width:999px){.kp-tips:not(.all) li:not(:first-child):not(.more){display:none}.kp-tips li.more{display:flex}}
+/* 28.10.: Anschlüsse eingeklappt, Pläne-Karte in Schritt 4 */
+.kp-more{margin:18px 0 6px;border:1.5px solid var(--line);border-radius:16px;background:#fff;padding:0 14px}
+.kp-more>summary{display:grid;gap:2px;padding:12px 26px 12px 0;cursor:pointer;list-style:none;position:relative}
+.kp-more>summary::-webkit-details-marker{display:none}
+.kp-more>summary::after{content:"";position:absolute;right:4px;top:50%;width:9px;height:9px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-70%) rotate(45deg);transition:transform .2s}
+.kp-more[open]>summary::after{transform:translateY(-30%) rotate(-135deg)}
+.kp-more>summary b{font:700 15px var(--sans)}.kp-more>summary small{font-size:12.5px;color:var(--mute)}
+.kp-more[open]{padding-bottom:12px}
+.kp-plans{margin:4px 0 18px}
+.kp-plb{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.kp-plb button{display:grid;gap:2px;text-align:left;padding:12px 14px;border-radius:14px;border:1.5px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;font:inherit;transition:border-color .2s,transform .2s}
+.kp-plb button:hover{border-color:var(--acc,#7f7d4c);transform:translateY(-1px)}
+.kp-plb b{font:700 14px var(--sans);hyphens:manual}.kp-plb small{font-size:12px;color:var(--mute)}

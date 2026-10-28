@@ -525,3 +525,6 @@ html.kpv-on,html.kpv-on body{overflow:hidden}
 }
 @keyframes kpxUp{from{opacity:0;transform:translateY(40px)}}
 @keyframes kpxBg{from{opacity:0}}
+/* 28.10.: seltene Knöpfe hinter „Mehr“ – die Pläne stehen zusätzlich in Schritt 4 */
+.kpx .kpx-x{display:none}.kpx.kpx-all .kpx-x{display:inline-flex}
+.kpx-row .kpx-mo{border-style:dashed}

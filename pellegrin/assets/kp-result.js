@@ -1548,14 +1548,16 @@
 <div class="kpx-row">
   <button type="button" data-kpx="here">${XI.cam}<span>Foto von hier</span></button>
   <button type="button" data-kpx="top">${XI.top}<span>Draufsicht</span></button>
-  <button type="button" data-kpx="plan">${XI.plan}<span>Grundriss &amp; Wände</span></button>
-  <button type="button" data-kpx="inst">${XI.inst}<span>Installations­plan</span></button>
-  <button type="button" data-kpx="list">${XI.list}<span>Details</span></button>
-  <button type="button" data-kpx="img">${XI.img}<span>Bild speichern</span></button>
+  <button type="button" data-kpx="plan">${XI.plan}<span>Pläne</span></button>
   <button type="button" data-kpx="save">${XI.save}<span>Küche speichern</span></button>
+  <button type="button" class="kpx-x" data-kpx="inst">${XI.inst}<span>Installations­plan</span></button>
+  <button type="button" class="kpx-x" data-kpx="list">${XI.list}<span>Details</span></button>
+  <button type="button" class="kpx-x" data-kpx="img">${XI.img}<span>Bild speichern</span></button>
+  <button type="button" class="kpx-mo" data-kpx-more aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="1.8" fill="currentColor"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/><circle cx="18" cy="12" r="1.8" fill="currentColor"/></svg><span>Mehr</span></button>
 </div>
 <div class="kpx-mine" data-kpx-mine hidden><button type="button" class="kpx-mt" data-kpx-mt aria-expanded="false">Meine Küchen <i data-kpx-mn>0</i></button><div class="kpx-mp"><div class="kpx-mh"><b>Meine Küchen</b><button type="button" class="kpx-cmp" data-kpx-cmp hidden>${XI.cmp}<span>Vergleichen</span></button><button type="button" class="kpx-mx" data-kpx-mx aria-label="Liste schließen">×</button></div><ul data-kpx-ml></ul><p class="kpx-mf">Gespeichert in diesem Browser · ✎ benennt um</p></div></div>`;
     build.insertBefore(bar, build.firstChild);
+    document.addEventListener('click', e => { const g = e.target.closest('[data-kpx-go]'); if (!g) return; const t = bar.querySelector(`[data-kpx="${g.dataset.kpxGo}"]`); if (t) t.click(); });
     bar.addEventListener('click', e => {
       const b = e.target.closest('[data-kpx]');
       if (b) {
@@ -1567,6 +1569,7 @@
         if (k === 'img') { const s2 = $('[data-ksend="img"]'); if (s2) s2.click(); return; }
         if (k === 'save') return saveKitchen(b);
       }
+      const mo = e.target.closest('[data-kpx-more]'); if (mo) { const on = !bar.classList.contains('kpx-all'); bar.classList.toggle('kpx-all', on); mo.setAttribute('aria-expanded', on); mo.querySelector('span').textContent = on ? 'Weniger' : 'Mehr'; return; }
       if (e.target.closest('[data-kpx-mx]') || e.target.matches('.kpx-mine.open')) { const box = $('[data-kpx-mine]'); box.classList.remove('open'); box.querySelector('[data-kpx-mt]').setAttribute('aria-expanded', 'false'); return; }
       const mt = e.target.closest('[data-kpx-mt]'); if (mt) { const box = mt.parentNode, on = !box.classList.contains('open'); if (on) { const ts = document.querySelector('.kp-toast.on'); if (ts) ts.classList.remove('on'); } box.classList.toggle('open', on); mt.setAttribute('aria-expanded', on); return; }
       const ld = e.target.closest('[data-kpx-load]'); if (ld) { const x = lsGet()[+ld.dataset.kpxLoad]; const K = KPo(); if (x && K && K.applyPlan) { try { K.applyPlan(decodeURIComponent(escape(atob(x.h.slice(3).replace(/-/g, '+').replace(/_/g, '/'))))); if (K.toast) K.toast(`„${x.name}“ ist wieder da.`); } catch (er) { } } $('[data-kpx-mine]').classList.remove('open'); return; }
