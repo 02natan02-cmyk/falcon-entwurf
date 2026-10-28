@@ -14,7 +14,7 @@
   const TOUCH = matchMedia('(hover: none), (pointer: coarse)').matches;
 
   /* ---------------- Hinweis-Chips („← ziehen →“, „Antippen“) ----------------
-     Erscheinen beim ersten Sichtkontakt, bewegen sich von selbst und verschwinden nach der ersten echten Berührung. */
+     Erscheinen beim ersten Sichtkontakt einmal sanft, stehen ruhig (kein Wackeln) und verschwinden nach der ersten echten Berührung. */
   const HAND = '<svg class="nd-hand" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11.2V4.6a1.6 1.6 0 0 1 3.2 0V10h.4V8.6a1.6 1.6 0 0 1 3.2 0v1.6h.4v-.4a1.6 1.6 0 0 1 3.2 0v5.3c0 4-2.7 6.9-6.6 6.9h-.9c-2 0-3.5-.8-4.7-2.4l-3-4.3a1.6 1.6 0 0 1 2.5-2z"/></svg>';
   function nudge(host, text, { kind = 'drag', on = [host], delay = 700, cls = '' } = {}) {
     if (!host) return { kill() {} };
@@ -94,82 +94,20 @@
   }
   status(); setInterval(status, 60000);
 
-  /* ---------------- Öffnungszeiten-Karte im Hero (groß, live, mit Vorlesen) ---------------- */
+  /* ---------------- Öffnungszeiten im Hero (kompakt, live) ---------------- */
   const oz = $('[data-oz]');
   const hu = t => { const [h, m] = t.split(':'); return +m ? `${+h}:${m}` : `${+h}`; };   // „9:00“ → „9“
-  const hr = h => h ? `${hu(h[0])} – ${hu(h[1])} Uhr` : 'geschlossen';
-  const sayT = t => { const [h, m] = t.split(':'); return +m ? `${+h} Uhr ${+m}` : `${+h} Uhr`; };
-  function ozInfo() {
+  function ozUpd() {
+    if (!oz) return;
     const { d, m } = berlin(), h = H[d];
     const open = !!(h && m >= mins(h[0]) && m < mins(h[1]));
     let nx = null; if (!open) for (let i = 0; i < 8; i++) { const dd = (d + i) % 7, hh = H[dd]; if (!hh) continue; if (i === 0 && m >= mins(hh[0])) continue; nx = { i, dd, t: hh[0] }; break; }
-    return { d, h, open, nx };
-  }
-  const whenTxt = nx => nx.i === 0 ? 'heute' : nx.i === 1 ? 'morgen, ' + DN[nx.dd] + ',' : 'am ' + DN[nx.dd];
-  function ozUpd() {
-    if (!oz) return;
-    const { d, h, open, nx } = ozInfo();
     oz.classList.toggle('open', open); oz.classList.toggle('closed', !open);
-    $('[data-ozstt]', oz).innerHTML = open ? `Jetzt geöffnet <span class="oz-bis">· bis ${hu(h[1])} Uhr</span>` : 'Jetzt geschlossen';
-    const ne = $('[data-oznext]', oz); ne.hidden = open || !nx; if (nx && !open) ne.textContent = `Wir öffnen ${whenTxt(nx)} um ${hu(nx.t)} Uhr.`;
-    $('[data-oztoday]', oz).innerHTML = `Heute, ${DN[d]}: <b>${hr(h)}</b>`;
+    $('[data-ozstt]', oz).textContent = open ? 'Jetzt geöffnet' : 'Jetzt geschlossen';
+    const when = nx ? (nx.i === 0 ? 'heute' : nx.i === 1 ? 'morgen' : 'am ' + DN[nx.dd]) : '';
+    $('[data-oznext]', oz).textContent = open ? `· bis ${hu(h[1])} Uhr` : nx ? `· öffnet ${when} um ${hu(nx.t)} Uhr` : '';
   }
   ozUpd(); setInterval(ozUpd, 30000);
-  if (oz) {
-    // ganze Woche auf schmalen Bildschirmen aufklappen
-    const more = $('[data-ozmore]', oz);
-    more.addEventListener('click', () => { const on = !oz.classList.contains('wk'); oz.classList.toggle('wk', on); more.setAttribute('aria-expanded', on); more.firstChild.textContent = on ? 'Woche zuklappen ' : 'Ganze Woche '; });
-    // Vorlesen (Web Speech API, nur wenn vorhanden): Status, heutige Zeiten, Adresse, Telefon
-    const say = $('[data-ozsay]', oz), sayL = $('[data-ozsayt]', oz), sayI = $('.oz-ic', say), SS = window.speechSynthesis;
-    if (say && SS && window.SpeechSynthesisUtterance) {
-      say.hidden = false;
-      const txt = () => {
-        const { d, h, open, nx } = ozInfo();
-        const t = ['Wäscherei Kleber.'];
-        if (open) t.push(`Wir haben jetzt geöffnet. Heute, ${DN[d]}, von ${sayT(h[0])} bis ${sayT(h[1])}.`);
-        else if (h && nx && nx.i === 0) t.push(`Wir haben jetzt noch geschlossen. Heute, ${DN[d]}, sind wir von ${sayT(h[0])} bis ${sayT(h[1])} für Sie da.`);
-        else { t.push(h ? `Wir haben jetzt geschlossen. Heute, ${DN[d]}, hatten wir von ${sayT(h[0])} bis ${sayT(h[1])} geöffnet.` : `Heute, ${DN[d]}, haben wir geschlossen.`); if (nx) t.push(`Wir öffnen ${whenTxt(nx)} um ${sayT(nx.t)}.`); }
-        t.push('Sie finden uns in der Gersweilerstraße 20 in Saarbrücken.', 'Telefon: 0 6 8 1 – 5 6 8 0 0.');
-        return t.join(' ');
-      };
-      const voice = () => { const v = SS.getVoices().filter(x => /^de(-|_|$)/i.test(x.lang)); return v.find(x => x.localService && /de-DE/i.test(x.lang)) || v.find(x => x.localService) || v.find(x => /de-DE/i.test(x.lang)) || v[0] || null; };
-      try { SS.getVoices(); } catch (e) {}
-      const setBtn = on => { say.classList.toggle('on', on); sayL.textContent = on ? 'Stopp' : 'Vorlesen'; sayI.textContent = on ? '■' : '🔊'; say.setAttribute('aria-pressed', on); };
-      let speaking = false;
-      say.addEventListener('click', () => {
-        if (speaking) { speaking = false; SS.cancel(); setBtn(false); return; }
-        try {
-          SS.cancel();
-          const u = new SpeechSynthesisUtterance(txt()); u.lang = 'de-DE'; u.rate = .9; u.pitch = 1; const v = voice(); if (v) u.voice = v;
-          u.onend = u.onerror = () => { speaking = false; setBtn(false); };
-          speaking = true; setBtn(true); SS.speak(u);
-        } catch (e) { speaking = false; setBtn(false); }
-      });
-      addEventListener('pagehide', () => { try { SS.cancel(); } catch (e) {} });
-    }
-  }
-
-  /* ---------------- Türschild klappt auf: alle Öffnungszeiten ---------------- */
-  const dsw = $('[data-dsw]');
-  if (dsw) {
-    const btn = $('[data-doorsign]', dsw), pop = $('.ds-pop', dsw); let tOff = 0, peekT = 0;
-    const fit = () => { pop.style.setProperty('--dx', '0px'); const r = pop.getBoundingClientRect(), m = 8; let dx = 0; if (r.right > innerWidth - m) dx = innerWidth - m - r.right; if (r.left + dx < m) dx = m - r.left; pop.style.setProperty('--dx', dx + 'px'); };
-    const setOpen = o => { clearTimeout(tOff); clearTimeout(peekT); if (o === dsw.classList.contains('on')) return; if (o) fit(); dsw.classList.toggle('on', o); btn.setAttribute('aria-expanded', o); };
-    const fine = matchMedia('(hover: hover) and (pointer: fine)');
-    dsw.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse' && fine.matches) setOpen(true); });
-    dsw.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && fine.matches) tOff = setTimeout(() => setOpen(false), 280); });
-    btn.addEventListener('click', e => { e.stopPropagation(); if (fine.matches && e.detail > 0 && dsw.classList.contains('on')) { setOpen(false); return; } setOpen(!dsw.classList.contains('on')); });
-    document.addEventListener('click', e => { if (!dsw.contains(e.target)) setOpen(false); });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape' && dsw.classList.contains('on')) { setOpen(false); btn.focus(); } });
-    addEventListener('scroll', () => { if (dsw.classList.contains('on') && scrollY > 80 && !dsw.matches(':hover')) setOpen(false); }, { passive: true });
-    addEventListener('resize', () => { if (dsw.classList.contains('on')) fit(); });
-    // einmal pro Sitzung kurz auf- und zuklappen, damit man sieht, dass hier alle Zeiten stehen
-    // auf dem Handy würde der aufgeklappte Zettel die Hauptüberschrift verdecken – dort schwingt das Schild nur und „Zeiten ▾“ leuchtet
-    const peek = () => { if (RM || sget('kl-dspeek')) return; sset('kl-dspeek', 1); setTimeout(() => { if (scrollY > 120 || dsw.classList.contains('on')) return; if (innerWidth < 700) { dsw.classList.add('wink'); peekT = setTimeout(() => dsw.classList.remove('wink'), 2600); return; } setOpen(true); peekT = setTimeout(() => setOpen(false), 2200); }, 1400); };
-    btn.addEventListener('click', () => dsw.classList.remove('wink'));
-    if (document.body.classList.contains('is-loading')) document.addEventListener('kl-ready', peek, { once: true }); else peek();
-  }
-
 
   /* ---------------- Programm-Drehknopf ---------------- */
   const dialEl = $('[data-dial]');
@@ -339,8 +277,9 @@
     }
     function step(dt) {
       if (!drum) return;
-      ang += omega; Body.setAngle(drum, ang, true);
-      water += (waterT - water) * .02;
+      const k = dt / 16.667;   // Drehung und Wasserstand laufen in Echtzeit – auf 60-Hz- und 120-Hz-Bildschirmen gleich schnell
+      ang += omega * k; Body.setAngle(drum, ang, true);
+      water += (waterT - water) * (1 - Math.pow(.98, k));
       const wl = cy + R - water * 2 * R;
       for (const b of items) {
         if (spin > .05) { const dx = b.position.x - cx, dy = b.position.y - cy, d = Math.hypot(dx, dy) || 1; Body.applyForce(b, b.position, { x: dx / d * b.mass * .0035 * spin, y: dy / d * b.mass * .0035 * spin }); }
@@ -351,6 +290,8 @@
       eng.gravity.y = 1 - spin * .85;
       Engine.update(eng, dt);
     }
+    // ein Rechenschritt pro Bild (mit der echten Bildzeit) – kein Aussetzen jedes zweiten Bildes, darum kein Ruckeln
+    function frame(dt) { dt = Math.min(dt, 50); const n = Math.max(1, Math.ceil(dt / 16.667)), h = Math.max(4, dt / n); for (let i = 0; i < n; i++) step(h); }
     // Ziehen mit Maus / Finger
     let grab = null;
     const pt = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * W / r.height }; };
@@ -365,7 +306,7 @@
     const rel = () => { if (grab) { Composite.remove(eng.world, grab); grab = null; cv.classList.remove('grab'); } };
     cv.addEventListener('pointerup', rel); cv.addEventListener('pointercancel', rel);
     return {
-      build, addItem, removeItem, toTop, step, drawBack, drawWater, drawItems, ctx,
+      build, addItem, removeItem, toTop, step, frame, drawBack, drawWater, drawItems, ctx,
       get items() { return items; }, get R() { return R; }, get W() { return W; },
       set omega(v) { omega = v; }, get omega() { return omega; },
       set spin(v) { spin = v; }, get spin() { return spin; },
@@ -391,7 +332,7 @@
     const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
     const h1w = $$('[data-h1] .w');
     function spinNow() {
-      if (spinT > 0) return; spinT = 1; btnSp.classList.add('on'); wm.classList.add('shake'); D.waterT = 0; lcdP.textContent = 'Schleudern';
+      if (spinT > 0) return; spinT = 1; btnSp.classList.add('on'); D.waterT = 0; lcdP.textContent = 'Schleudern';
       if (!RM) h1w.forEach((w, i) => w.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(360deg)' }], { duration: 900, delay: i * 90, easing: 'cubic-bezier(.5,0,.3,1)' }));
     }
     knob.addEventListener('click', () => { pi = (pi + 1) % PROGS.length; knob.style.setProperty('--kn', (pi * 72) + 'deg'); lcdP.textContent = PROGS[pi].n; remain = PROGS[pi].t * 60; if (!spinT) D.waterT = PROGS[pi].w; });
@@ -407,19 +348,13 @@
     function drop(b) {
       if (D.items.length > 26) { const old = D.items[0]; D.removeItem(old); }
       D.addItem(b.dataset.addw, D.R + (Math.random() - .5) * D.R * .3, D.R * .35, { v: { x: (Math.random() - .5) * 3, y: 6 } });
-      const r = b.getBoundingClientRect(), f = document.createElement('span'), ic = $('img', b); if (ic) f.appendChild(ic.cloneNode()); else f.textContent = b.textContent; f.style.cssText = `position:fixed;left:${r.left}px;top:${r.top}px;font-size:24px;z-index:500;pointer-events:none;transition:transform .55s cubic-bezier(.5,-.4,.3,1),opacity .55s`; document.body.appendChild(f);
-      const cr = cv.getBoundingClientRect(); if (RM) { f.remove(); return; } requestAnimationFrame(() => { f.style.transform = `translate(${cr.left + cr.width / 2 - r.left}px,${cr.top + cr.height * .3 - r.top}px) scale(.6) rotate(-200deg)`; f.style.opacity = '0'; }); setTimeout(() => f.remove(), 600);
+      const r = b.getBoundingClientRect(), f = document.createElement('span'), ic = $('img', b); if (ic) f.appendChild(ic.cloneNode()); else f.textContent = b.textContent; f.style.cssText = `position:fixed;left:${r.left}px;top:${r.top}px;font-size:24px;z-index:500;pointer-events:none;transition:transform .6s cubic-bezier(.22,1,.36,1),opacity .6s cubic-bezier(.22,1,.36,1)`; document.body.appendChild(f);
+      const cr = cv.getBoundingClientRect(); if (RM) { f.remove(); return; } requestAnimationFrame(() => { f.style.transform = `translate(${cr.left + cr.width / 2 - r.left}px,${cr.top + cr.height * .3 - r.top}px) scale(.6) rotate(-40deg)`; f.style.opacity = '0'; }); setTimeout(() => f.remove(), 650);
     }
-    // Impuls: Hinweis in der Trommel; Programmknopf wackelt und der Wäschekorb legt einmal von selbst eine Socke nach
+    // Impuls: ruhiger Hinweis in der Trommel (kein Wackeln)
     const basket = $('[data-basket]');
     nudge($('[data-door]', wm), TOUCH ? 'Wäsche antippen' : 'Wäsche greifen &amp; werfen', { kind: TOUCH ? 'tap' : 'drag', on: [wm, basket], delay: 1200, cls: 'nd-drum' });
-    let touched = false; [wm, basket].forEach(el => el && el.addEventListener('pointerdown', e => { if (e.isTrusted) touched = true; }));
-    const demo = () => {
-      if (RM || touched || !vis || document.hidden) return;
-      knob.classList.add('demo'); setTimeout(() => knob.classList.remove('demo'), 1300);
-    };
-    onReady(() => setTimeout(demo, 3400));
-    let acc = 0, rmUntil = 0;
+    let rmUntil = 0;
     const wake = () => { if (!RM) return; const was = rmUntil > performance.now(); rmUntil = performance.now() + 2500; if (!was) { last = performance.now(); requestAnimationFrame(loop); } };
     [knob, btnS, btnSp, ...$$('[data-addw]')].forEach(el => el.addEventListener('click', wake)); cv.addEventListener('pointerdown', wake);
     function loop(now) {
@@ -427,18 +362,16 @@
       if (vis && D.W) {
         // Programm & Schleudern
         let target = running && !RM ? PROGS[pi].o : 0;
-        if (spinT > 0) { spinT += dt; const k = spinT / 1000; D.spin = k < 1.2 ? clamp((k - .5) / .7, 0, 1) : k < 5 ? 1 : clamp(1 - (k - 5) / 1.2, 0, 1); target = lerp(target, .24, D.spin); if (k > 6.4) { spinT = 0; D.spin = 0; btnSp.classList.remove('on'); wm.classList.remove('shake'); D.waterT = PROGS[pi].w; lcdP.textContent = PROGS[pi].n; } }
+        if (spinT > 0) { spinT += dt; const k = spinT / 1000; D.spin = k < 1.2 ? clamp((k - .5) / .7, 0, 1) : k < 5 ? 1 : clamp(1 - (k - 5) / 1.2, 0, 1); target = lerp(target, .24, D.spin); if (k > 6.4) { spinT = 0; D.spin = 0; btnSp.classList.remove('on'); D.waterT = PROGS[pi].w; lcdP.textContent = PROGS[pi].n; } }
         D.omega = lerp(D.omega, target, .04);
         if (running) { remain -= dt / 1000 * 6; if (remain < 0) remain = PROGS[pi].t * 60; }
         lcdT.textContent = fmt(remain / 60 * 60 / 60);
-        acc += dt; let n = 0; while (acc >= 16.67 && n < 3) { D.step(16.67); acc -= 16.67; n++; } if (n === 3) acc = 0;
+        D.frame(dt);
         const c = D.ctx; c.clearRect(0, 0, D.W, D.W); D.drawBack(); D.drawWater(false); D.drawItems(); D.drawWater(true);
       }
       if (!RM || now < rmUntil) requestAnimationFrame(loop);
     }
     if (!RM) requestAnimationFrame(loop); else { for (let i = 0; i < 90; i++) D.step(16.67); D.drawBack(); D.drawWater(false); D.drawItems(); D.drawWater(true); }
-    // erster Hinweis: kurz anschubsen, wenn das Intro weg ist
-    onReady(() => setTimeout(() => { D.items.forEach(b => D.M.Body.setVelocity(b, { x: (Math.random() - .5) * 6, y: -6 })); }, 600));
   }
 
   /* ================= Sockenspiel ================= */
@@ -464,7 +397,7 @@
       // auf dem Handy die Trommel samt Spielstand ins Bild holen
       if (innerWidth < 1000) { const st = $('.sg-stats').getBoundingClientRect(), r = wrap.getBoundingClientRect(); if (st.top < 0 || r.bottom > innerHeight - 72) scrollTo({ top: scrollY + st.top - 12, behavior: RM ? 'auto' : 'smooth' }); }
     }
-    const shakeAnim = () => { if (!RM) cv.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'translateX(0)' }], { duration: 260 }); };
+    const shakeAnim = () => { if (!RM) cv.animate([{ opacity: 1 }, { opacity: .72 }, { opacity: 1 }], { duration: 520, easing: 'cubic-bezier(.22,1,.36,1)' }); };   // ruhiges Abblenden statt Schütteln
     function pick(b) {
       if (b._gone) return;
       if (!running) { start(); return; }
@@ -508,7 +441,7 @@
           // Hilfe 2: lange kein Paar – Tipp anzeigen und "Trommel drehen" hervorheben
           if (now - lastPairT > 15000 && idleHints < 2) { idleHints++; lastPairT = now; toast('Tipp: Socke antippen und kurz warten – der Partner hüpft hoch. Oder „Trommel drehen“.', 4200); shakeBtn.classList.remove('pulse'); void shakeBtn.offsetWidth; shakeBtn.classList.add('pulse'); }
         }
-        acc += dt; let n = 0; while (acc >= 16.67 && n < 3) { D.step(16.67); acc -= 16.67; n++; } if (n === 3) acc = 0;
+        D.frame(dt);
         const c = D.ctx; c.clearRect(0, 0, D.W, D.W); D.drawBack(); D.drawItems(sel);
         if (hintB && !hintB._gone && D.items.includes(hintB) && now - hintT < 2800) { const k = .5 + .5 * Math.sin((now - hintT) / 110); c.save(); c.strokeStyle = `rgba(255,210,63,${.3 + .6 * k})`; c.lineWidth = 3; c.setLineDash([6, 5]); c.beginPath(); c.arc(hintB.position.x, hintB.position.y, D.R * .2, 0, 6.28); c.stroke(); c.restore(); }
         if (running) tEl.textContent = fmt(now - t0);
@@ -671,7 +604,7 @@
   let tkProg = () => {};
   // Anhänger, Zähler und Zettel immer im selben Zustand halten (auch wenn auf dem Zettel ein Haken entfernt wird)
   function syncTags() {
-    $$('.hg-tag').forEach(t => { const on = picked.has(t.dataset.pick); t.classList.toggle('picked', on); t.setAttribute('aria-pressed', on); const em = $('em', t); if (em) em.textContent = on ? '✓ auf dem Zettel' : '+ Zettel'; });
+    $$('.hg-tag').forEach(t => { const on = picked.has(t.dataset.pick); t.classList.toggle('picked', on); t.setAttribute('aria-pressed', on); const em = $('em', t); if (em) em.textContent = on ? '✓ Auf dem Zettel' : '+ Auf den Zettel'; });
     const pn = $('[data-picked]'); if (pn) pn.textContent = picked.size; tkProg();
   }
   function unpickSvc(v) { const cb = $(`.tk input[name="Leistung"][value="${v}"]`); if (cb) cb.checked = false; picked.delete(v); syncTags(); toast('„' + v + '“ wurde vom Wäschezettel genommen.'); }
@@ -681,38 +614,15 @@
     if (fromEl) { const r = fromEl.getBoundingClientRect(), f = document.createElement('span'); f.className = 'fly'; f.textContent = '+ ' + vals.join(', '); f.style.left = r.left + 'px'; f.style.top = r.top + 'px'; document.body.appendChild(f); const dock = $('[data-dock] a.on') && innerWidth < 640 ? $('[data-dock] a.on') : $('#zettel'); const tr2 = dock.getBoundingClientRect(); requestAnimationFrame(() => { f.style.transform = `translate(${(innerWidth < 640 ? tr2.left + tr2.width / 2 : innerWidth / 2) - r.left}px,${(innerWidth < 640 ? tr2.top : Math.min(innerHeight - 40, tr2.top)) - r.top}px) scale(.6)`; f.style.opacity = '0'; }); setTimeout(() => f.remove(), 850); }
   }
   if (rail) {
-    const inner = $('[data-railin]'), hgs = $$('.hg', inner); let off = 0, vel = 0, drag = null, belt = false, vis = false, half = 0, moved = 0;
-    const angs = hgs.map(() => ({ a: 0, v: 0 }));
-    const rs = () => { half = inner.scrollWidth / 2; }; rs(); addEventListener('resize', rs);
-    // kleiner Anschub beim ersten Anblick: zeigt, dass die Stange beweglich ist
-    inView(rail, v => vis = v);
-    let nudged = false; inView(rail, v => { if (v && !nudged && !RM) { nudged = true; setTimeout(() => { if (!drag && !belt) vel = -16; }, 500); } }, '-15% 0px');
-    rail.addEventListener('pointerdown', e => { if (e.button) return; drag = { x: e.clientX, y: e.clientY, o: off, t: performance.now(), axis: null, id: e.pointerId }; moved = 0; });
-    addEventListener('pointermove', e => { if (!drag || e.pointerId !== drag.id) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (!drag.axis) { if (Math.abs(dx) > 6 || Math.abs(dy) > 6) { drag.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'; if (drag.axis === 'x') rail.classList.add('drag'); } return; } if (drag.axis !== 'x') return; const now = performance.now(), no = drag.o + dx; vel = (no - off) / Math.max(1, now - drag.t) * 16; drag.t = now; off = no; moved = Math.abs(dx); });
-    const up = () => { if (drag) { rail.classList.remove('drag'); drag = null; } }; addEventListener('pointerup', up); addEventListener('pointercancel', up);
-    $$('[data-rk]').forEach(b => b.addEventListener('click', () => { belt = false; bb.setAttribute('aria-pressed', false); bb.textContent = '▶︎ Förderband'; const hw = hgs[0] ? hgs[0].offsetWidth + 16 : 220; vel = +b.dataset.rk * hw * 2 * .06; }));
-    const bb = $('[data-belt]'); bb.addEventListener('click', () => { belt = !belt; bb.setAttribute('aria-pressed', belt); bb.textContent = belt ? '❚❚ Förderband stoppen' : '▶︎ Förderband'; });
-    $$('.hg-tag', inner).forEach(t => t.addEventListener('click', e => { if (moved > 8) { e.preventDefault(); return; } if (picked.has(t.dataset.pick)) unpickSvc(t.dataset.pick); else pickSvc(t.dataset.pick, t); }));
-    nudge(rail, 'Stange ziehen', { kind: 'drag', on: [rail, bb], delay: 900, cls: 'nd-rail' });
-    let prev = 0;
-    function loop() {
-      if (vis) {
-        if (!drag) { if (belt) vel = lerp(vel, -2.2, .05); off += vel; vel *= belt ? 1 : .94; }
-        if (half) { off = ((off % half) - half) % half; }
-        inner.style.transform = `translateX(${off}px)`;
-        const dv = off - prev; prev = off;
-        angs.forEach((s, i) => { s.v += -s.a * .04 - s.v * .06 - dv * .045; s.a += s.v; s.a = clamp(s.a, -24, 24); hgs[i].style.setProperty('--sw', s.a.toFixed(2) + 'deg'); });
-      }
-      requestAnimationFrame(loop);
-    }
-    requestAnimationFrame(loop);
+    // alle Bügel stehen ruhig nebeneinander; beim ersten Anblick gleiten sie einmal sanft herein
+    if (!RM) { rail.classList.add('pre'); inView(rail, v => { if (v) rail.classList.add('in'); }, '-10% 0px'); }
+    $$('.hg-tag', rail).forEach(t => t.addEventListener('click', () => { if (picked.has(t.dataset.pick)) unpickSvc(t.dataset.pick); else pickSvc(t.dataset.pick, t); }));
   }
   $$('[data-pick]').forEach(a => { if (a.classList.contains('hg-tag')) return; a.addEventListener('click', () => { pickSvc(a.dataset.pick); toast('✓ ' + a.dataset.pick.split(',').join(' & ') + ' steht auf Ihrem Wäschezettel.'); }); });
 
   /* ================= Wäschezettel ================= */
   const tk = $('[data-tk]');
   if (tk) {
-    const no = String(Math.floor(1000 + Math.random() * 8999)); $('[data-tkno]').textContent = no; $('[data-tkno2]').textContent = no;
     $$('input[name="Kunde"]', tk).forEach(r => r.addEventListener('change', () => tk.classList.toggle('biz', $('input[name="Kunde"]:checked', tk).value !== 'Privat')));
     $$('input[name="Leistung"]', tk).forEach(cb => cb.addEventListener('change', () => { if (cb.checked) picked.add(cb.value); else picked.delete(cb.value); syncTags(); }));
     // „So geht's“: Schritte haken sich mit dem Zettel ab
@@ -729,7 +639,7 @@
     const val = n => { const el = tk.elements[n]; return el && el.value ? el.value.trim() : ''; };
     function waText() {
       const svc = $$('input[name="Leistung"]:checked', tk).map(c => c.value), biz = $('input[name="Kunde"]:checked', tk).value !== 'Privat';
-      const L = [`*Wäschezettel Nr. ${no}* – Wäscherei Kleber`, ''];
+      const L = ['*Wäschezettel* – Wäscherei Kleber', ''];
       L.push('*Was dürfen wir tun?*'); if (svc.length) svc.forEach(v => L.push('• ' + v)); else L.push('(noch nichts angekreuzt)');
       L.push('', '*Für:* ' + (biz ? 'Praxis / Firma' : 'Privat'), '*Name:* ' + val('Name'));
       const add = (k, n) => { const v = val(n); if (v) L.push(`*${k}:* ${v}`); };
