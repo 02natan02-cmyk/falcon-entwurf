@@ -68,7 +68,7 @@
     // paleta
     const pr = reka; x.fillStyle = 'rgba(0,0,0,.35)'; x.fillRect(pr.x - 52 + 6, pr.y - 34 + 8, 104, 68);
     x.fillStyle = '#9b7a4f'; x.fillRect(pr.x - 52, pr.y - 34, 104, 68); x.fillStyle = '#7d6040'; for (let i = 0; i < 5; i++) x.fillRect(pr.x - 52, pr.y - 34 + i * 15, 104, 4);
-    x.fillStyle = '#fff'; x.font = '800 12px Manrope,sans-serif'; x.textAlign = 'center'; x.fillText('zostało ' + wolne().length, pr.x, pr.y + 50);
+    if (stan === 'gra') { x.fillStyle = '#fff'; x.font = '800 12px Manrope,sans-serif'; x.textAlign = 'center'; x.fillText('zostało ' + wolne().length, pr.x, pr.y + 50); }
     if (nast && !(drag && drag.st === nast)) kamien(nast, 2);
     if (podpowiedz && stan === 'gra') { const p = podpowiedz; x.strokeStyle = `rgba(255,235,170,${.5 + Math.sin(ts / 180) * .4})`; x.lineWidth = 3; x.save(); x.translate(p.x, p.y); x.rotate(p.rot); x.strokeRect(-p.w / 2, -p.h / 2, p.w, p.h); x.restore(); }
     if (drag) { x.globalAlpha = .3; x.fillStyle = '#000'; x.fillRect(drag.st.x - drag.st.w / 2 + 10, drag.st.y - drag.st.h / 2 + 14, drag.st.w, drag.st.h); x.globalAlpha = 1; kamien({ ...drag.st, w: drag.st.w * 1.12, h: drag.st.h * 1.12 }, 2); }
@@ -81,7 +81,7 @@
     // efekty: kurz
     fx = fx.filter(f => (f.t += 1 / 60) < f.d); fx.forEach(f => { const a = 1 - f.t / f.d; x.fillStyle = `rgba(222,204,168,${a * .7})`; x.beginPath(); x.arc(f.x + f.vx * f.t * 60, f.y + f.vy * f.t * 60, f.r * (1 + f.t * 2), 0, 7); x.fill(); });
     // podpis fazy
-    let msg = ''; if (stan === 'demo') msg = 'Przeciągnij kamień na wolne miejsce'; else if (stan === 'gra') msg = POZ[lvl].pat === 'herring' ? 'Dotknij kamienia na palecie, żeby go obrócić' : POZ[lvl].pat === 'flower' ? 'Żółte do kwiatu, grafit dookoła' : ''; else if (stan === 'piasek') msg = 'Rozprowadź piasek palcem po kostce'; else if (stan === 'zag') msg = 'Przeciągnij zagęszczarkę po całej powierzchni';
+    let msg = ''; if (stan === 'demo') msg = 'Przeciągnij kamień na wolne miejsce'; else if (stan === 'gra') msg = POZ[lvl].pat === 'herring' ? 'Dotknij kamienia na palecie, żeby go obrócić' : POZ[lvl].pat === 'flower' ? 'Żółte do kwiatu, grafit dookoła' : ''; else if (stan === 'piasek') msg = 'Zasyp fugi piaskiem: przesuwaj palcem po kostce'; else if (stan === 'zag') msg = 'Przeciągnij zagęszczarkę po całej powierzchni';
     if (msg) { x.font = `800 ${W < 520 ? 13 : 15}px Manrope,sans-serif`; const tw = x.measureText(msg).width + 26; x.fillStyle = 'rgba(10,10,10,.62)'; const yy = gap.y1 + (W < 520 ? 26 : 30); rr(W / 2 - tw / 2, yy - 15, tw, 30, 15); x.fill(); x.fillStyle = '#fff'; x.textAlign = 'center'; x.fillText(msg, W / 2, yy + 5); }
     if (stan === 'demo' && demoHand) { const h = demoHand; x.save(); x.translate(h.x, h.y); x.fillStyle = 'rgba(255,255,255,.92)'; x.beginPath(); x.arc(0, 0, 13, 0, 7); x.fill(); x.strokeStyle = 'rgba(0,0,0,.4)'; x.lineWidth = 2; x.stroke(); x.restore(); }
   }
@@ -135,8 +135,8 @@
   function zageszczaj(p) { kurz(p.x + (Math.random() - .5) * 30, p.y + 30); if (maluj(p, Math.max(48, W * .08), .55) > .86) { pkt += 50; koniec(); } }
   function faza(f) { stan = f; if (f === 'piasek') { cover = siatka(); }
     if (f === 'zag') { cover = siatka(); cover.c.fill(0); cover.ukryj = true; zag = { x: reka.x, y: reka.y }; } }
-  function start() { stan = 'gra'; demoHand = null; przygotuj(lvl); t0 = performance.now(); pkt = lvl === 0 ? 0 : pkt; pudla = 0; idle = 0; $('#graStart').classList.add('ukryj'); $('#graPkt').textContent = pkt + ' pkt'; }
-  function koniec() {
+  function start() { cv.classList.add('gram'); stan = 'gra'; demoHand = null; przygotuj(lvl); t0 = performance.now(); pkt = lvl === 0 ? 0 : pkt; pudla = 0; idle = 0; $('#graStart').classList.add('ukryj'); $('#graPkt').textContent = pkt + ' pkt'; }
+  function koniec() { cv.classList.remove('gram'); if (lvl === POZ.length - 1) dispatchEvent(new Event('gra-koniec'));
     zag = null; cover = null; const bonus = Math.max(0, Math.round(300 - czas * 6)) - pudla * 5; pkt += bonus; $('#graPkt').textContent = pkt + ' pkt';
     const box = $('#graStart'); box.classList.remove('ukryj'); stan = 'koniec';
     const r = rek(), nowy2 = lvl === POZ.length - 1 && pkt > r; if (nowy2) setRek(pkt);

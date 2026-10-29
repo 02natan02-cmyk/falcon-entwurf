@@ -4,7 +4,8 @@
 (function () {
   'use strict';
   const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const cv = document.getElementById('swiat');
+  const LIB = !document.getElementById('swiat');
+  const cv = document.getElementById('swiat') || document.createElement('canvas');
   const g = cv.getContext('2d', { alpha: false });
   let DPR = 1, vw = 0, vh = 0, mobile = false, docH = 0, k = 0.16;
   let sy = 0, front = 0, tNow = 0, introT0 = 0, introDone = false, dirty = true;
@@ -617,9 +618,10 @@
     get bedPattern() { return bedPat; },
     rebuild, get front() { return front; }, get mobile() { return mobile; }, get dpr() { return DPR; }
   };
-  addEventListener('resize', onResize);
+  if (!LIB) addEventListener('resize', onResize);
   function start() { loadMats().then(start2); }
-  function start2() { lastW = innerWidth; lastH = innerHeight; rebuild(); introT0 = performance.now(); if (RM) introT0 = -1e6; requestAnimationFrame(frame);
+  function start2() { if (LIB) { vw = innerWidth; vh = innerHeight; mobile = vw < 820; k = mobile ? .118 : .165; DPR = Math.min(devicePixelRatio || 1, 2); makeTextures(); dispatchEvent(new Event('swiat')); return; }
+    lastW = innerWidth; lastH = innerHeight; rebuild(); introT0 = performance.now(); if (RM) introT0 = -1e6; requestAnimationFrame(frame);
     // ponowny pomiar, gdy obrazy/fonty zmienią wysokość
     new ResizeObserver(() => { const h = document.documentElement.scrollHeight; if (Math.abs(h - docH) > 40) { rebuild(); } }).observe(document.body); }
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(start); else addEventListener('load', start);
