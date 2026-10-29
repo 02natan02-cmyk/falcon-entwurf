@@ -658,10 +658,23 @@
       if (!val('Name')) { err.hidden = false; nameIn.setAttribute('aria-invalid', 'true'); nameIn.focus(); return; }
       err.hidden = true;
       const url = `https://wa.me/${tk.dataset.wa}?text=${encodeURIComponent(waText())}`;
-      if (waLink) waLink.href = url;
+      if (okWA !== null) ok.innerHTML = okWA;
+      const wl = $('[data-tkwa]', ok); if (wl) wl.href = url;
       $('[data-stampdate]').textContent = new Date().toLocaleDateString('de-DE'); tk.classList.add('sent'); ok.hidden = false; tkProg();
       const btn = $('[data-tksend] span', tk); if (btn) btn.textContent = 'Nochmal per WhatsApp abgeben';
       openWA(url);
+    });
+    // Alternative: per E-Mail (Peter 29.10.) – öffnet das eigene Mailprogramm mit demselben Text, ohne WhatsApp-Sternchen
+    const okWA = ok ? ok.innerHTML : null;
+    const mailBtn = $('[data-tkmail]', tk);
+    if (mailBtn) mailBtn.addEventListener('click', () => {
+      if (!val('Name')) { err.hidden = false; nameIn.setAttribute('aria-invalid', 'true'); nameIn.focus(); return; }
+      err.hidden = true;
+      const body = waText().replace(/\*/g, '');
+      const url = `mailto:${tk.dataset.mail}?subject=${encodeURIComponent('Wäschezettel – ' + val('Name'))}&body=${encodeURIComponent(body)}`;
+      $('[data-stampdate]').textContent = new Date().toLocaleDateString('de-DE'); tk.classList.add('sent'); ok.hidden = false; tkProg();
+      ok.innerHTML = `<b>Danke!</b> Ihr E-Mail-Programm ist geöffnet – bitte dort nur noch auf Senden tippen. Hat sich nichts geöffnet? Schreiben Sie direkt an <a href="mailto:${tk.dataset.mail}">${tk.dataset.mail}</a>`;
+      location.href = url;
     });
   }
 
