@@ -6,8 +6,11 @@
   const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let W = 0, H = 0, D = 1, foto = null, przyklad = true, tex = null, wz = 'herring', kol = 'grafit', suwak = .55, rogi = null, chw = -1, ruszony = false, impuls = null, widac = false;
 
+  const PRZ = new Image(); PRZ.decoding = 'async'; PRZ.src = 'img/real/przyklad.webp'; const ROGI_P = [[.43, .235], [1.0, .235], [1.0, 1.0], [.72, 1.0]];
+  PRZ.onload = () => { if (przyklad) { foto = PRZ; rogi = ROGI_P.map(r => r.slice()); if (W) rysuj(); } };
+  const przykladFoto = () => (PRZ.complete && PRZ.naturalWidth ? PRZ : scenaPrzyklad());
   function rozmiar() { const r = cv.getBoundingClientRect(); if (!r.width) return; D = Math.min(devicePixelRatio || 1, 2); const old = W; W = r.width; H = r.width * .75; cv.width = W * D; cv.height = H * D;
-    if (!rogi || !old) rogi = [[.18, .55], [.82, .55], [1.02, .98], [-.02, .98]]; if (!foto) foto = scenaPrzyklad(); tekstura(); rysuj(); }
+    if (!foto) foto = przykladFoto(); if (!rogi || !old) rogi = foto === PRZ ? ROGI_P.map(r => r.slice()) : [[.18, .55], [.82, .55], [1.02, .98], [-.02, .98]]; tekstura(); rysuj(); }
   /* przykładowe podwórko (rysowane) */
   function scenaPrzyklad() {
     const c = document.createElement('canvas'); c.width = 1200; c.height = 900; const g = c.getContext('2d');
@@ -65,7 +68,7 @@
     x.font = '800 13px Manrope,sans-serif'; x.textAlign = 'left'; lab('PRZED', 12, 24); x.textAlign = 'right'; lab('PO', W - 12, 24);
     // rogi
     Q.forEach(([a, b], i) => { x.beginPath(); x.arc(a, b, chw === i ? 15 : 12, 0, 7); x.fillStyle = 'rgba(217,177,95,.95)'; x.fill(); x.lineWidth = 3; x.strokeStyle = '#16181b'; x.stroke(); });
-    if (przyklad) { x.textAlign = 'left'; lab('Przykład · wgraj własne zdjęcie', 12, H - 14); }
+    if (przyklad) { x.textAlign = 'left'; lab('Przykład: prawdziwy podjazd · wgraj swoje zdjęcie', 12, H - 14); }
   }
   function lab(t, a, b) { const w = x.measureText(t).width; const al = x.textAlign; x.fillStyle = 'rgba(10,10,10,.6)'; const l = al === 'right' ? a - w - 8 : a - 8; x.fillRect(l, b - 16, w + 16, 24); x.fillStyle = '#fff'; x.fillText(t, a, b); }
 
@@ -77,8 +80,9 @@
   cv.addEventListener('pointermove', e => { if (!tryb) return; const [a, b] = pos(e);
     if (tryb === 'rog') rogi[chw] = [Math.min(1.1, Math.max(-.1, a / W)), Math.min(1.1, Math.max(-.1, b / H))]; else suwak = Math.min(1, Math.max(0, a / W)); rysuj(); });
   cv.addEventListener('pointerup', () => { tryb = null; chw = -1; rysuj(); });
-  $('#plPlik').addEventListener('change', e => { const f = e.target.files[0]; if (!f) return; const url = URL.createObjectURL(f); const im = new Image(); im.onload = () => { foto = im; przyklad = false; suwak = .5; rogi = [[.2, .58], [.8, .58], [.98, .97], [.02, .97]]; rysuj(); window.GBtoast && GBtoast('Przeciągnij żółte punkty na rogi podjazdu albo tarasu.'); }; im.src = url; });
-  $('#plPrzyklad').addEventListener('click', () => { foto = scenaPrzyklad(); przyklad = true; rogi = [[.18, .55], [.82, .55], [1.02, .98], [-.02, .98]]; setTimeout(rysuj, 60); });
+  const wczytaj = e => { const f = e.target.files[0]; if (!f) return; const url = URL.createObjectURL(f); const im = new Image(); im.onload = () => { foto = im; przyklad = false; suwak = .5; rogi = [[.2, .58], [.8, .58], [.98, .97], [.02, .97]]; rysuj(); window.GBtoast && GBtoast('Przeciągnij żółte punkty na rogi podjazdu albo tarasu.'); }; im.src = url; };
+  $('#plPlik').addEventListener('change', wczytaj); const ap = $('#plAparat'); if (ap) ap.addEventListener('change', wczytaj);
+  $('#plPrzyklad').addEventListener('click', () => { foto = przykladFoto(); przyklad = true; rogi = foto === PRZ ? ROGI_P.map(r => r.slice()) : [[.18, .55], [.82, .55], [1.02, .98], [-.02, .98]]; setTimeout(rysuj, 60); });
   $$('[data-plw]').forEach(b => b.addEventListener('click', () => { wz = b.dataset.plw; $$('[data-plw]').forEach(c => { c.classList.toggle('on', c === b); c.setAttribute('aria-pressed', c === b); }); tekstura(); rysuj(); }));
   $$('[data-plk]').forEach(b => b.addEventListener('click', () => { kol = b.dataset.plk; $$('[data-plk]').forEach(c => { c.classList.toggle('on', c === b); c.setAttribute('aria-pressed', c === b); }); tekstura(); rysuj(); }));
   function opis() { return $('[data-plw].on').textContent + ', ' + $('[data-plk].on').textContent.trim().toLowerCase(); }

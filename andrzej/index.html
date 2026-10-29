@@ -15,7 +15,7 @@
 <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="fonts/big-shoulders-display-latin-900-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="css/v2.css?v=8">
+<link rel="stylesheet" href="css/v2.css?v=9">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"HomeAndConstructionBusiness","name":"Centrum Architektury Ogrodowej GardenBruk","alternateName":"GardenBruk","description":"Kostka brukowa, płyty tarasowe, palisady, ogrodzenia, kruszywo dekoracyjne i figury ogrodowe. Pomiar na miejscu.","address":{"@type":"PostalAddress","streetAddress":"Mikowice 16","postalCode":"57-300","addressLocality":"Kłodzko","addressCountry":"PL"},"telephone":"+48500250936","email":"biuro@gardenbruk.net","sameAs":["https://www.facebook.com/gardenbruk.net/","https://www.instagram.com/gardenbruk/"],"areaServed":"Ziemia Kłodzka"}</script>
 </head>
 <body class="intro">
@@ -106,10 +106,14 @@
   </div>
 </section>
 
-<section class="ch" id="realizacje" style="--dl:340vh" hidden>
+<section class="ch" id="realizacje" style="--dl:260vh">
   <div class="lepka">
     <div class="rl-glowa"><h2>Nasze realizacje.</h2><p>Podjazdy, tarasy i ścieżki, które ułożyliśmy na Ziemi Kłodzkiej.</p></div>
-    <div class="rl-tor" id="rlTor"></div>
+    <div class="rl-tor" id="rlTor">
+      <figure style="--ar:1024/614"><img src="img/real/podjazd-grafit-zolty.webp" width="1024" height="614" alt="Podjazd z grafitowej kostki z żółtymi i jasnymi pasami, ułożony przez GardenBruk" loading="lazy" decoding="async"><figcaption>Podjazd z grafitowej kostki, pasy żółte i jasne</figcaption></figure>
+      <figure style="--ar:614/1024"><img src="img/real/kwiat-podjazd.webp" width="614" height="1024" alt="Duży kwiat z żółtej i jasnej kostki na grafitowym podjeździe" loading="lazy" decoding="async"><figcaption>Kwiat z kostki – nasz znak rozpoznawczy</figcaption></figure>
+      <figure style="--ar:1024/768"><img src="img/real/podjazd-szary.webp" width="1024" height="768" alt="Łukowa ścieżka z jasnej kostki z ciemnymi pasami i podjazd z szarych płyt przed domem" loading="lazy" decoding="async"><figcaption>Łukowa ścieżka i podjazd z płyt przed domem</figcaption></figure>
+    </div>
   </div>
 </section>
 
@@ -118,6 +122,22 @@
     <div class="st-gora"><h2>Nasz plac. Dotknij palety.</h2><p>Wybierz, co Cię interesuje. Zapytanie wyślesz jednym kliknięciem na WhatsApp albo e-mailem.</p></div>
     <div class="etykiety" id="etykiety"></div>
     <div class="towar-panel" id="towarPanel" hidden></div>
+  </div>
+</section>
+
+<section class="ch" id="producenci" style="--dl:220vh">
+  <div class="lepka">
+    <div class="karta-l">
+      <h2>Prawdziwy plac. Prawdziwe marki.</h2>
+      <p>W Mikowicach zobaczysz kostkę, płyty i ogrodzenia na żywo, ułożone na ekspozycji. Na placu stoją produkty marek <b>Polbruk</b> i <b>Joniec</b>. Joniec wymienia nas jako punkt handlowy z ekspozycją.</p>
+      <div class="katalogi">
+        <a class="katalog" href="https://polbruk.pl/download/cenniki_katalogi/cennik/Katalog_Polbruk_2026.pdf" target="_blank" rel="noopener"><b>Polbruk</b><span>Katalog 2026 (PDF)</span></a>
+        <a class="katalog" href="https://joniec.pl/gdzie-kupic/gardenbruk/493" target="_blank" rel="noopener"><b>Joniec</b><span>Ogrodzenia, palisady, mała architektura</span></a>
+      </div>
+      <p class="maly">Nie widzisz swojego wzoru? Zapytaj – sprowadzimy go dla Ciebie.</p>
+    </div>
+    <figure class="foto-plac"><img src="img/real/plac-z-gory.webp" width="1600" height="900" alt="Plac GardenBruk w Mikowicach z góry: ekspozycja kostki, płyt, ogrodzeń i palety z towarem" loading="lazy" decoding="async"><figcaption>Nasz plac w Mikowicach</figcaption></figure>
+    <figure class="foto-plac maly2"><img src="img/real/plac-ekspozycja.webp" width="1600" height="1200" alt="Ekspozycja kostki i płyt na placu GardenBruk jesienią" loading="lazy" decoding="async"></figure>
   </div>
 </section>
 
@@ -135,11 +155,11 @@
 <section class="ch stacja" id="planer" style="--dl:230vh">
   <div class="lepka">
     <div class="pl-uklad">
-      <div class="pl-tekst"><h2>Twoje podwórko w&nbsp;kostce.</h2><p>Wgraj zdjęcie, zaznacz cztery rogi, wybierz kostkę. Zdjęcie zostaje na Twoim urządzeniu.</p></div>
+      <div class="pl-tekst"><h2>Twoje podwórko w&nbsp;kostce.</h2><p>Zrób zdjęcie swojego podjazdu albo tarasu, zaznacz cztery rogi i wybierz kostkę. Zobaczysz efekt od razu. Zdjęcie zostaje na Twoim urządzeniu.</p></div>
       <div class="pl" id="pl">
         <div class="pl-scena"><canvas id="plCv" aria-label="Podgląd: Twoje zdjęcie z ułożoną kostką" role="img"></canvas><span class="impuls" id="plImpuls" aria-hidden="true">← przesuń →</span></div>
         <div class="pl-ster">
-          <label class="btn plik">Wgraj zdjęcie<input type="file" accept="image/*" id="plPlik"></label><button type="button" class="chip" id="plPrzyklad">Przykład</button>
+          <label class="btn plik">Zrób zdjęcie<input type="file" accept="image/*" capture="environment" id="plAparat"></label><label class="btn szkl plik">Z galerii<input type="file" accept="image/*" id="plPlik"></label><button type="button" class="chip" id="plPrzyklad">Przykład</button>
           <div class="przewijak" role="group" aria-label="Wzór"><button type="button" class="chip on" data-plw="herring" aria-pressed="true">Jodełka</button><button type="button" class="chip" data-plw="rows" aria-pressed="false">Cegiełka</button><button type="button" class="chip" data-plw="basket" aria-pressed="false">Koszyk</button><button type="button" class="chip" data-plw="slabs" aria-pressed="false">Płyty</button><button type="button" class="chip" data-plw="cobble" aria-pressed="false">Granit</button></div>
           <div class="przewijak kolory" role="group" aria-label="Kolor"><button type="button" class="kol on" data-plk="grafit" aria-pressed="true"><i style="background-image:url(img/tex/grafit.webp)"></i>Grafit</button><button type="button" class="kol" data-plk="melanz" aria-pressed="false"><i style="background-image:url(img/tex/melanz.webp)"></i>Melanż</button><button type="button" class="kol" data-plk="piaskowy" aria-pressed="false"><i style="background-image:url(img/tex/jasny.webp)" class="piask"></i>Piaskowy</button><button type="button" class="kol" data-plk="szary" aria-pressed="false"><i style="background-image:url(img/tex/jasny.webp)"></i>Szary</button></div>
           <div class="pl-akcje"><button type="button" class="btn" id="plZapisz">Zapisz obraz</button><button type="button" class="btn szkl" id="plWyslij">Dołącz do zapytania</button></div>
@@ -193,9 +213,9 @@
 </aside>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="js/swiat2d.js?v=8"></script>
-<script src="js/strona.js?v=8"></script>
-<script src="js/gra.js?v=8"></script>
-<script src="js/planer.js?v=8"></script>
+<script src="js/swiat2d.js?v=9"></script>
+<script src="js/strona.js?v=9"></script>
+<script src="js/gra.js?v=9"></script>
+<script src="js/planer.js?v=9"></script>
 </body>
 </html>
