@@ -165,19 +165,23 @@
   G.wzoryTest = t => { G.zamroz = true; wT0 = performance.now() - t * 1000; wzFrame(performance.now()); };
 
   /* ---------- animacje przewijania: sprzężone ze scrollem, nic nie gra samo ---------- */
+  /* Einblendungen: laufen immer bis zum Ende (keine halben Zustände), nur transform/opacity, IntersectionObserver statt
+     gespeicherter Scroll-Positionen – unabhängig davon, ob Bilder, Schriften oder das Intro die Höhe noch ändern. */
   function animacje() {
-    if (!window.gsap || !window.ScrollTrigger) return; gsap.registerPlugin(ScrollTrigger);
-    if (RM) return;
-    const q = s => document.querySelectorAll(s);
-    gsap.to('#heroFoto img', { scale: 1.14, yPercent: 10, ease: 'none', scrollTrigger: { trigger: '#start', start: 'top top', end: 'bottom top', scrub: true } });
-    gsap.to('#heroTresc', { yPercent: -28, autoAlpha: 0, ease: 'none', scrollTrigger: { trigger: '#start', start: '35% top', end: 'bottom top', scrub: true } });
-    q('.tytul').forEach(el => gsap.fromTo(el, { y: 34, clipPath: 'inset(0 0 100% 0)' }, { y: 0, clipPath: 'inset(0 0 -10% 0)', ease: 'none', scrollTrigger: { trigger: el, start: 'clamp(top 94%)', end: 'clamp(top 64%)', scrub: .4 } }));
-    q('.sek .lead, .opinie, .sek .cta, .katalogi, .maly, .kt-dane > p, .kt-dane > a, .kt-btn, .formularz, .wz-ster, .pl-ster, .koniec-napis').forEach(el => gsap.fromTo(el, { y: 40, autoAlpha: 0 }, { y: 0, autoAlpha: 1, ease: 'none', scrollTrigger: { trigger: el, start: 'clamp(top 96%)', end: 'clamp(top 74%)', scrub: .4 } }));
-    q('.foto').forEach(el => { const im = el.querySelector('img, canvas'); const tl = gsap.timeline({ scrollTrigger: { trigger: el, start: 'clamp(top 95%)', end: 'clamp(top 58%)', scrub: .4 } });
-      tl.fromTo(el, { clipPath: 'inset(100% 0 0 0)', y: 30 }, { clipPath: 'inset(0% 0 0 0)', y: 0, ease: 'none' }, 0); if (im && im.tagName === 'IMG') tl.fromTo(im, { scale: 1.16 }, { scale: 1, ease: 'none' }, 0); });
-    q('.kafel').forEach((el, i) => gsap.fromTo(el, { y: 46, autoAlpha: 0 }, { y: 0, autoAlpha: 1, ease: 'none', scrollTrigger: { trigger: el, start: 'clamp(top 97%)', end: 'clamp(top 80%)', scrub: .4 } }));
-    q('.kroki li').forEach(el => gsap.fromTo(el, { x: -30, autoAlpha: 0 }, { x: 0, autoAlpha: 1, ease: 'none', scrollTrigger: { trigger: el, start: 'clamp(top 96%)', end: 'clamp(top 76%)', scrub: .4 } }));
-    addEventListener('load', () => ScrollTrigger.refresh());
+    if (window.gsap && window.ScrollTrigger && !RM) { gsap.registerPlugin(ScrollTrigger);
+      gsap.to('#heroFoto img', { scale: 1.1, yPercent: 8, ease: 'none', scrollTrigger: { trigger: '#start', start: 'top top', end: 'bottom top', scrub: true } });
+      gsap.to('#heroTresc', { yPercent: -24, autoAlpha: 0, ease: 'none', scrollTrigger: { trigger: '#start', start: '35% top', end: 'bottom top', scrub: true } });
+      const odswiez = () => ScrollTrigger.refresh(); addEventListener('load', odswiez); addEventListener('intro-koniec', odswiez); if (document.fonts) document.fonts.ready.then(odswiez); }
+    if (RM || !('IntersectionObserver' in window)) return;
+    const grupy = [['.tytul', 'rv-t'], ['.sek .lead, .opinie, .sek .cta, .katalogi, .maly, .kt-dane > p, .kt-dane > a, .kt-btn, .formularz, .wz-ster, .pl-ster, .koniec-napis, [data-rv]', ''], ['.foto', 'rv-f'], ['.kafel', ''], ['.kroki li', 'rv-x']];
+    const io = new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) return; const el = e.target; io.unobserve(el); el.classList.add('on');
+      const fertig = () => { el.classList.remove('rv', 'rv-t', 'rv-f', 'rv-x', 'on'); el.style.transitionDelay = ''; };
+      setTimeout(fertig, 1700 + (parseFloat(el.style.transitionDelay) || 0) * 1000); }), { rootMargin: '0px 0px -5% 0px', threshold: 0 });
+    for (const [sel, v] of grupy) document.querySelectorAll(sel).forEach(el => { if (el.closest('#start') || el.classList.contains('rv')) return;
+      const sib = [...el.parentElement.children].filter(c => c.matches(sel)); const i = Math.min(sib.indexOf(el), 5);
+      el.classList.add('rv'); if (v) el.classList.add(v); if (i > 0) el.style.transitionDelay = (i * .07).toFixed(2) + 's'; io.observe(el); });
+    // Sicherheitsnetz: was im oder über dem Bild liegt, ist spätestens nach 6 s sichtbar
+    setTimeout(() => document.querySelectorAll('.rv:not(.on)').forEach(el => { if (el.getBoundingClientRect().top < innerHeight) el.classList.add('on'); }), 6000);
   }
 
   /* ---------- start ---------- */
