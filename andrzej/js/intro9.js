@@ -1,5 +1,4 @@
-/* GardenBruk v6 – scena: intro z kostki, brzegi z kostki po obu stronach (układają się w dół razem z przewijaniem),
-   plac wzorów, który układa się na nowo, i spokojne animacje przewijania (GSAP ScrollTrigger, sprzężone ze scrollem). */
+/* GardenBruk v9 – intro „Kamienie lecą”, wejście w świat, łagodne pojawianie się treści, most do strona9.js */
 (function () {
   'use strict';
   const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -104,114 +103,32 @@
   G.skipIntro = () => { if (iRun) iT0 = Math.min(iT0, performance.now() - T_ZLEW * 1000); };
   G.introTest = t => { G.zamroz = true; if (!iRun) introStart(); iRun = true; iT0 = performance.now() - t * 1000; iOdslona = t > T_ZLEW + .3; document.body.classList.toggle('odslona', iOdslona); introFrame(performance.now()); };
 
-  /* ---------- brzegi: kostka po obu stronach strony układa się w dół razem z przewijaniem ---------- */
-  const bL = document.getElementById('brzegL'), bR = document.getElementById('brzegR');
-  const brzegi = [{ cv: bL, x: bL.getContext('2d'), st: [] }, { cv: bR, x: bR.getContext('2d'), st: [] }];
-  let WB = 0, HB = 0, DB = 1, KB = .28, pageH = 0, vh = 0, lastY = -1, bNeeds = true, bRun = false, bedTile = 0, koniecY = 0;
-  function stripe(b, i) { // kolumny cegiełki pionowej, dopasowane do szerokości brzegu
-    const J = KB * 4, W = KB * 100, L = KB * 200; const kol = Math.max(1, Math.round((WB - J) / (W + J))); const w = (WB - (kol + 1) * J) / kol;
-    const pal = S.PAL.grafit, palB = S.PAL.bianco; b.st = [];
-    for (let c = 0; c < kol; c++) { const off = (c + i) % 2 ? L / 2 : 0; let y = -off;
-      while (y < pageH + L) { let h = L; if (y < 0) { h = L + y; y = 0; } const cy = y + h / 2, cx = J + c * (w + J) + w / 2;
-        const ostatni = y + L + J >= koniecY - 2; const p = ostatni ? palB : pal; if (ostatni) h = Math.min(h, Math.max(KB * 60, koniecY - y - J));
-        b.st.push({ x: cx, y: cy, w, h, rot: 0, col: p[(hash(cy | 0, cx + i * 977 | 0) * p.length) | 0], kind: 'block', v: (hash(cx | 0, cy | 0) * 6) | 0, key: cy, poly: null });
-        y += h + J; if (ostatni) break; }
-    }
-  }
-  function brzegiRozmiar() {
-    vh = innerHeight; pageH = document.documentElement.scrollHeight; const wb = getComputedStyle(document.documentElement).getPropertyValue('--brzeg').trim(); WB = parseFloat(wb) || (MOB() ? 22 : 64);
-    DB = Math.min(devicePixelRatio || 1, 2); KB = MOB() ? (WB - 2 * 1.4) / 100 : (WB - 3 * 1.6) / 200; if (KB < .14) KB = .14;
-    koniecY = pageH; HB = vh;
-    for (const b of brzegi) { b.cv.width = Math.ceil(WB * DB); b.cv.height = Math.ceil(vh * DB); b.cv.style.width = WB + 'px'; b.cv.style.height = vh + 'px'; }
-    S.k = KB; stripe(brzegi[0], 0); stripe(brzegi[1], 1); bNeeds = true; lastY = -1;
-  }
-  function brzegiRysuj() {
-    const y = scrollY, maxY = Math.max(1, pageH - vh), p = clamp(y / maxY, 0, 1);
-    const front = y + vh * .6 + p * (vh * .4 + 170); // na końcu strony ułożone do ostatniego kamienia
-    for (const b of brzegi) { const x = b.x; S.k = KB;
-      x.setTransform(DB, 0, 0, DB, 0, 0); x.clearRect(0, 0, WB, vh);
-      x.fillStyle = S.bedPattern || '#c9b48d'; x.save(); x.translate(0, -(y % 460)); x.fillRect(0, 0, WB, vh + 460); x.restore();
-      x.fillStyle = 'rgba(60,44,30,.18)'; x.fillRect(0, 0, WB, vh);
-      for (const s of b.st) { if (s.y < y - 80 || s.y > y + vh + 80) continue; const t = clamp((front - s.y) / 110, 0, 2); if (t <= 0) continue; s.y -= y; S.drawOne(x, s, DB, t); s.y += y; }
-      x.setTransform(DB, 0, 0, DB, 0, 0); const g = x.createLinearGradient(0, 0, WB, 0); const lewy = b === brzegi[0];
-      g.addColorStop(lewy ? 1 : 0, 'rgba(0,0,0,.28)'); g.addColorStop(lewy ? .7 : .3, 'rgba(0,0,0,0)'); g.addColorStop(lewy ? 0 : 1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0, 0, WB, vh); }
-    lastY = y; bNeeds = false;
-  }
-  function brzegiFrame() { bRun = false; if (G.zamroz) return; if (!bNeeds && scrollY === lastY) return; brzegiRysuj(); }
-  function brzegiPlan() { if (!bRun) { bRun = true; requestAnimationFrame(brzegiFrame); } }
-  G.brzegiTest = () => { brzegiRysuj(); };
 
-  /* ---------- wzory: plac układa się na nowo ---------- */
-  const wcv = document.getElementById('wzCv'); const wx = wcv ? wcv.getContext('2d') : null;
-  let wSt = [], wT0 = 0, wRun = false, wW = 0, wH = 0, wD = 1, wK = .5, wPat = 'herring', wPal = 'grafit', wWidac = false, wPierwszy = true;
-  function wzRozmiar() { if (!wcv) return; const r = wcv.getBoundingClientRect(); if (!r.width) return; wW = r.width; wH = r.height; wD = Math.min(devicePixelRatio || 1, 2); wcv.width = Math.ceil(wW * wD); wcv.height = Math.ceil(wH * wD); wK = MOB() ? wW / 1500 : wW / 2400; }
-  function wzUloz(pat, pal, anim) {
-    if (!wcv || !S) return; wPat = pat; wPal = pal; if (!wW) wzRozmiar(); if (!wW) return;
-    S.k = wK; wSt = []; S.genPattern(pat, pal, -wW * .05, -wH * .05, wW * 1.05, wH * 1.05, () => true, wSt, { cell: 360 });
-    const cx = wW * .5, cy = wH * .5, R = Math.hypot(wW, wH) * .5;
-    wSt.forEach(s => { s.d = Math.hypot(s.x - cx, s.y - cy) / R; s.h1 = hash(s.v + 5, (s.x * 3) | 0); if (s.kind === 'dome') s.kind = 'block'; });
-    wT0 = performance.now() - (anim && !RM ? 0 : 5000); if (!wRun) { wRun = true; requestAnimationFrame(wzFrame); }
-  }
-  function wzFrame(now) {
-    const t = (now - wT0) / 1000; S.k = wK;
-    wx.setTransform(wD, 0, 0, wD, 0, 0); wx.fillStyle = S.bedPattern || '#c9b48d'; wx.fillRect(0, 0, wW, wH); wx.fillStyle = 'rgba(60,44,30,.14)'; wx.fillRect(0, 0, wW, wH);
-    let dalej = false;
-    for (const s of wSt) { const ts = clamp((t - s.d * .55 - s.h1 * .08) / .42, 0, 2); if (ts <= 0) { dalej = true; continue; } if (ts < 1) dalej = true; S.drawOne(wx, s, wD, ts); }
-    wx.setTransform(wD, 0, 0, wD, 0, 0); const g = wx.createLinearGradient(0, 0, 0, wH); g.addColorStop(0, 'rgba(0,0,0,.08)'); g.addColorStop(.5, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.18)'); wx.fillStyle = g; wx.fillRect(0, 0, wW, wH);
-    if (dalej && !G.zamroz) requestAnimationFrame(wzFrame); else wRun = false;
-  }
-  G.ustawWzor = (pat, pal) => wzUloz(pat, pal, true);
-  G.wzInfo = () => ({ n: wSt.length, wW, wH, wRun, wWidac, wK, pat: wPat });
-  G.wzoryTest = t => { G.zamroz = true; wT0 = performance.now() - t * 1000; wzFrame(performance.now()); };
+  /* ---------- Wzory: plac w świecie układa się na nowo ---------- */
+  G.ustawWzor = (pat, pal) => { if (window.Swiat9 && Swiat9.ustawWzor) Swiat9.ustawWzor('wzory', pat, pal); };
+  G.wzInfo = () => ({});
+  const wz = document.getElementById('wzory'); if (wz) new IntersectionObserver(es => { if (es[0].isIntersecting) { dispatchEvent(new Event('wzory-widac')); } }, { threshold: .35 }).observe(wz);
 
-  /* ---------- animacje przewijania: sprzężone ze scrollem, nic nie gra samo ---------- */
-  /* Einblendungen: laufen immer bis zum Ende (keine halben Zustände), nur transform/opacity, IntersectionObserver statt
-     gespeicherter Scroll-Positionen – unabhängig davon, ob Bilder, Schriften oder das Intro die Höhe noch ändern. */
-  function animacje() {
-    if (window.gsap && window.ScrollTrigger && !RM) { gsap.registerPlugin(ScrollTrigger);
-      gsap.to('#heroFoto img', { scale: 1.1, yPercent: 8, ease: 'none', scrollTrigger: { trigger: '#start', start: 'top top', end: 'bottom top', scrub: true } });
-      gsap.to('#heroTresc', { yPercent: -24, autoAlpha: 0, ease: 'none', scrollTrigger: { trigger: '#start', start: '35% top', end: 'bottom top', scrub: true } });
-      const odswiez = () => ScrollTrigger.refresh(); addEventListener('load', odswiez); addEventListener('intro-koniec', odswiez); if (document.fonts) document.fonts.ready.then(odswiez); }
+  /* ---------- treść pojawia się do końca (transform/opacity) ---------- */
+  function pojawianie() {
     if (RM || !('IntersectionObserver' in window)) return;
-    const grupy = [['.tytul', 'rv-t'], ['.sek .lead, .opinie, .sek .cta, .katalogi, .maly, .kt-dane > p, .kt-dane > a, .kt-btn, .formularz, .wz-ster, .pl-ster, .koniec-napis, [data-rv]', ''], ['.foto', 'rv-f'], ['.kafel', ''], ['.kroki li', 'rv-x']];
-    const io = new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) return; const el = e.target; io.unobserve(el); el.classList.add('on');
-      const fertig = () => { el.classList.remove('rv', 'rv-t', 'rv-f', 'rv-x', 'on'); el.style.transitionDelay = ''; };
-      setTimeout(fertig, 1700 + (parseFloat(el.style.transitionDelay) || 0) * 1000); }), { rootMargin: '0px 0px 12% 0px', threshold: 0 });
-    for (const [sel, v] of grupy) document.querySelectorAll(sel).forEach(el => { if (el.closest('#start') || el.classList.contains('rv')) return;
-      const sib = [...el.parentElement.children].filter(c => c.matches(sel)); const i = Math.min(sib.indexOf(el), 5);
-      el.classList.add('rv'); if (v) el.classList.add(v); if (i > 0) el.style.transitionDelay = (i * .05).toFixed(2) + 's'; io.observe(el); });
-    // Sicherheitsnetz: was im oder über dem Bild liegt, ist spätestens nach 6 s sichtbar
+    const sel = '.tablica, .sek .lead, .opinie, .sek .cta, .katalogi, .maly, .kt-dane > *, .formularz, .wz-ster, .kroki li, .gry-zakl, .gry-pola, .pk, .stopka > *';
+    const io = new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) return; const el = e.target; io.unobserve(el); el.classList.add('on'); setTimeout(() => el.classList.remove('rv', 'on'), 1400); }), { rootMargin: '0px 0px 8% 0px' });
+    document.querySelectorAll(sel).forEach(el => { if (el.closest('#start') || el.closest('.etap')) return; el.classList.add('rv'); io.observe(el); });
     setTimeout(() => document.querySelectorAll('.rv:not(.on)').forEach(el => { if (el.getBoundingClientRect().top < innerHeight) el.classList.add('on'); }), 6000);
   }
-
-  /* ---------- środek strony: spokojny plac z jasnych płyt (raz narysowany, potem zwykłe tło – nic nie kosztuje przy przewijaniu) ---------- */
-  function plac() {
-    try {
-      const D = Math.min(devicePixelRatio || 1, 2), P = 258, Q = 130, J = 4; // płyta 60×30 przy ok. 0,42 px/mm, fuga 4 px
-      const w = P * 4, h = Q * 4, c = document.createElement('canvas'); c.width = w * D; c.height = h * D; const g = c.getContext('2d'); g.scale(D, D);
-      g.fillStyle = '#d6cdbd'; g.fillRect(0, 0, w, h); const pal = ['#e8e3d9', '#e4ded3', '#ebe7de', '#e1dbcf', '#e6e1d6'];
-      for (let r = 0; r < 4; r++) for (let i = -1; i < 4; i++) { const x = i * P + (r % 2) * P / 2, y = r * Q; const col = pal[(hash(i + 7, r + 3) * pal.length) | 0];
-        const sp = S.sprite('slab', P - J, Q - J, col, (hash(i, r) * 6) | 0); g.drawImage(sp.c, x + J / 2, y + J / 2, P - J, Q - J);
-        if (x < 0) g.drawImage(sp.c, x + w + J / 2, y + J / 2, P - J, Q - J); if (x + P > w) g.drawImage(sp.c, x - w + J / 2, y + J / 2, P - J, Q - J); }
-      g.fillStyle = 'rgba(239,234,225,.6)'; g.fillRect(0, 0, w, h);
-      c.toBlob(b => { if (!b) return; const u = URL.createObjectURL(b); const m = document.getElementById('tresc'); m.style.setProperty('--plac', `url(${u})`); m.style.setProperty('--plac-r', w + 'px'); }, 'image/webp', .86);
-    } catch (e) { /* bez tła też działa */ }
-  }
+  /* bohater: zdjęcie lekko odjeżdża przy przewijaniu */
+  const hImg = document.querySelector('#heroFoto img'); let hTik = false;
+  addEventListener('scroll', () => { if (hTik || RM) return; hTik = true; requestAnimationFrame(() => { hTik = false; const y = scrollY, h = innerHeight; if (y < h * 1.2 && hImg) hImg.style.transform = `translate3d(0,${(y * .35).toFixed(1)}px,0) scale(${(1 + y / h * .08).toFixed(4)})`; }); }, { passive: true });
 
   /* ---------- start ---------- */
   function start() {
-    S = window.Swiat; G.gotowe = true; plac();
-    brzegiRozmiar(); brzegiRysuj();
-    addEventListener('scroll', brzegiPlan, { passive: true });
-    let rT = 0, lw = innerWidth, lh = innerHeight; addEventListener('resize', () => { if (Math.abs(innerWidth - lw) < 2 && Math.abs(innerHeight - lh) < 120) return; clearTimeout(rT); rT = setTimeout(() => { lw = innerWidth; lh = innerHeight; brzegiRozmiar(); brzegiRysuj(); wzRozmiar(); wzUloz(wPat, wPal, false); }, 150); });
-    new ResizeObserver(() => { const h = document.documentElement.scrollHeight; if (Math.abs(h - pageH) > 24) { brzegiRozmiar(); brzegiRysuj(); } }).observe(document.body);
-    if (wcv) { new IntersectionObserver(es => { if (es[0].isIntersecting && !wWidac) { wWidac = true; wzRozmiar(); wzUloz(wPat, wPal, true); dispatchEvent(new Event('wzory-widac')); } }, { threshold: .35 }).observe(wcv); }
-    animacje();
+    S = window.Swiat; G.gotowe = true; pojawianie();
     const skip = RM || location.hash.length > 1;
     if (skip) { document.body.classList.add('odslona'); document.body.classList.remove('intro'); icv.remove(); G.introDone = true; dispatchEvent(new Event('intro-koniec')); return; }
     const img = document.querySelector('#start img'); const gotowe = img && !img.complete ? new Promise(r => { img.addEventListener('load', r, { once: true }); img.addEventListener('error', r, { once: true }); setTimeout(r, 3500); }) : Promise.resolve();
     gotowe.then(introStart);
   }
   if (window.Swiat && window.Swiat.bedPattern) start(); else addEventListener('swiat', start, { once: true });
-  setTimeout(() => { if (!G.gotowe) { document.body.classList.add('odslona'); document.body.classList.remove('intro'); } }, 6000); // bez tekstur nie blokuj strony
+  setTimeout(() => { if (!G.gotowe) { document.body.classList.add('odslona'); document.body.classList.remove('intro'); } }, 6000);
 })();

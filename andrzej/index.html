@@ -17,20 +17,18 @@
 <link rel="preload" href="fonts/big-shoulders-display-latin-900-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" as="image" href="img/real/plac-hero.webp" media="(min-width: 821px)">
 <link rel="preload" as="image" href="img/real/plac-hero-m.webp" media="(max-width: 820px)">
-<link rel="stylesheet" href="css/v6.css?v=17">
+<link rel="stylesheet" href="css/v6.css?v=18">
+<link rel="stylesheet" href="css/v9.css?v=18">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"HomeAndConstructionBusiness","name":"Centrum Architektury Ogrodowej GardenBruk","alternateName":"GardenBruk","description":"Skład z ekspozycją: kostka brukowa, płyty tarasowe, ogrodzenia, palisady, kruszywo dekoracyjne, wypożyczalnia sprzętu. Pomiar u klienta.","address":{"@type":"PostalAddress","streetAddress":"Mikowice 16","postalCode":"57-300","addressLocality":"Kłodzko","addressCountry":"PL"},"telephone":"+48500250936","email":"biuro@gardenbruk.net","image":"https://entwurf.falcon-eye.de/andrzej/img/real/plac-hero.webp","sameAs":["https://www.facebook.com/gardenbruk.net/","https://www.instagram.com/gardenbruk/"],"areaServed":"Ziemia Kłodzka"}</script>
 </head>
 <body class="intro">
 <a class="skip" href="#kontakt">Przejdź do kontaktu</a>
+<canvas id="swiat9" aria-hidden="true"></canvas>
 
 <!-- intro: kostka układa się na ekranie, unosi się i odsłania plac z drona -->
 <canvas id="intro" aria-hidden="true"></canvas>
 <div class="intro-napis" id="introNapis" aria-hidden="true"><span>GARDEN<b>BRUK</b></span><small>Mikowice pod Kłodzkiem</small></div>
 <button class="pomin" id="pomin" type="button">Pomiń intro</button>
-
-<!-- brzegi: po obu stronach strony kostka układa się w dół razem z przewijaniem -->
-<canvas class="brzeg" id="brzegL" aria-hidden="true"></canvas>
-<canvas class="brzeg prawy" id="brzegR" aria-hidden="true"></canvas>
 
 <header class="pasek" id="pasek">
   <a class="marka" href="#start" aria-label="GardenBruk – na początek">
@@ -38,10 +36,10 @@
     <span>GARDEN<b>BRUK</b></span>
   </a>
   <nav class="menu" id="menu" aria-label="Menu">
-    <a href="#oferta">Oferta</a><a href="#projektant">Projektant</a><a href="#wzory">Wzory</a><a href="#realizacje">Realizacje</a><a href="#gry">Gry</a><a href="#dla-firm">Dla firm</a><a href="#kontakt">Kontakt</a>
+    <a href="#historia">Historia</a><a href="#oferta">Oferta</a><a href="#projektant">Projektant</a><a href="#wzory">Wzory</a><a href="#realizacje">Realizacje</a><a href="#wozek">Zamów</a><a href="#gry">Gry</a><a href="#kontakt">Kontakt</a>
   </nav>
   <a class="tel" href="tel:+48500250936"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg><span>500 250 936</span></a>
-  <button class="koszyk-btn pusty" id="koszykBtn" type="button" aria-controls="koszyk" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-1.6 9.2a2 2 0 0 1-2 1.8H7.6a2 2 0 0 1-2-1.8z"/><path d="M8 20h.01M16 20h.01"/></svg><span>Zapytanie</span><b id="koszykIle">0</b></button>
+  <button class="koszyk-btn pusty" id="koszykBtn" type="button" aria-controls="koszyk" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17V9h5l2-5h3v13M16 3v15M16 18h6"/><circle cx="6" cy="18" r="2"/><circle cx="12" cy="18" r="2"/></svg><span>Wózek</span><b id="koszykIle">0</b></button>
   <button class="burger" id="burger" type="button" aria-controls="menu" aria-expanded="false" aria-label="Menu"><i></i><i></i><i></i></button>
 </header>
 
@@ -62,74 +60,113 @@
       <a class="btn jasny" href="tel:+48500250936">Zadzwoń: 500 250 936</a>
     </div>
   </div>
-  <a class="hero-dalej" href="#oferta"><span>Przewiń</span><i></i></a>
+  <a class="hero-dalej" href="#historia"><span>Przewiń</span><i></i></a>
+</section>
+
+<!-- HISTORIA: podjazd buduje się kamień po kamieniu, a z nim historia Andrzeja -->
+<section class="etap" id="historia" data-strefa="etap" aria-label="Historia Andrzeja i budowa podjazdu">
+  <div class="etap-wnetrze">
+    <div class="etap-kadr" data-od="0" data-do=".16"><small>1 · Ziemia</small><h2>Od zera.</h2><p>Andrzej ciężko pracuje, odkąd skończył szesnaście lat.</p></div>
+    <div class="etap-kadr" data-od=".16" data-do=".32"><small>2 · Podsypka</small><h2>Nikt mu nic nie dał.</h2><p>Z każdej trudności wyszedł sam. I za każdym razem szedł dalej.</p></div>
+    <div class="etap-kadr" data-od=".32" data-do=".46"><small>3 · Obrzeża</small><h2>Dla kogo?</h2><p>Dla siebie. Dla swojej córki. Dla każdego, kto mu zaufał.</p></div>
+    <div class="etap-kadr" data-od=".46" data-do=".86"><small>4 · Kostka</small><h2>Kamień po kamieniu.</h2><p>Tak powstaje podjazd. Tak powstało GardenBruk.</p></div>
+    <div class="etap-kadr" data-od=".86" data-do="1.01"><small>5 · Gotowe</small><h2>Dziś ma swój plac.</h2><p>W Mikowicach pod Kłodzkiem. Każdy problem rozwiąże. Na każde pytanie znajdzie czas.</p><a class="btn" href="#oferta">Zobacz, co jest na placu</a></div>
+    <ol class="etap-kroki" aria-hidden="true"><li>Ziemia</li><li>Podsypka</li><li>Obrzeża</li><li>Kostka</li><li>Gotowe</li></ol>
+    <a class="etap-pomin" href="#oferta">Pomiń historię</a>
+    <p class="etap-wskazowka" aria-hidden="true">Przewijaj. Podjazd buduje się razem z Tobą.</p>
+  </div>
 </section>
 
 <!-- OFERTA -->
-<section class="sek" id="oferta">
+<section class="sek strefa" id="oferta" data-strefa="plac" data-wzor="slabs" data-kolor="bianco" data-obrzeze="grafit">
   <div class="wnetrze">
     <h2 class="tytul">Oferta<span>Co znajdziesz na placu.</span></h2>
-    <p class="lead">Dotknij, co Cię interesuje, i dodaj do zapytania. Wyślesz je jednym kliknięciem na WhatsApp albo e-mailem.</p>
+    <p class="lead">Dotknij, co Cię interesuje, i załaduj na wózek. Andrzej zawiezie paletę do auta, a Ty wyślesz zamówienie WhatsAppem albo mailem.</p>
     <div class="kafle" id="kafle"></div>
   </div>
 </section>
 
-<!-- PROJEKTANT: zdjęcie terenu → nowa kostka w prawdziwej skali -->
-<section class="sek" id="projektant">
+<!-- PROJEKTANT OGRODU 2.0 -->
+<section class="sek strefa" id="projektant" data-strefa="plac" data-wzor="herring" data-kolor="grafit" data-obrzeze="bianco">
   <div class="wnetrze szeroka">
     <div class="pk-glowa">
-      <h2 class="tytul">Projektant<span>Twój podjazd w nowej kostce.</span></h2>
-      <p class="lead">Zrób zdjęcie podjazdu, tarasu albo ścieżki, zaznacz teren i podaj wymiary. Kostka pojawi się w prawdziwej skali, ze światłem i cieniami z Twojego zdjęcia. Zdjęcie zostaje na Twoim urządzeniu.</p>
+      <h2 class="tytul">Projektant<span>Twój ogród. Twoja kostka.</span></h2>
+      <p class="lead">Zrób zdjęcie podwórka. Palcem narysuj podjazd, ścieżkę i taras, każdemu daj inną kostkę. Posadź drzewa, postaw lampy i zobacz wszystko wieczorem i w nocy. Zdjęcie zostaje na Twoim urządzeniu.</p>
     </div>
-    <div class="pk" id="pk">
-      <div class="pk-buehne">
-        <div class="pk-scena pk-impuls" id="pkScena">
-          <canvas id="pkGl" role="img" aria-label="Podgląd: zdjęcie terenu z nową kostką"></canvas>
-          <canvas id="pkNak" aria-hidden="true"></canvas>
-          <button type="button" class="pk-rog" data-r="0" aria-label="Róg terenu 1, lewy górny (strzałki przesuwają)"></button>
-          <button type="button" class="pk-rog" data-r="1" aria-label="Róg terenu 2, prawy górny (strzałki przesuwają)"></button>
-          <button type="button" class="pk-rog" data-r="2" aria-label="Róg terenu 3, prawy dolny (strzałki przesuwają)"></button>
-          <button type="button" class="pk-rog" data-r="3" aria-label="Róg terenu 4, lewy dolny (strzałki przesuwają)"></button>
-          <div class="pk-ciecie" id="pkCiecie"><button type="button" class="pk-uchwyt" id="pkUchwyt" aria-label="Porównaj przed i po (strzałki w lewo i w prawo)"><i></i></button></div>
-          <span class="pk-et l" aria-hidden="true">Przed</span><span class="pk-et p" aria-hidden="true">Po</span>
-          <div class="pk-wsk" id="pkWsk" role="status"></div>
-          <div class="pk-laduje" id="pkLad" hidden><i></i>Układam kostkę…</div>
+    <div class="p2" id="p2">
+      <div class="p2-scena" id="p2Scena" data-krok="1">
+        <canvas id="p2Gl" role="img" aria-label="Podgląd: zdjęcie działki z nową kostką, roślinami i światłem"></canvas>
+        <canvas id="p2Nak" aria-hidden="true"></canvas>
+        <canvas id="p2Lupa" class="p2-lupa" width="248" height="248" hidden aria-hidden="true"></canvas>
+        <div class="p2-pasek" role="toolbar" aria-label="Widok">
+          <button type="button" id="p2Cofnij" title="Cofnij (Ctrl+Z)" aria-label="Cofnij" disabled>↶</button>
+          <button type="button" id="p2Ponow" title="Ponów" aria-label="Ponów" disabled>↷</button>
+          <button type="button" id="p2ZoomM" title="Pomniejsz" aria-label="Pomniejsz">−</button>
+          <button type="button" id="p2ZoomP" title="Powiększ" aria-label="Powiększ">+</button>
+          <button type="button" id="p2Dopasuj" title="Całe zdjęcie" aria-label="Pokaż całe zdjęcie">⤢</button>
+          <button type="button" id="p2Porownaj" title="Przed i po" aria-label="Porównaj przed i po" aria-pressed="false">◐</button>
+          <button type="button" id="p2Pelny" title="Pełny ekran" aria-label="Pełny ekran" aria-pressed="false">⛶</button>
         </div>
+        <button type="button" class="p2-wyjdz" id="p2Wyjdz">Zamknij pełny ekran</button>
+        <div class="p2-wsk" id="p2Wsk" role="status"></div>
+        <div class="pk-laduje" id="p2Lad" hidden><i></i>Układam kostkę…</div>
       </div>
-      <div class="pk-panel">
-        <div class="pk-kroki" role="tablist" aria-label="Kroki projektu">
-          <button type="button" role="tab" data-k="1" aria-selected="true" aria-controls="pkK1"><b>1</b>Zdjęcie</button>
-          <button type="button" role="tab" data-k="2" aria-selected="false" aria-controls="pkK2" tabindex="-1"><b>2</b>Teren</button>
-          <button type="button" role="tab" data-k="3" aria-selected="false" aria-controls="pkK3" tabindex="-1"><b>3</b>Kostka</button>
-          <button type="button" role="tab" data-k="4" aria-selected="false" aria-controls="pkK4" tabindex="-1"><b>4</b>Gotowe</button>
+      <div class="p2-panel">
+        <div class="p2-kroki" role="tablist" aria-label="Kroki projektu">
+          <button type="button" role="tab" data-k="1" aria-selected="true"><b>1</b>Zdjęcie</button>
+          <button type="button" role="tab" data-k="2" aria-selected="false" tabindex="-1"><b>2</b>Perspektywa</button>
+          <button type="button" role="tab" data-k="3" aria-selected="false" tabindex="-1"><b>3</b>Obszary</button>
+          <button type="button" role="tab" data-k="4" aria-selected="false" tabindex="-1"><b>4</b>Ogród i światło</button>
+          <button type="button" role="tab" data-k="5" aria-selected="false" tabindex="-1"><b>5</b>Gotowe</button>
         </div>
-        <div class="pk-krok" data-k="1" id="pkK1" role="tabpanel">
-          <p class="pk-op">Stań na skraju terenu i zrób zdjęcie tak, żeby cały podjazd był w kadrze.</p>
-          <div class="pk-rzad"><label class="btn plik">Zrób zdjęcie<input type="file" accept="image/*" capture="environment" id="pkAparat"></label><label class="btn jasny plik">Z galerii<input type="file" accept="image/*" id="pkPlik"></label></div>
+        <div class="p2-krok" data-k="1" role="tabpanel">
+          <p class="pk-op">Stań na skraju podwórka i zrób zdjęcie tak, żeby cały teren był w kadrze. Na komputerze możesz też przeciągnąć zdjęcie na podgląd.</p>
+          <div class="pk-rzad"><label class="btn plik">Zrób zdjęcie<input type="file" accept="image/*" capture="environment" id="p2Aparat"></label><label class="btn jasny plik">Z galerii<input type="file" accept="image/*" id="p2Plik"></label></div>
           <p class="pk-maly">Albo wypróbuj na naszych realizacjach:</p>
-          <div class="pk-przyklady" id="pkPrzyklady"></div>
-          <button type="button" class="btn pelny" data-dalej="2">Dalej: zaznacz teren</button>
+          <div class="pk-przyklady" id="p2Przyklady"></div>
+          <button type="button" class="btn pelny" data-dalej="2">Dalej: perspektywa</button>
         </div>
-        <div class="pk-krok" data-k="2" id="pkK2" role="tabpanel" hidden>
-          <p class="pk-op">Przeciągnij cztery żółte punkty na rogi terenu. Siatka pokazuje metry, więc od razu widać, czy perspektywa pasuje.</p>
-          <div class="pk-wym"><label>Szerokość<span><input type="text" id="pkW" value="7" inputmode="decimal" autocomplete="off"> m</span></label><label>Długość<span><input type="text" id="pkL" value="9" inputmode="decimal" autocomplete="off"> m</span></label></div>
-          <div class="pk-rzad" role="group" aria-label="Narzędzie"><button type="button" class="chip on" data-n="rogi" aria-pressed="true">Rogi</button><button type="button" class="chip" data-n="pedzel" aria-pressed="false">Pędzel: dodaj</button><button type="button" class="chip" data-n="gumka" aria-pressed="false">Gumka: usuń</button><button type="button" class="chip" data-n="reset">Cały teren</button></div>
-          <label class="pk-suwak">Rozmiar pędzla<input type="range" id="pkRozm" min="2" max="18" value="7"></label>
-          <p class="pk-pow">Powierzchnia: <b id="pkPow">–</b></p>
-          <button type="button" class="btn pelny" data-dalej="3">Dalej: wybierz kostkę</button>
+        <div class="p2-krok" data-k="2" role="tabpanel" hidden>
+          <p class="pk-op">Przeciągnij 4 żółte punkty na rogi prostokąta na ziemi, np. podjazdu albo tarasu, i wpisz jego wymiary. Dzięki temu kostka i rośliny mają prawdziwą wielkość. Siatka pokazuje metry.</p>
+          <div class="pk-wym" id="p2Wym"><label>Szerokość<span><input type="text" id="p2W" value="7" inputmode="decimal" autocomplete="off"> m</span></label><label>Długość<span><input type="text" id="p2L" value="9" inputmode="decimal" autocomplete="off"> m</span></label></div>
+          <p class="pk-maly">Dwoma palcami przybliżysz zdjęcie. Lupa pokazuje, co jest pod palcem.</p>
+          <button type="button" class="btn pelny" data-dalej="3">Dalej: obszary</button>
         </div>
-        <div class="pk-krok" data-k="3" id="pkK3" role="tabpanel" hidden>
-          <h3 class="pk-h">Wzór</h3><div class="pk-siatka" id="pkWzory"></div>
-          <h3 class="pk-h">Kolor</h3><div class="pk-siatka" id="pkKolory"></div>
-          <h3 class="pk-h">Obrzeże</h3><div class="pk-rzad" id="pkObrz"></div>
-          <div class="pk-rzad"><button type="button" class="chip" id="pkObrot" aria-pressed="false">Obróć wzór o 90°</button></div>
-          <button type="button" class="btn pelny" data-dalej="4">Dalej: gotowe</button>
+        <div class="p2-krok" data-k="3" role="tabpanel" hidden>
+          <div class="pk-rzad p2-narz" role="group" aria-label="Rysowanie"><button type="button" class="chip" data-n="rysuj" aria-pressed="false">✚ Punkt po punkcie</button><button type="button" class="chip" data-n="lasso" aria-pressed="false">✎ Obrysuj palcem</button><button type="button" class="chip" data-n="edytuj" aria-pressed="false">Popraw punkty</button><button type="button" class="chip" data-n="caly">Cały prostokąt</button></div>
+          <div class="pk-rzad" id="p2Rysuj" hidden><button type="button" class="btn" id="p2Zamknij">Zamknij obszar</button><button type="button" class="btn jasny" id="p2CofnijPkt">Cofnij punkt</button></div>
+          <div class="p2-lista" id="p2Lista"></div>
+          <div class="p2-edycja" id="p2Edycja" hidden>
+            <label class="p2-nazwa">Nazwa<input type="text" id="p2Nazwa" maxlength="24" autocomplete="off"></label>
+            <h3 class="pk-h">Wzór</h3><div class="p2-siatka" id="p2Wzory"></div>
+            <h3 class="pk-h">Kolor</h3><div class="p2-siatka" id="p2Kolory"></div>
+            <h3 class="pk-h">Obrzeże</h3><div class="pk-rzad" id="p2Obrz"></div>
+            <div class="pk-rzad"><button type="button" class="chip" id="p2Obrot">Obróć wzór: 0°</button><button type="button" class="chip" id="p2UsunPkt">Usuń wybrany punkt</button><button type="button" class="chip p2-usun" id="p2Usun">Usuń obszar</button></div>
+          </div>
+          <button type="button" class="btn pelny" data-dalej="4">Dalej: ogród i światło</button>
         </div>
-        <div class="pk-krok" data-k="4" id="pkK4" role="tabpanel" hidden>
-          <p class="pk-podsum" id="pkPodsum"></p>
-          <label class="pk-przel"><input type="checkbox" id="pkCienie" checked> Światło i cienie ze zdjęcia</label>
-          <div class="pk-warianty"><button type="button" class="chip" id="pkZapamietaj">+ Zapamiętaj wariant</button><div class="pk-war-lista" id="pkWar"></div></div>
-          <div class="pk-rzad pk-akcje"><button type="button" class="btn" id="pkDodaj">Dodaj do zapytania</button><button type="button" class="btn wa-btn" id="pkWa"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3z"/></svg>Wyślij Andrzejowi</button><button type="button" class="btn jasny" id="pkZapisz">Zapisz obraz</button></div>
+        <div class="p2-krok" data-k="4" role="tabpanel" hidden>
+          <h3 class="pk-h">Ułóż za mnie</h3>
+          <p class="p2-mini">Jeden dotyk: kostka, obrzeże, rośliny i światło ułożą się na Twoich obszarach. Potem zmienisz wszystko po swojemu.</p>
+          <div class="p2-aranz" id="p2Aranz" role="group" aria-label="Gotowe aranżacje">
+            <button type="button" class="p2-ar" data-ar="nowoczesny"><img src="img/wz/wz-slabs-grafit.webp" alt="" width="224" height="144" loading="lazy" decoding="async"><b>Nowoczesny</b><small>płyty grafit, oprawy w kostce</small></button>
+            <button type="button" class="p2-ar" data-ar="klasyczny"><img src="img/wz/wz-herring-melanz.webp" alt="" width="224" height="144" loading="lazy" decoding="async"><b>Klasyczny</b><small>jodełka, słupki, bukszpan</small></button>
+            <button type="button" class="p2-ar" data-ar="ogrod"><img src="img/wz/wz-rows-piaskowy.webp" alt="" width="224" height="144" loading="lazy" decoding="async"><b>Ogrodowy</b><small>cegiełka, tuje, latarnie</small></button>
+            <button type="button" class="p2-ar" data-ar="jasny"><img src="img/wz/wz-basket-bianco.webp" alt="" width="224" height="144" loading="lazy" decoding="async"><b>Jasny</b><small>koszyk bianco, donice</small></button>
+          </div>
+          <h3 class="pk-h">Pora dnia</h3>
+          <div class="pk-rzad p2-pora" role="group" aria-label="Pora dnia"><button type="button" class="chip on" data-pora="dzien" aria-pressed="true">☀ Dzień</button><button type="button" class="chip" data-pora="wieczor" aria-pressed="false">◒ Wieczór</button><button type="button" class="chip" data-pora="noc" aria-pressed="false">☾ Noc</button></div>
+          <div class="p2-biblioteka" id="p2Biblioteka"></div>
+          <div class="p2-obiekt" id="p2Obiekt" hidden><b id="p2ObNazwa"></b><label class="pk-suwak">Wielkość<input type="range" id="p2Rozmiar" min=".3" max="3" step=".05" value="1"></label><div class="pk-rzad"><button type="button" class="chip" id="p2Duplikat">Jeszcze jeden</button><button type="button" class="chip p2-usun" id="p2UsunOb">Usuń</button></div></div>
+          <details class="p2-gumka"><summary>Coś stoi na kostce? (auto, donica)</summary>
+            <div class="pk-rzad"><button type="button" class="chip" data-n="gumka" aria-pressed="false">Gumka</button><button type="button" class="chip" data-n="pedzel" aria-pressed="false">Przywróć</button><button type="button" class="chip" data-n="obiekty" aria-pressed="false">Gotowe</button><button type="button" class="chip" id="p2CzyscMaske">Wyczyść</button></div>
+            <label class="pk-suwak">Rozmiar pędzla<input type="range" id="p2Pedzel" min="2" max="16" value="6"></label></details>
+          <button type="button" class="btn pelny" data-dalej="5">Dalej: gotowe</button>
+        </div>
+        <div class="p2-krok" data-k="5" role="tabpanel" hidden>
+          <ul class="p2-podsum" id="p2Podsum"></ul><p class="p2-razem" id="p2Razem"></p>
+          <div class="pk-rzad pk-akcje"><button type="button" class="btn" id="p2Dodaj">Załaduj na wózek</button><button type="button" class="btn wa-btn" id="p2Wa">Wyślij Andrzejowi</button><button type="button" class="btn jasny" id="p2Zapisz">Zapisz obraz</button></div>
+          <button type="button" class="chip" id="p2Nowy">Zacznij od nowa na tym zdjęciu</button>
           <p class="pk-maly">To wizualizacja. Dokładny projekt i ilości ustalamy przy pomiarze u Ciebie.</p>
         </div>
       </div>
@@ -138,12 +175,12 @@
 </section>
 
 <!-- WZORY: plac układa się na nowo -->
-<section class="sek" id="wzory">
+<section class="sek strefa" id="wzory" data-strefa="plac" data-wzor="herring" data-kolor="grafit" data-obrzeze="bianco">
   <div class="wnetrze">
-    <h2 class="tytul">Wzory<span>Wybierz wzór. Plac ułoży się na nowo.</span></h2>
+    <h2 class="tytul">Wzory<span>Wybierz wzór. Plac pod Tobą ułoży się na nowo.</span></h2>
     <p class="lead" id="wzOpis">Jodełka: najmocniejszy układ na podjazd. Każdy wzór układamy pod Kłodzkiem.</p>
     <div class="wz-uklad">
-      <div class="wz-plac foto"><canvas id="wzCv" role="img" aria-label="Podgląd wybranego wzoru kostki"></canvas></div>
+      
       <div class="wz-ster">
         <div class="przewijak" role="group" aria-label="Wzór"><button type="button" class="chip on" data-wz="herring" aria-pressed="true">Jodełka</button><button type="button" class="chip" data-wz="rows" aria-pressed="false">Cegiełka</button><button type="button" class="chip" data-wz="basket" aria-pressed="false">Koszyk</button><button type="button" class="chip" data-wz="slabs" aria-pressed="false">Płyty</button><button type="button" class="chip" data-wz="arcs" aria-pressed="false">Łuki</button><button type="button" class="chip" data-wz="cobble" aria-pressed="false">Granit</button></div>
         <div class="przewijak kolory" role="group" aria-label="Kolor"><button type="button" class="kol on" data-kol="grafit" aria-pressed="true"><i style="background-image:url(img/tex/grafit.webp)"></i>Grafit</button><button type="button" class="kol" data-kol="szary" aria-pressed="false"><i style="background-image:url(img/tex/jasny.webp)"></i>Szary</button><button type="button" class="kol" data-kol="melanz" aria-pressed="false"><i style="background-image:url(img/tex/melanz.webp)"></i>Melanż</button><button type="button" class="kol" data-kol="piaskowy" aria-pressed="false"><i style="background-image:url(img/tex/jasny.webp)" class="piask"></i>Piaskowy</button><button type="button" class="kol" data-kol="granit" aria-pressed="false"><i style="background-image:url(img/tex/granit.webp)"></i>Granit</button></div>
@@ -154,22 +191,22 @@
 </section>
 
 <!-- REALIZACJE -->
-<section class="sek" id="realizacje">
+<section class="sek strefa" id="realizacje" data-strefa="plac" data-wzor="basket" data-kolor="szary" data-obrzeze="grafit">
   <div class="wnetrze">
     <h2 class="tytul">Realizacje<span>Ułożone przez nas.</span></h2>
     <p class="lead">Podjazdy, ścieżki i wzory z kostki na Ziemi Kłodzkiej. Dotknij zdjęcia, żeby je powiększyć.</p>
     <div class="galeria" id="galeria">
-      <button type="button" class="g-el duzy foto" data-src="img/real/kwiat-podjazd.webp"><img src="img/real/kwiat-podjazd.webp" width="614" height="1024" alt="Duży kwiat z żółtej i jasnej kostki na grafitowym podjeździe" loading="lazy" decoding="async"><span>Kwiat z kostki na podjeździe</span></button>
-      <button type="button" class="g-el foto" data-src="img/real/podjazd-grafit-zolty.webp"><img src="img/real/podjazd-grafit-zolty.webp" width="1024" height="614" alt="Podjazd z grafitowej kostki z żółtymi i jasnymi pasami" loading="lazy" decoding="async"><span>Podjazd grafitowy z pasami</span></button>
-      <button type="button" class="g-el foto" data-src="img/real/podjazd-szary.webp"><img src="img/real/podjazd-szary.webp" width="1024" height="768" alt="Łukowa ścieżka z jasnej kostki z ciemnymi pasami i podjazd z szarych płyt przed domem" loading="lazy" decoding="async"><span>Łukowa ścieżka i podjazd z płyt</span></button>
+      <button type="button" class="g-el duzy foto" data-dziura data-src="img/real/kwiat-podjazd.webp"><img src="img/real/kwiat-podjazd.webp" width="614" height="1024" alt="Duży kwiat z żółtej i jasnej kostki na grafitowym podjeździe" loading="lazy" decoding="async"><span>Kwiat z kostki na podjeździe</span></button>
+      <button type="button" class="g-el foto" data-dziura data-src="img/real/podjazd-grafit-zolty.webp"><img src="img/real/podjazd-grafit-zolty.webp" width="1024" height="614" alt="Podjazd z grafitowej kostki z żółtymi i jasnymi pasami" loading="lazy" decoding="async"><span>Podjazd grafitowy z pasami</span></button>
+      <button type="button" class="g-el foto" data-dziura data-src="img/real/podjazd-szary.webp"><img src="img/real/podjazd-szary.webp" width="1024" height="768" alt="Łukowa ścieżka z jasnej kostki z ciemnymi pasami i podjazd z szarych płyt przed domem" loading="lazy" decoding="async"><span>Łukowa ścieżka i podjazd z płyt</span></button>
     </div>
   </div>
 </section>
 
 <!-- O NAS -->
-<section class="sek" id="o-nas">
+<section class="sek strefa" id="o-nas" data-strefa="plac" data-wzor="cobble" data-kolor="granit" data-obrzeze="grafit">
   <div class="wnetrze dwie">
-    <figure class="a-foto foto"><img src="img/andrzej-kolumny.webp" width="900" height="1598" alt="Andrzej z GardenBruk, uśmiechnięty, przed kamiennymi kolumnami" loading="lazy" decoding="async"></figure>
+    <figure class="a-foto foto" data-dziura><img src="img/andrzej-kolumny.webp" width="900" height="1598" alt="Andrzej z GardenBruk, uśmiechnięty, przed kamiennymi kolumnami" loading="lazy" decoding="async"></figure>
     <div class="a-tekst">
       <h2 class="tytul">O nas<span>Andrzej. Na placu i u Ciebie.</span></h2>
       <p class="lead">Centrum Architektury Ogrodowej GardenBruk to Andrzej i jego plac w Mikowicach. Przyjedzie, zmierzy, doradzi i dopilnuje, żeby każdy kamień leżał jak trzeba. Kamień dobieramy do domu, a nie odwrotnie.</p>
@@ -180,9 +217,9 @@
 </section>
 
 <!-- PRODUCENCI -->
-<section class="sek" id="producenci">
+<section class="sek strefa" id="producenci" data-strefa="plac" data-wzor="plyty" data-kolor="szary" data-obrzeze="bianco">
   <div class="wnetrze dwie odwrot">
-    <figure class="p-foto foto"><img src="img/real/plac-ekspozycja.webp" width="1600" height="1200" alt="Ekspozycja kostki, płyt i ogrodzeń na placu GardenBruk jesienią, w tle palety Polbruk i baner Joniec" loading="lazy" decoding="async"><figcaption>Ekspozycja na placu w Mikowicach</figcaption></figure>
+    <figure class="p-foto foto" data-dziura><img src="img/real/plac-ekspozycja.webp" width="1600" height="1200" alt="Ekspozycja kostki, płyt i ogrodzeń na placu GardenBruk jesienią, w tle palety Polbruk i baner Joniec" loading="lazy" decoding="async"><figcaption>Ekspozycja na placu w Mikowicach</figcaption></figure>
     <div class="p-tekst">
       <h2 class="tytul">Producenci<span>Prawdziwe marki. Na żywo.</span></h2>
       <p class="lead">Na placu stoją kostka, płyty i ogrodzenia marek <b>Polbruk</b> i <b>Joniec</b>, ułożone na ekspozycji. Zobaczysz kolor w słońcu i w cieniu, zanim zamówisz.</p>
@@ -195,8 +232,43 @@
   </div>
 </section>
 
+<!-- ZAŁADUJ WÓZEK: zamówienie u Andrzeja -->
+<section class="sek strefa" id="wozek" data-strefa="plac" data-wzor="rows" data-kolor="grafit" data-obrzeze="bianco">
+  <div class="wnetrze szeroka">
+    <h2 class="tytul">Załaduj wózek<span>Zamów u Andrzeja. Prosto z placu.</span></h2>
+    <p class="lead">Wybierz kostkę, płyty albo ogrodzenie od producentów <b>Polbruk</b> i <b>Joniec</b>, ustaw kolor i ilość, a potem załaduj paletę na wózek. Andrzej wstawi ją na auto, a Twoje zamówienie trafi do niego WhatsAppem albo e-mailem. Cenę, dostępność i termin ustalicie bezpośrednio.</p>
+    <div class="wk-scena wk-box" id="wkScena" role="img" aria-label="Andrzej na wózku widłowym ładuje Twoje palety na ciężarówkę GardenBruk"></div>
+    <div class="wk-panel">
+      <div class="wk-wybor">
+        <div class="wk-marki" role="tablist" aria-label="Skąd towar">
+          <button type="button" role="tab" id="wkmPolbruk" aria-controls="wkPanelM" data-wkm="polbruk" aria-selected="true"><b>Polbruk</b><small>kostka, płyty, obrzeża</small></button>
+          <button type="button" role="tab" id="wkmJoniec" aria-controls="wkPanelM" data-wkm="joniec" aria-selected="false" tabindex="-1"><b>Joniec</b><small>ogrodzenia, daszki, palisady</small></button>
+          <button type="button" role="tab" id="wkmPlac" aria-controls="wkPanelM" data-wkm="plac" aria-selected="false" tabindex="-1"><b>Z placu</b><small>kamień, kruszywo, sprzęt</small></button>
+        </div>
+        <div id="wkPanelM" role="tabpanel" aria-labelledby="wkmPolbruk">
+        <div class="wk-prod" id="wkProd"></div>
+        <div class="wk-konf" id="wkKonf"></div>
+        </div>
+        <p class="maly">Nazwy linii i kolorów według katalogów producentów. Nie każdy kolor i grubość występuje w każdej linii, dostępność ustalicie przy zamówieniu. Nie widzisz swojego produktu? Dopisz go w uwagach.</p>
+      </div>
+      <form class="formularz wk-zam" id="wkForm" novalidate>
+        <h3>Na wózku <small id="wkIleSzt">pusto</small></h3>
+        <input type="text" name="_honey" class="ukryte" tabindex="-1" autocomplete="off" aria-label="Zostaw to pole puste">
+        <div class="wk-lista" id="wkLista"></div>
+        <div class="f-rzad"><label>Imię i nazwisko<input name="imie" id="wkImie" autocomplete="name"></label><label>Telefon<input name="telefon" id="wkTel" type="tel" autocomplete="tel"></label></div>
+        <div class="f-rzad"><label>Miejscowość<input name="miejscowosc" id="wkMiejsce" autocomplete="address-level2"></label><label>Kiedy potrzebujesz?<input name="termin" id="wkTermin" placeholder="np. połowa listopada"></label></div>
+        <fieldset class="wk-odbior"><legend>Odbiór</legend><label><input type="radio" name="odbior" value="Odbiorę na placu w Mikowicach" checked> Odbiorę na placu</label><label><input type="radio" name="odbior" value="Proszę o informację o transporcie"> Proszę o informację o transporcie</label></fieldset>
+        <label>Uwagi<textarea name="uwagi" id="wkUwagi" rows="2" placeholder="Np. inny produkt z katalogu, kolor, wymiary"></textarea></label>
+        <label class="zgoda"><input type="checkbox" id="wkZgoda"> <span>Zgadzam się na kontakt w sprawie zamówienia (<a href="polityka-prywatnosci.html">polityka prywatności</a>). Zgoda jest wymagana tylko przy wysyłce e-mailem.</span></label>
+        <div class="f-akcje"><button class="btn wa-btn" type="button" id="wkWa">Wyślij na WhatsApp</button><button class="btn" type="submit" id="wkMail">Wyślij e-mailem</button></div>
+        <p class="f-info" id="wkInfo" role="status"></p>
+      </form>
+    </div>
+  </div>
+</section>
+
 <!-- STREFA GIER -->
-<section class="sek" id="gry">
+<section class="sek strefa" id="gry" data-strefa="plac" data-wzor="basket" data-kolor="piaskowy" data-obrzeze="grafit">
   <div class="wnetrze szeroka">
     <h2 class="tytul">Strefa gier<span>Trzy gry z kostki.</span></h2>
     <p class="lead">Ułóż brakujący kawałek drogi, rozpoznaj wzory na czas albo znajdź pary kostek. Rekordy zapisują się na Twoim urządzeniu.</p>
@@ -229,7 +301,7 @@
 </section>
 
 <!-- JAK PRACUJEMY -->
-<section class="sek" id="jak">
+<section class="sek strefa" id="jak" data-strefa="plac" data-wzor="arcs" data-kolor="lupek" data-obrzeze="bianco">
   <div class="wnetrze">
     <h2 class="tytul">Jak pracujemy<span>Od pomiaru po ostatni kamień.</span></h2>
     <ol class="kroki">
@@ -242,7 +314,7 @@
 </section>
 
 <!-- DLA FIRM -->
-<section class="sek ciemna" id="dla-firm">
+<section class="sek strefa ciemna" id="dla-firm" data-strefa="plac" data-wzor="wielkie" data-kolor="czarny" data-obrzeze="grafit" data-lampy="1">
   <div class="wnetrze waska">
     <h2 class="tytul">Dla firm<span>Deweloperzy, architekci, gminy.</span></h2>
     <p class="lead">Większe ilości, dostawy pod harmonogram budowy i doradztwo przy doborze materiału. Rozwijamy się i szukamy partnerów.</p>
@@ -251,7 +323,7 @@
 </section>
 
 <!-- KONTAKT -->
-<section class="sek" id="kontakt">
+<section class="sek strefa" id="kontakt" data-strefa="plac" data-wzor="herring" data-kolor="grafit" data-obrzeze="bianco" data-lampy="1">
   <div class="wnetrze dwie kt">
     <div class="kt-dane">
       <h2 class="tytul">Kontakt<span>Zapraszamy na plac.</span></h2>
@@ -278,7 +350,7 @@
 </section>
 
 <footer class="stopka" id="koniec">
-  <p class="koniec-napis"><b>Droga ułożona do końca.</b> Dziękujemy, że przewinąłeś aż tu.</p>
+  <p class="koniec-napis"><b>Droga ułożona do końca.</b> Dziękujemy za odwiedziny.</p>
   <p><b>GardenBruk</b> · Centrum Architektury Ogrodowej · Mikowice 16, 57-300 Kłodzko · <a href="tel:+48500250936">+48 500 250 936</a> · <a href="https://www.facebook.com/gardenbruk.net/" target="_blank" rel="noopener">Facebook</a> · <a href="polityka-prywatnosci.html">Polityka prywatności</a></p>
   <p class="demo">Wersja demonstracyjna. Formularz e-mail trafia na razie do zespołu, który przygotowuje stronę.</p>
 </footer>
@@ -298,20 +370,21 @@
 <div class="towar" id="towar" hidden><div class="towar-panel" id="towarPanel" role="dialog" aria-modal="true" aria-label="Produkt"></div></div>
 <div class="lightbox" id="lightbox" hidden><button type="button" class="zamknij" id="lbZamknij" aria-label="Zamknij"></button><img id="lbImg" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" alt=""></div>
 
-<aside class="koszyk" id="koszyk" aria-label="Twoje zapytanie" hidden>
-  <div class="ks-gora"><h3>Twoje zapytanie</h3><button type="button" class="zamknij" id="koszykZamknij" aria-label="Zamknij"></button></div>
+<aside class="koszyk" id="koszyk" aria-label="Twój wózek" hidden>
+  <div class="ks-gora"><h3>Twój wózek</h3><button type="button" class="zamknij" id="koszykZamknij" aria-label="Zamknij"></button></div>
+  <div class="ks-scena wk-box" id="ksScena" role="img" aria-label="Andrzej na wózku widłowym z Twoimi paletami"></div>
   <div class="ks-lista" id="ksLista"></div><div class="ks-kalk" id="ksKalk"></div>
-  <div class="ks-dol"><button type="button" class="btn wa-btn" id="ksWa">Wyślij na WhatsApp</button><a class="btn" href="#kontakt" id="ksForm">Uzupełnij dane i wyślij</a></div>
+  <div class="ks-dol"><button type="button" class="btn wa-btn" id="ksWa">Załaduj i wyślij na WhatsApp</button><a class="btn" href="#wkForm" id="ksForm">Uzupełnij dane i wyślij e-mailem</a></div>
 </aside>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="js/swiat2d.js?v=17"></script>
-<script src="js/gsap.min.js?v=17"></script>
-<script src="js/ScrollTrigger.min.js?v=17"></script>
-<script src="js/scena6.js?v=17"></script>
-<script src="js/gra.js?v=17"></script>
-<script src="js/projektant.js?v=17"></script>
-<script src="js/gry.js?v=17"></script>
-<script src="js/strona6.js?v=17"></script>
+<script src="js/swiat2d.js?v=18"></script>
+<script src="js/swiat9.js?v=18"></script>
+<script src="js/intro9.js?v=18"></script>
+<script src="js/gra.js?v=18"></script>
+<script src="js/gry.js?v=18"></script>
+<script src="js/projektant2.js?v=18"></script>
+<script src="js/strona9.js?v=18"></script>
+<script src="js/wozek.js?v=18"></script>
 </body>
 </html>

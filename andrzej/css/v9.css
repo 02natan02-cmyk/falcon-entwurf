@@ -1,0 +1,243 @@
+/* GardenBruk v9 – świat z kamienia pod całą stroną; treść leży na nim jak płyty */
+:root{--brzeg:0px}
+html,body{background:#2b2620}
+#swiat9{position:fixed;inset:0;z-index:0;display:block;pointer-events:none}
+html.bez-gl #swiat9{display:none}
+html.bez-gl body{background:var(--tlo)}
+main{margin:0;background:none!important;position:relative;z-index:1}
+.brzeg{display:none}
+.wnetrze{max-width:1320px}
+
+/* tablica: nazwa rozdziału wykuta w granitowej płycie */
+.strefa .tytul{display:inline-block;margin:0 0 18px;padding:clamp(18px,2vw,26px) clamp(22px,2.6vw,36px) clamp(20px,2.2vw,30px);color:#f3efe6;background:#26272a url(../img/hd/tablica.webp) center/420px;border-radius:6px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 -3px 0 rgba(0,0,0,.35),0 26px 40px -18px rgba(0,0,0,.75),0 3px 8px rgba(0,0,0,.35);text-shadow:0 1px 0 rgba(0,0,0,.55),0 -1px 0 rgba(255,255,255,.06)}
+.strefa .tytul span{color:#d9d3c7}
+.strefa .tytul + .lead,.strefa .lead#wzOpis{display:block;width:fit-content;max-width:min(640px,100%);padding:16px 20px;margin-top:0;border-radius:6px;color:#2e2a24;background:#e9e5dc url(../img/hd/plyta.webp) center/380px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6),inset 0 -2px 0 rgba(0,0,0,.12),0 22px 36px -18px rgba(0,0,0,.6),0 2px 6px rgba(0,0,0,.25)}
+.strefa .a-tekst,.strefa .p-tekst,.strefa .kt-dane,.strefa .wz-ster,.strefa .kroki,.strefa.ciemna .wnetrze{padding:clamp(18px,2.2vw,30px);border-radius:8px;background:#ebe7de url(../img/hd/plyta.webp) center/420px;color:var(--tekst);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6),inset 0 -3px 0 rgba(0,0,0,.12),0 30px 50px -22px rgba(0,0,0,.65),0 3px 10px rgba(0,0,0,.28)}
+.strefa .a-tekst .tytul,.strefa .p-tekst .tytul,.strefa .kt-dane .tytul{margin-left:calc(-1 * clamp(18px,2.2vw,30px) - 10px)}
+.strefa .a-tekst .tytul + .lead,.strefa .p-tekst .tytul + .lead{background:none;box-shadow:none;padding:0;width:auto}
+.strefa.ciemna .wnetrze{background:#202124 url(../img/hd/tablica.webp) center/420px;color:#f0ece3}
+.strefa.ciemna .wnetrze .tytul{box-shadow:none;background:none;padding:0}
+.strefa.ciemna .lead{color:#d7d1c5!important;background:none!important;box-shadow:none!important;padding:0!important}
+.kroki{border-top:0!important}
+.strefa .kroki li{border-color:var(--linia)}
+
+/* element wyrasta z bruku: kamienie się podnoszą, a w ich miejscu pojawia się płyta */
+html:not(.bez-gl) .kafel,html:not(.bez-gl) [data-dziura]{opacity:0;transform:translate3d(0,22px,0) scale(.965)}
+html:not(.bez-gl) .kafel.wyrasta,html:not(.bez-gl) [data-dziura].wyrasta{opacity:1;transform:none;transition:opacity .7s cubic-bezier(.2,.7,.2,1) .78s,transform 1s cubic-bezier(.16,1,.3,1) .7s,box-shadow .45s}
+html:not(.bez-gl) .kafel.wyrasta:hover{transform:translateY(-4px)}
+@media (prefers-reduced-motion:reduce){html:not(.bez-gl) .kafel,html:not(.bez-gl) [data-dziura]{opacity:1;transform:none}}
+
+/* pojawianie się treści */
+.rv{opacity:0;transform:translate3d(0,22px,0);transition:opacity .55s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.16,1,.3,1)}
+.rv.on{opacity:1;transform:none}
+
+/* sekcje leżą na placu: więcej powietrza, żeby było widać kamień */
+.sek.strefa{padding:clamp(110px,13vw,190px) 0 clamp(90px,10vw,150px)}
+.sek.strefa + .sek.strefa{padding-top:clamp(110px,13vw,190px)}
+.sek.strefa.ciemna{padding:clamp(120px,14vw,200px) 0}
+
+/* ---------- HISTORIA: przyklejony etap ---------- */
+.etap{position:relative;height:520vh;height:520svh}
+.etap-wnetrze{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden}
+.etap-kadr{position:absolute;left:clamp(16px,4vw,72px);bottom:clamp(90px,12vh,140px);width:min(470px,calc(100% - 32px));padding:24px 26px 26px;border-radius:10px;color:#f3efe6;background:rgba(20,20,18,.8);
+  box-shadow:0 30px 60px -20px rgba(0,0,0,.7);opacity:0;transform:translate3d(0,18px,0);transition:opacity .5s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.16,1,.3,1);pointer-events:none}
+.etap-kadr.on{opacity:1;transform:none;pointer-events:auto}
+.etap-kadr small{display:block;font:800 13px/1 var(--f-t);letter-spacing:.12em;text-transform:uppercase;color:var(--ziel-j);margin-bottom:12px}
+.etap-kadr h2{font-size:clamp(44px,5.6vw,84px);margin-bottom:12px}
+.etap-kadr p{color:#e2ddd3;font-size:clamp(17px,1.4vw,20px);margin:0}
+.etap-kadr .btn{margin-top:18px}
+.etap-kroki{position:absolute;right:clamp(16px,3vw,48px);top:50%;transform:translateY(-50%);list-style:none;margin:0;padding:14px 16px;border-radius:12px;background:rgba(20,20,18,.7);color:#bdb6aa;font:800 13px/1 var(--f-t);display:grid;gap:14px;counter-reset:e}
+.etap-kroki li{counter-increment:e;display:flex;gap:10px;align-items:center}
+.etap-kroki li::before{content:counter(e);display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font-size:12px}
+.etap-kroki li:nth-child(1){--o:0}.etap-kroki li:nth-child(2){--o:.16}.etap-kroki li:nth-child(3){--o:.32}.etap-kroki li:nth-child(4){--o:.46}.etap-kroki li:nth-child(5){--o:.86}
+.etap-kroki li{opacity:calc(.45 + .55 * clamp(0, (var(--etap,0) - var(--o)) * 40, 1))}
+.etap-kroki li::before{background:color-mix(in srgb,var(--ziel-j) calc(clamp(0, (var(--etap,0) - var(--o)) * 40, 1) * 100%),rgba(255,255,255,.12))}
+.etap-pomin{position:absolute;right:clamp(16px,3vw,48px);bottom:clamp(90px,12vh,140px);padding:12px 16px;border-radius:999px;background:rgba(20,20,18,.7);color:#fff;font:800 14px/1 var(--f-t);text-decoration:none}
+.etap-wskazowka{position:absolute;left:50%;top:calc(16vh - 56px);transform:translateX(-50%);margin:0;padding:10px 16px;border-radius:999px;background:rgba(20,20,18,.7);color:#fff;font:700 14px/1.2 var(--f-t);white-space:nowrap;opacity:calc(1 - var(--etap,0) * 30)}
+
+/* Projektant i gry stoją na placu jak maszyny: ciemna rama już jest; reszta bez zmian */
+.stopka{position:relative;z-index:1;color:#eae5db;background:rgba(18,18,16,.85);margin:0;padding:34px 20px}
+.stopka a{color:#fff}.stopka .demo{color:#b7b0a4}
+.stopka .koniec-napis{color:#d9d2c5}.stopka .koniec-napis b{color:#fff}
+
+@media (max-width:820px){
+  .etap-kadr{left:12px;right:12px;width:auto;bottom:calc(84px + env(safe-area-inset-bottom));padding:18px 18px 20px}
+  .etap-kadr h2{font-size:40px}
+  .etap-kroki{top:auto;bottom:auto;top:calc(var(--pasek) + 10px);right:12px;transform:none;display:flex;gap:6px;padding:8px 10px;font-size:0}
+  .etap-kroki li{gap:0}.etap-kroki li::before{width:20px;height:20px;font-size:11px}
+  .etap-pomin{bottom:auto;top:calc(var(--pasek) + 10px);left:12px;right:auto;font-size:13px;padding:10px 12px}
+  .etap-wskazowka{top:auto;bottom:40%;white-space:normal;width:max-content;max-width:80vw;text-align:center}
+  .strefa .a-tekst .tytul,.strefa .p-tekst .tytul,.strefa .kt-dane .tytul{margin-left:0}
+}
+.sek.strefa.ciemna{background:none!important}
+#wzory .wz-uklad{grid-template-columns:minmax(0,520px);min-height:min(70vh,620px);align-content:start}
+#wzory .wz-ster{align-self:start}
+
+/* ===================== Projektant ogrodu 2.0 ===================== */
+.p2{display:grid;grid-template-columns:minmax(0,1fr) clamp(340px,27vw,420px);gap:clamp(12px,1.4vw,18px);align-items:start;padding:clamp(10px,1.2vw,16px);border-radius:22px;background:#1d1e20 url(../img/hd/tablica.webp) center/520px;box-shadow:0 40px 80px -30px rgba(0,0,0,.75)}
+.p2-scena{position:sticky;top:calc(var(--pasek) + 12px);height:min(76vh,780px);border-radius:14px;overflow:hidden;background:#121314;touch-action:none;user-select:none;-webkit-user-select:none;cursor:crosshair}
+.p2-scena[data-krok="1"],.p2-scena[data-krok="5"]{cursor:default}
+.p2-scena.upusc{outline:3px dashed var(--ziel-j);outline-offset:-8px}
+.p2-scena canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.p2-lupa{position:absolute!important;inset:auto!important;width:124px!important;height:124px!important;border-radius:50%;z-index:6;box-shadow:0 10px 30px rgba(0,0,0,.5);pointer-events:none}
+.p2-pasek{position:absolute;top:10px;left:10px;z-index:5;display:flex;gap:4px;padding:4px;border-radius:12px;background:rgba(16,16,16,.78)}
+.p2-pasek button{width:40px;height:40px;border:0;border-radius:9px;background:transparent;color:#fff;font:700 19px/1 var(--f-t);cursor:pointer}
+.p2-pasek button:hover{background:rgba(255,255,255,.12)}.p2-pasek button[disabled]{opacity:.35;cursor:default}
+.p2-pasek button[aria-pressed="true"]{background:var(--ziel-j);color:#06240e}
+.p2-wyjdz{display:none;position:absolute;top:10px;right:10px;z-index:5;border:0;border-radius:999px;padding:12px 16px;background:#fff;color:var(--tekst);font:800 14px/1 var(--f-t);cursor:pointer}
+.p2-wsk{position:absolute;left:50%;bottom:12px;z-index:4;transform:translateX(-50%);max-width:calc(100% - 24px);padding:9px 14px;border-radius:999px;background:rgba(10,10,10,.78);color:#fff;font:700 13.5px/1.25 var(--f-t);text-align:center;pointer-events:none}
+.p2.p2-demo .p2-wsk::before{content:"Pokaz · ";color:var(--ziel-j)}
+.p2-panel{background:var(--biel);border-radius:14px;padding:clamp(14px,1.4vw,20px);color:var(--tekst);min-width:0;max-height:min(76vh,780px);overflow:auto;overscroll-behavior:contain}
+.p2-kroki{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:14px;position:sticky;top:-20px;background:var(--biel);padding-top:2px;z-index:2}
+.p2-kroki button{display:flex;flex-direction:column;align-items:center;gap:5px;padding:9px 2px;border:0;border-radius:11px;background:var(--tlo2);color:var(--tekst2);font:800 11.5px/1.15 var(--f-t);cursor:pointer;text-align:center}
+.p2-kroki button b{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#fff;color:var(--tekst);font-size:12px;box-shadow:inset 0 0 0 1.5px var(--linia)}
+.p2-kroki button[aria-selected="true"]{background:var(--grafit);color:#fff}.p2-kroki button[aria-selected="true"] b{background:var(--ziel-j);color:#06240e;box-shadow:none}
+.p2-krok{display:grid;gap:12px}.p2-krok[hidden]{display:none}
+.p2-narz .chip{font-size:14px;padding:0 13px}
+.p2-lista{display:grid;gap:6px}
+.p2-strefa{display:flex;gap:10px;align-items:center;padding:6px;border:0;border-radius:12px;background:var(--tlo2);cursor:pointer;text-align:left;font:inherit;color:var(--tekst)}
+.p2-strefa img{width:56px;height:36px;border-radius:7px;object-fit:cover}
+.p2-strefa b{display:block;font-size:14.5px}.p2-strefa small{display:block;font-size:12.5px;color:var(--tekst2)}
+.p2-strefa.on{box-shadow:inset 0 0 0 2.5px var(--ziel)}
+.p2-maly{font-size:13.5px;color:var(--tekst2);margin:0}
+.p2-edycja{display:grid;gap:10px;padding:12px;border-radius:12px;background:#f2efe8;box-shadow:inset 0 0 0 1.5px var(--linia)}
+.p2-edycja[hidden]{display:none}
+.p2-nazwa{display:grid;gap:6px;font:800 13px/1 var(--f-t);color:var(--tekst2)}
+.p2-nazwa input{min-height:44px;border-radius:10px;border:0;box-shadow:inset 0 0 0 1.5px var(--linia);padding:0 12px;font:700 16px/1 var(--f-t)}
+.p2-siatka{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.p2-kafel{display:grid;gap:4px;padding:4px 4px 6px;border:0;border-radius:10px;background:var(--tlo2);cursor:pointer;font:700 11.5px/1.15 var(--f-t);color:var(--tekst);text-align:center}
+.p2-kafel img{width:100%;height:auto;aspect-ratio:112/72;border-radius:7px;object-fit:cover;background:#c9b48d}
+.p2-kafel[aria-pressed="true"]{background:var(--grafit);color:#fff}
+.p2-siatka.ob{grid-template-columns:repeat(4,1fr)}
+.p2-ob{display:grid;gap:4px;justify-items:center;padding:6px 4px;border:0;border-radius:10px;background:linear-gradient(#dfe6d8,#cbd3c2);cursor:pointer;font:700 11.5px/1.15 var(--f-t);color:var(--tekst);text-align:center}
+.p2-ob img{height:64px;width:auto;max-width:100%;object-fit:contain;filter:drop-shadow(0 4px 4px rgba(0,0,0,.25))}
+.p2-ob[aria-pressed="true"]{background:var(--grafit);color:#fff;box-shadow:0 0 0 2px var(--ziel-j)}
+.p2-h{margin:6px 0 -2px;font:800 12.5px/1 var(--f-t);letter-spacing:.08em;text-transform:uppercase;color:var(--tekst2)}
+.p2-obiekt{display:grid;gap:8px;padding:12px;border-radius:12px;background:#f2efe8;box-shadow:inset 0 0 0 1.5px var(--ziel)}
+.p2-obiekt[hidden]{display:none}
+.p2-gumka{border-radius:12px;background:#f2efe8;padding:10px 12px}.p2-gumka summary{cursor:pointer;font:800 14px/1.3 var(--f-t)}.p2-gumka[open] summary{margin-bottom:10px}
+.p2-usun{color:#a3261e}
+.p2-podsum{margin:0;padding:12px 14px 12px 30px;border-radius:12px;background:var(--tlo2);font:700 14.5px/1.45 var(--f-t)}
+.p2-razem{margin:0;font:900 22px/1 var(--f-d);text-transform:uppercase}
+.p2.bez-gl .p2-scena{display:grid;place-items:center}
+/* pełny ekran */
+html.p2-pelny,html.p2-pelny body{overflow:hidden}
+.p2.pelny{position:fixed;inset:0;z-index:300;border-radius:0;padding:10px;grid-template-columns:minmax(0,1fr) 400px;background:#121314}
+.p2.pelny .p2-scena{position:relative;top:0;height:calc(100vh - 20px);height:calc(100dvh - 20px)}
+.p2.pelny .p2-panel{max-height:calc(100dvh - 20px)}
+.p2.pelny .p2-wyjdz{display:block}
+@media (max-width:1100px){ .p2{grid-template-columns:1fr} .p2-scena{position:sticky;top:calc(var(--pasek) + 6px);z-index:3;height:min(62vh,560px)} .p2-panel{max-height:none} }
+@media (max-width:820px){
+  .p2{padding:8px;border-radius:18px;margin:0 -6px}
+  .p2-scena{height:clamp(300px,calc((100vw - 24px) / var(--p2ar,1.33) + 120px),72vh)}
+  .p2-kroki button{font-size:10.5px;padding:8px 1px}
+  .p2-pasek{top:8px;left:8px}.p2-pasek button{width:36px;height:36px;font-size:17px}
+  .p2.pelny{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto;padding:0;gap:0}
+  .p2.pelny .p2-scena{height:auto;border-radius:0;min-height:0}
+  .p2.pelny .p2-panel{max-height:44dvh;border-radius:16px 16px 0 0}
+  .p2-siatka,.p2-siatka.ob{grid-template-columns:repeat(4,1fr)}
+}
+
+/* ---------- v9: Załaduj wózek ---------- */
+.wk-box{position:relative;overflow:hidden;background:#7fa9cf;contain:layout paint}
+.wk-svg{display:block;width:100%;height:100%}
+.wk-scena{position:sticky;top:calc(var(--pasek) + 10px);z-index:3;width:100%;height:min(46vh,500px);margin:24px 0 18px;border-radius:10px;box-shadow:0 30px 60px -24px rgba(20,16,10,.6),0 0 0 6px #26272a,0 0 0 7px rgba(255,255,255,.12)}
+.wk-svg text{font-family:var(--f-t)}
+.wk-t1{font-weight:800;font-size:7.6px;letter-spacing:.04em}.wk-t2{font-weight:600;font-size:7px}
+.wk-burta{font-weight:800;font-size:8.6px;letter-spacing:.14em;fill:#2b2c2e}
+.wk-plus-t{font:900 17px var(--f-d);fill:#1b1b1a}
+.wk-dym-txt{font-weight:800;font-size:17px;fill:#1b1b1a}
+.wk-dymek{transform-box:fill-box;transform-origin:12% 100%}
+.wk-dymek.pop{animation:wkpop .5s cubic-bezier(.2,1.5,.4,1)}
+@keyframes wkpop{from{transform:scale(.55);opacity:0}}
+.wf.jedzie .wf-kogut{animation:wkkogut .42s steps(2,jump-none) infinite}
+@keyframes wkkogut{50%{opacity:.35}}
+.wk-box.trzes{animation:wktrzes .45s}
+@keyframes wktrzes{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.wk-box.impuls{animation:wkimp 1.1s ease-in-out 2}
+@keyframes wkimp{50%{box-shadow:0 30px 60px -24px rgba(20,16,10,.6),0 0 0 6px #d9ad55,0 0 0 14px rgba(217,173,85,.3)}}
+.wk-wynik{position:absolute;left:50%;top:16px;transform:translateX(-50%);width:min(470px,calc(100% - 24px));padding:16px 20px 14px;border-radius:14px;text-align:center;background:rgba(250,248,243,.97);color:var(--tekst);box-shadow:0 20px 50px -12px rgba(0,0,0,.45);animation:wkwyn .5s cubic-bezier(.16,1,.3,1)}
+.wk-wynik[hidden]{display:none}
+@keyframes wkwyn{from{transform:translate(-50%,-14px);opacity:0}}
+.wk-wynik b{display:block;font:900 clamp(24px,2.6vw,32px)/1 var(--f-d);text-transform:uppercase;letter-spacing:.01em}
+.wk-wynik p{margin:8px 0 12px;font-size:15px;color:var(--tekst2)}
+.wk-wb{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}.wk-wb .btn{min-height:46px;padding:0 18px;font-size:15px}
+.wk-link{margin-top:8px;border:0;background:none;font:700 14px var(--f-t);color:var(--tekst2);text-decoration:underline;text-underline-offset:3px;cursor:pointer;min-height:36px}
+.wk-lot{position:fixed;left:0;top:0;z-index:140;width:68px;height:52px;pointer-events:none;background:#777 center/cover;border-radius:3px 3px 0 0;border-bottom:9px solid #c99d65;box-shadow:0 16px 30px -10px rgba(0,0,0,.55)}
+.wk-panel{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:18px;align-items:start}
+.wk-wybor{padding:clamp(16px,2vw,26px);border-radius:8px;background:#ebe7de url(../img/hd/plyta.webp) center/420px;color:var(--tekst);box-shadow:var(--cien)}
+.wk-marki{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.wk-marki button{min-height:64px;padding:10px 14px;border:0;border-radius:10px;cursor:pointer;text-align:left;color:var(--tekst);background:rgba(255,255,255,.62);box-shadow:inset 0 0 0 1.5px var(--linia);transition:background .2s,color .2s}
+.wk-marki button b{display:block;font:900 24px/1 var(--f-d);text-transform:uppercase}.wk-marki button small{display:block;margin-top:4px;font-size:13px;color:var(--tekst2)}
+.wk-marki button.on{background:#26272a url(../img/hd/tablica.webp) center/420px;color:#f3efe6;box-shadow:none}.wk-marki button.on small{color:#d5cec2}
+.wk-prod{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.wk-pr{display:inline-flex;align-items:center;gap:10px;min-height:48px;padding:5px 16px 5px 5px;border:0;border-radius:999px;cursor:pointer;font:700 14px/1.15 var(--f-t);color:var(--tekst);background:rgba(255,255,255,.7);box-shadow:inset 0 0 0 1.5px var(--linia);text-align:left}
+.wk-pr i{flex:0 0 38px;width:38px;height:38px;border-radius:50%;background:#888 center/cover;box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)}
+.wk-pr.on{background:#fff;box-shadow:inset 0 0 0 2.5px var(--grafit)}
+.wk-konf{display:grid;grid-template-columns:minmax(180px,250px) minmax(0,1fr);gap:20px;align-items:start;padding:16px;border-radius:10px;background:rgba(255,255,255,.55)}
+.wk-podglad{border-radius:10px;padding:14px 10px 10px;background:radial-gradient(120% 90% at 50% 20%,#f8f6f1,#d9d4ca)}
+.wk-podglad svg{display:block;width:100%;height:auto}.wk-podglad svg text{font-family:var(--f-t)}
+.wk-podglad small{display:block;margin-top:8px;font-size:13px;line-height:1.35;text-align:center;color:var(--tekst2)}
+.wk-opcje h3{font:900 clamp(24px,2.2vw,30px)/1 var(--f-d);margin:0 0 4px;text-transform:uppercase}
+.wk-opcje .opcje-t{display:block;font:800 13px/1 var(--f-t);margin:14px 0 8px;color:var(--tekst2)}
+.wk-opcje .opcje{display:flex;flex-wrap:wrap;gap:6px}.wk-opcje .chip{min-height:40px;padding:0 14px;font-size:14px}
+.chip.wk-kol b{display:inline-block;width:15px;height:15px;margin-right:7px;border-radius:50%;vertical-align:-3px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25),0 0 0 1.5px rgba(255,255,255,.6)}
+.wk-ile{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 14px}.wk-ile .opcje-t{flex:0 0 100%;margin-bottom:0}
+.wk-ile input{width:96px;height:46px;border-radius:10px;border:1px solid rgba(27,27,26,.25);background:#fff;text-align:center;font:800 18px var(--f-t);color:var(--tekst)}
+.wk-ile .jedn{font-weight:800;min-width:2.6em}
+.wk-pm{width:46px;height:46px;border:0;border-radius:10px;cursor:pointer;background:var(--grafit);color:#fff;font:800 22px/1 var(--f-t)}
+.wk-zaladuj{background:#f2a516;color:#1d150a}.wk-zaladuj svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.wk-zaladuj.skok{animation:skok .5s cubic-bezier(.2,.8,.2,1)}
+.wk-opcje .katalog-link{display:block;margin:12px 0 0}
+.wk-wybor .maly{margin:12px 0 0;font-size:13px}
+.formularz.wk-zam{background:#ebe7de url(../img/hd/plyta.webp) center/420px;border-radius:8px;gap:10px}
+.wk-zam h3 small{margin-left:8px;font:800 14px var(--f-t);color:var(--tekst2);text-transform:none;letter-spacing:0}
+.wk-lista{max-height:280px;overflow:auto;border-radius:10px;background:rgba(255,255,255,.6);padding:4px 12px}
+.wk-poz{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--linia)}.wk-poz:last-child{border-bottom:0}
+.wk-poz i{width:46px;height:46px;border-radius:7px;background:#888 center/cover;border-bottom:5px solid #c99d65}
+.wk-poz b{display:block;font-size:14px;line-height:1.3;color:var(--tekst)}
+.formularz .wk-poz label{display:flex;align-items:center;gap:6px;margin-top:4px;font-size:13px}
+.formularz .wk-poz input{width:78px;min-height:34px;height:34px;padding:4px 8px;text-align:center;font-weight:700}
+.wk-poz button{width:40px;height:40px;border:0;border-radius:10px;cursor:pointer;display:grid;place-items:center;background:rgba(0,0,0,.06)}
+.wk-poz button svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.wk-pusto{margin:10px 0;font-size:14px;color:var(--tekst2)}
+.wk-odbior{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0;padding:0;border:0}.wk-odbior legend{padding:0;margin-bottom:6px;font:700 14px var(--f-t);color:var(--tekst2)}
+.formularz .wk-odbior label{display:flex;align-items:center;gap:8px;color:var(--tekst);font-weight:600}.wk-odbior input{width:20px;height:20px;accent-color:var(--ziel)}
+.ks-scena{flex:0 0 auto;height:150px;margin:0 20px 6px;border-radius:12px}
+.ks-scena .wk-wynik{top:8px;padding:10px 12px;width:calc(100% - 16px)}.ks-scena .wk-wynik b{font-size:20px}.ks-scena .wk-wynik p{font-size:13px;margin:4px 0 8px}.ks-scena .wk-wb .btn{min-height:38px;font-size:13px;padding:0 12px}
+@media (max-width:1100px){.wk-panel{grid-template-columns:1fr}}
+@media (max-width:820px){
+  .wk-scena{height:min(230px,30vh);min-height:190px;top:calc(var(--pasek) + 6px);margin:18px 0 14px}
+  .wk-marki button{min-height:58px;padding:8px 10px}.wk-marki button b{font-size:20px}.wk-marki button small{font-size:11.5px}
+  .wk-konf{grid-template-columns:1fr;padding:12px}.wk-podglad{max-width:280px;margin:0 auto;width:100%}
+  .ks-scena{height:130px;margin:0 12px 6px}
+}
+@media (prefers-reduced-motion:reduce){.wk-dymek.pop,.wk-dym-html.pop,.wk-box.trzes,.wk-box.impuls,.wk-wynik,.wk-wynik.wk-poza{animation:none}}
+.wk-dymek{transition:opacity .3s}.z-wynikiem .wk-dymek{opacity:0}
+.formularz .wk-odbior input{width:22px;height:22px;min-height:0;padding:0;flex:0 0 auto;margin:0}
+.wk-dym-html{display:none;position:absolute;left:10px;top:10px;z-index:2;max-width:70%;padding:7px 12px;border-radius:12px 12px 12px 3px;background:#fff;color:#1b1b1a;font:800 13px/1.2 var(--f-t);box-shadow:0 6px 16px -6px rgba(0,0,0,.45);transition:opacity .3s}
+.wk-dym-html.pop{animation:wkpop .45s cubic-bezier(.2,1.5,.4,1)}
+.maly-dymek .wk-dym-html{display:block}.maly-dymek .wk-dymek{display:none}.z-wynikiem .wk-dym-html{opacity:0}
+/* Projektant 2.0: Ułóż za mnie */
+.p2-mini{margin:-2px 0 10px;font-size:13.5px;line-height:1.4;color:var(--tekst2)}
+.p2-aranz{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:14px}
+.p2-ar{display:grid;grid-template-columns:52px minmax(0,1fr);grid-template-rows:auto auto;column-gap:10px;align-items:center;min-height:60px;padding:6px 10px 6px 6px;border:0;border-radius:12px;cursor:pointer;text-align:left;color:var(--tekst);background:#fff;box-shadow:inset 0 0 0 1.5px var(--linia);transition:box-shadow .2s,transform .2s}
+.p2-ar img{grid-row:1/3;width:52px;height:48px;object-fit:cover;border-radius:8px}
+.p2-ar b{align-self:end;font:800 14px/1.1 var(--f-t)}.p2-ar small{align-self:start;font-size:12px;line-height:1.25;color:var(--tekst2)}
+.p2-ar:hover{box-shadow:inset 0 0 0 1.5px rgba(27,27,26,.5)}.p2-ar.on{box-shadow:inset 0 0 0 2.5px var(--ziel)}.p2-ar:active{transform:scale(.98)}
+/* Załaduj wózek: Befunde der Prüfung */
+.wk-opcje .chip{min-height:44px}
+.wk-opcje .opcje-t small{font-weight:600;color:var(--tekst2);opacity:.85}
+.formularz .wk-poz input{height:44px;min-height:44px}
+.wk-poz button{width:44px;height:44px}
+.wk-opcje .katalog-link{display:inline-flex;align-items:center;min-height:44px;margin:6px 0 0}
+.formularz .wk-odbior label{min-height:44px}
+.wk-wb .btn{min-height:46px}
+.wk-wynik.wk-poza{position:static;left:auto;top:auto;transform:none;width:auto;margin:0 0 14px;box-shadow:var(--cien);animation:wkwyn2 .45s cubic-bezier(.16,1,.3,1)}
+@keyframes wkwyn2{from{transform:translateY(-10px);opacity:0}}
+.koszyk .wk-poza{margin:0 20px 8px;padding:12px 14px}.koszyk .wk-poza b{font-size:22px}.koszyk .wk-poza p{font-size:14px;margin:6px 0 10px}.koszyk .wk-poza .wk-wb .btn{flex:1 1 auto;font-size:14px;padding:0 12px}
+.wk-panel :is(button,input,textarea,a,select){scroll-margin-top:calc(var(--pasek) + min(46vh,500px) + 34px);scroll-margin-bottom:24px}
+@media (max-width:820px){.wk-panel :is(button,input,textarea,a,select){scroll-margin-top:calc(var(--pasek) + min(230px,30vh) + 24px);scroll-margin-bottom:96px}.koszyk .wk-poza{margin:0 12px 8px}}
