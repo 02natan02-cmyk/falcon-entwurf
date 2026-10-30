@@ -32,7 +32,7 @@
     const LIMIT = 6;
     function rozmiar() { const r = cv.getBoundingClientRect(); if (!r.width) return; D = Math.min(devicePixelRatio || 1, 2); W = r.width; H = r.height; cv.width = Math.round(W * D); cv.height = Math.round(H * D); k = W < 560 ? W / 1250 : W / 2100; uloz(stan === 'gra' && rundy[runda] ? rundy[runda] : { pat: 'herring', pal: 'grafit' }, !lista.length); }
     function uloz(r, anim) { if (!S) return; const saveK = S.k; S.k = k; lista = []; S.genPattern(r.pat, r.pal, -40, -40, W + 40, H + 40, () => true, lista, { cell: r.pat === 'wild' ? 330 : 0 }); S.k = saveK;
-      const ox = Math.random() < .5 ? 0 : W, oy = Math.random() < .5 ? 0 : H, R = Math.hypot(W, H); lista.forEach(s => { s.d = Math.hypot(s.x - ox, s.y - oy) / R; }); t0 = performance.now() - (anim && !RM ? 0 : 9e3); start(); }
+      const ox = Math.random() < .5 ? 0 : W, oy = Math.random() < .5 ? 0 : H, R = Math.hypot(W, H); lista.forEach(s => { s.d = Math.hypot(s.x - ox, s.y - oy) / R; if (s.kind === 'dome') s.kind = 'block'; }); t0 = performance.now() - (anim && !RM ? 0 : 9e3); start(); }
     function klatka(now) {
       rafOn = false; if (!widac || !W) return; const t = (now - t0) / 1000; const saveK = S.k; S.k = k;
       x.setTransform(D, 0, 0, D, 0, 0); x.fillStyle = S.bedPattern || '#c9b48d'; x.fillRect(0, 0, W, H); let dalej = false;
@@ -89,6 +89,8 @@
   })();
 
   function start() { S = window.Swiat; miniatury(); rekordy(); zg.init(); mem.init(); window.GBgry = { zg: zg.test, mem: mem.test, pokaz }; }
-  function gotowy() { const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { io.disconnect(); start(); } }, { rootMargin: '700px 0px' }); io.observe(sek); }
+  function gotowy() { let ok = false; const go = () => { if (ok) return; ok = true; io.disconnect(); removeEventListener('scroll', blisko); start(); };
+    const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) go(); }, { rootMargin: '700px 0px' }); io.observe(sek);
+    const blisko = () => { const r = sek.getBoundingClientRect(); if (r.top < innerHeight + 900 && r.bottom > -900) go(); }; addEventListener('scroll', blisko, { passive: true }); setTimeout(blisko, 1500); }
   if (window.Swiat && window.Swiat.bedPattern) gotowy(); else addEventListener('swiat', gotowy, { once: true });
 })();

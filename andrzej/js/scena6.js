@@ -149,7 +149,7 @@
     if (!wcv || !S) return; wPat = pat; wPal = pal; if (!wW) wzRozmiar(); if (!wW) return;
     S.k = wK; wSt = []; S.genPattern(pat, pal, -wW * .05, -wH * .05, wW * 1.05, wH * 1.05, () => true, wSt, { cell: 360 });
     const cx = wW * .5, cy = wH * .5, R = Math.hypot(wW, wH) * .5;
-    wSt.forEach(s => { s.d = Math.hypot(s.x - cx, s.y - cy) / R; s.h1 = hash(s.v + 5, (s.x * 3) | 0); });
+    wSt.forEach(s => { s.d = Math.hypot(s.x - cx, s.y - cy) / R; s.h1 = hash(s.v + 5, (s.x * 3) | 0); if (s.kind === 'dome') s.kind = 'block'; });
     wT0 = performance.now() - (anim && !RM ? 0 : 5000); if (!wRun) { wRun = true; requestAnimationFrame(wzFrame); }
   }
   function wzFrame(now) {
@@ -176,10 +176,10 @@
     const grupy = [['.tytul', 'rv-t'], ['.sek .lead, .opinie, .sek .cta, .katalogi, .maly, .kt-dane > p, .kt-dane > a, .kt-btn, .formularz, .wz-ster, .pl-ster, .koniec-napis, [data-rv]', ''], ['.foto', 'rv-f'], ['.kafel', ''], ['.kroki li', 'rv-x']];
     const io = new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) return; const el = e.target; io.unobserve(el); el.classList.add('on');
       const fertig = () => { el.classList.remove('rv', 'rv-t', 'rv-f', 'rv-x', 'on'); el.style.transitionDelay = ''; };
-      setTimeout(fertig, 1700 + (parseFloat(el.style.transitionDelay) || 0) * 1000); }), { rootMargin: '0px 0px -5% 0px', threshold: 0 });
+      setTimeout(fertig, 1700 + (parseFloat(el.style.transitionDelay) || 0) * 1000); }), { rootMargin: '0px 0px 12% 0px', threshold: 0 });
     for (const [sel, v] of grupy) document.querySelectorAll(sel).forEach(el => { if (el.closest('#start') || el.classList.contains('rv')) return;
       const sib = [...el.parentElement.children].filter(c => c.matches(sel)); const i = Math.min(sib.indexOf(el), 5);
-      el.classList.add('rv'); if (v) el.classList.add(v); if (i > 0) el.style.transitionDelay = (i * .07).toFixed(2) + 's'; io.observe(el); });
+      el.classList.add('rv'); if (v) el.classList.add(v); if (i > 0) el.style.transitionDelay = (i * .05).toFixed(2) + 's'; io.observe(el); });
     // Sicherheitsnetz: was im oder über dem Bild liegt, ist spätestens nach 6 s sichtbar
     setTimeout(() => document.querySelectorAll('.rv:not(.on)').forEach(el => { if (el.getBoundingClientRect().top < innerHeight) el.classList.add('on'); }), 6000);
   }

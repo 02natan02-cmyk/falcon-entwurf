@@ -20,7 +20,7 @@
       maska: [[.31, .04], [.583, .04], [.583, .69], [.56, .77], [.5, .84], [.42, .88], [.32, .91], [.2, .94], [.1, .965], [.07, .93], [.14, .83], [.19, .72], [.22, .6], [.24, .47], [.27, .33], [.29, .2]] }
   ];
   const WZORY = [['herring', 'Jodełka'], ['rows', 'Cegiełka'], ['basket', 'Koszyk'], ['slabs', 'Płyty 60×30'], ['cobble', 'Kostka granitowa'], ['arcs', 'Łuki'], ['grid', 'Kostka 10×10']];
-  const KOLORY = [['grafit', 'Grafit'], ['szary', 'Szary'], ['bianco', 'Bianco'], ['piaskowy', 'Piaskowy'], ['melanz', 'Melanż'], ['braz', 'Brąz'], ['granit', 'Granit'], ['lupek', 'Łupek']];
+  const KOLORY = [['grafit', 'Grafit'], ['szary', 'Szary'], ['bianco', 'Bianco'], ['piaskowy', 'Piaskowy'], ['melanz', 'Melanż'], ['granit', 'Granit'], ['lupek', 'Łupek']];
   const OBRZEZA = [['', 'Bez obrzeża'], ['grafit', 'Grafit'], ['bianco', 'Bianco'], ['zolty', 'Żółte'], ['melanz', 'Melanż']];
   const nazwa = (lista, id) => (lista.find(x => x[0] === id) || ['', id])[1];
 
@@ -58,7 +58,7 @@
     g.save(); if (st.obrz) { g.beginPath(); g.rect(qx0 + pas, qy0 + pas, qx1 - qx0 - 2 * pas, qy1 - qy0 - 2 * pas); g.clip(); }
     const m = 260 * S.k;
     for (const s of lista) { if (rot) { const dx = s.x - cx, dy = s.y - cy; s.x = cx - dy; s.y = cy + dx; s.rot += rot; if (s.poly) s.poly = s.poly.map(([a, b]) => [cx - (b - cy), cy + (a - cx)]); }
-      if (s.x < -m || s.y < -m || s.x > iw + m || s.y > ih + m) continue; S.drawOne(g, s, 1, 2); }
+      if (s.x < -m || s.y < -m || s.x > iw + m || s.y > ih + m) continue; if (s.kind === 'dome') s.kind = 'block'; S.drawOne(g, s, 1, 2); }
     g.restore(); g.setTransform(1, 0, 0, 1, 0, 0);
     if (st.obrz) { // poza terenem nic, na brzegu rząd (albo dwa) kostki 20×10 wzdłuż krawędzi
       g.save(); g.globalCompositeOperation = 'destination-in'; g.fillStyle = '#000'; g.fillRect(qx0, qy0, qx1 - qx0, qy1 - qy0); g.restore();
@@ -113,8 +113,7 @@
   }
   function powierzchnia() { // próbkowanie w płaszczyźnie terenu (równe metry, nie piksele)
     if (!mask) return 0; const H = homografia(st.rogi), md = mx.getImageData(0, 0, mask.width, mask.height).data; let n = 0, all = 0; const K = 40;
-    for (let j = -10; j < K + 10; j++) for (let i = -10; i < K + 10; i++) { const u = (i + .5) / K, v = (j + .5) / K; const [x, y] = naZdj(H, u, v); if (x < 0 || y < 0 || x >= 1 || y >= 1) continue;
-      if (st.obrz && (u < 0 || u > 1 || v < 0 || v > 1)) continue; if (md[(((y * mask.height) | 0) * mask.width + ((x * mask.width) | 0)) * 4] > 127) n++; }
+    for (let j = 0; j < K; j++) for (let i = 0; i < K; i++) { const u = (i + .5) / K, v = (j + .5) / K; const w = H[6] * u + H[7] * v + H[8]; if (w <= 0) continue; const [x, y] = naZdj(H, u, v); if (x < 0 || y < 0 || x >= 1 || y >= 1) { n++; continue; } if (md[(((y * mask.height) | 0) * mask.width + ((x * mask.width) | 0)) * 4] > 127) n++; }
     return st.wm * st.lm * n / (K * K);
   }
 
@@ -124,7 +123,7 @@
 float h12(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
 void main(){vec3 f=texture2D(tF,v).rgb;vec3 col=f;vec3 q=Hi*vec3(v,1.);
 if(q.z>0.){vec2 uv=q.xy/q.z;vec2 t=(uv+E)/(1.+2.*E);
- if(t.x>0.&&t.x<1.&&t.y>0.&&t.y<1.){vec4 k=texture2D(tK,t);float m=texture2D(tM,v).r*k.a;
+ if(t.x>0.&&t.x<1.&&t.y>0.&&t.y<1.){vec4 k=texture2D(tK,t,.6);float m=texture2D(tM,v).r*k.a;
   float L=texture2D(tC,v).r;float s=clamp(L/max(lref,.03),.42,1.22);s=mix(1.,pow(s,.85),cienie);
   vec3 n=k.rgb*tint*s+(h12(floor(v*res))-.5)*.035;float e=smoothstep(.0,.55,m);n*=mix(.82,1.,smoothstep(.35,1.,m));
   col=mix(f,n,e);}}
@@ -211,11 +210,15 @@ gl_FragColor=vec4(mix(f,col,step(split,v.x)),1.);}`;
   const poz = e => { const r = scena.getBoundingClientRect(); return [clamp((e.clientX - r.left) / r.width, 0, 1), clamp((e.clientY - r.top) / r.height, 0, 1)]; };
   $$('.pk-rog').forEach((b, i) => {
     b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); ciagnij = { typ: 'rog', i }; b.setPointerCapture(e.pointerId); ruszony(); });
-    b.addEventListener('pointermove', e => { if (!ciagnij || ciagnij.typ !== 'rog' || ciagnij.i !== i) return; st.rogi[i] = poz(e); poRogach(); });
+    b.addEventListener('pointermove', e => { if (!ciagnij || ciagnij.typ !== 'rog' || ciagnij.i !== i) return; ustawRog(i, poz(e)); });
     b.addEventListener('pointerup', () => { if (ciagnij) { ciagnij = null; poRogachKoniec(); } });
     b.addEventListener('keydown', e => { const d = e.shiftKey ? .02 : .005, k = { ArrowLeft: [-d, 0], ArrowRight: [d, 0], ArrowUp: [0, -d], ArrowDown: [0, d] }[e.key]; if (!k) return; e.preventDefault(); ruszony();
-      st.rogi[i] = [clamp(st.rogi[i][0] + k[0], 0, 1), clamp(st.rogi[i][1] + k[1], 0, 1)]; poRogach(); clearTimeout(b._t); b._t = setTimeout(poRogachKoniec, 300); });
+      ustawRog(i, [clamp(st.rogi[i][0] + k[0], 0, 1), clamp(st.rogi[i][1] + k[1], 0, 1)]); clearTimeout(b._t); b._t = setTimeout(poRogachKoniec, 300); });
   });
+  function wypukly(q) { // wypukły czworokąt o rozsądnej wielkości – inaczej perspektywa się „zawija”
+    let znak = 0; for (let i = 0; i < 4; i++) { const a = q[i], b = q[(i + 1) % 4], c = q[(i + 2) % 4]; const z = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]); if (Math.abs(z) < 1e-4) return false; const sg = Math.sign(z); if (znak && sg !== znak) return false; znak = sg; }
+    for (let i = 0; i < 4; i++) for (let j = i + 1; j < 4; j++) if (Math.hypot(q[i][0] - q[j][0], q[i][1] - q[j][1]) < .06) return false; return true; }
+  function ustawRog(i, p) { const q = st.rogi.map(r => r.slice()); q[i] = p; if (!wypukly(q)) return; st.rogi[i] = p; poRogach(); }
   function poRogach() { if (!st.maskaWlasna && !st.maskaPoly) { maskaDomyslna(); maskaBrudna = true; } ustawRogi(); rysuj(); }
   function poRogachKoniec() { liczLref(); podsumowanie(); rysuj(); }
   scena.addEventListener('pointerdown', e => {
@@ -272,10 +275,10 @@ gl_FragColor=vec4(mix(f,col,step(split,v.x)),1.);}`;
     kol.addEventListener('click', e => { const b = e.target.closest('[data-pal]'); if (!b) return; st.pal = b.dataset.pal; zaznacz(kol, 'pal', st.pal); planujKamien(); ruszony(); });
     ob.addEventListener('click', e => { const b = e.target.closest('[data-obrz]'); if (b) { st.obrz = b.dataset.obrz; $$('[data-obrz]').forEach(x => { const on = x.dataset.obrz === st.obrz; x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); }); planujKamien(); return; }
       if (e.target.closest('#pkObrzR')) { st.obrzR = st.obrzR === 1 ? 2 : 1; const r = $('#pkObrzR'); r.classList.toggle('on', st.obrzR === 2); r.setAttribute('aria-pressed', String(st.obrzR === 2)); if (!st.obrz) { st.obrz = 'grafit'; $$('[data-obrz]').forEach(x => { const on = x.dataset.obrz === 'grafit'; x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); }); } planujKamien(); } });
-    $('#pkPrzyklady').innerHTML = PRZYKLADY.map((p, i) => `<button type="button" class="pk-przyk" data-i="${i}" aria-pressed="${i === 0}"><img src="${p.src}" alt="" width="96" height="72" loading="lazy" decoding="async"><span>${p.nazwa}</span></button>`).join('');
-    $('#pkPrzyklady').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (!b) return; laduj(PRZYKLADY[+b.dataset.i].src, +b.dataset.i); });
     odswiezKafle();
   }
+  $('#pkPrzyklady').innerHTML = PRZYKLADY.map((p, i) => `<button type="button" class="pk-przyk" data-i="${i}" aria-pressed="${i === 0}"><img src="${p.src}" alt="" width="96" height="72" loading="lazy" decoding="async"><span>${p.nazwa}</span></button>`).join('');
+  $('#pkPrzyklady').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (!b || !S) return; laduj(PRZYKLADY[+b.dataset.i].src, +b.dataset.i); });
   function zaznacz(box, k, v) { box.querySelectorAll(`[data-${k}]`).forEach(b => b.setAttribute('aria-pressed', String(b.dataset[k] === v))); }
   function odswiezKafle() { $$('#pkWzory [data-pat]').forEach(b => kafelek(b.dataset.pat, st.pal, b)); $$('#pkKolory [data-pal]').forEach(b => kafelek(st.pat, b.dataset.pal, b)); }
   const opis = () => `${nazwa(WZORY, st.pat)} · ${nazwa(KOLORY, st.pal)}${st.obrz ? ` · obrzeże ${nazwa(OBRZEZA, st.obrz).toLowerCase()}${st.obrzR === 2 ? ' (2 rzędy)' : ''}` : ''}`;
@@ -328,6 +331,9 @@ gl_FragColor=vec4(mix(f,col,step(split,v.x)),1.);}`;
     window.GBprojektant = { ustaw(pat, pal) { if (pat) st.pat = pat; if (pal) st.pal = pal; zaznacz($('#pkWzory'), 'pat', st.pat); zaznacz($('#pkKolory'), 'pal', st.pal); planujKamien(true); },
       test: () => ({ gl: !!gl, tryb2d, foto: !!st.foto, kamien: kamienGotowy, m2: m2(), opis: opis(), split: st.split, krok: st.krok, w: cv.width, h: cv.height, lref }), st, krok, rysujTeraz, nak: () => nak, D: () => D };
   }
-  function gotowy() { const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { io.disconnect(); start(); } }, { rootMargin: '900px 0px' }); io.observe(root); }
+  function gotowy() { let ok = false; const go = () => { if (ok) return; ok = true; io.disconnect(); removeEventListener('scroll', blisko); start(); };
+    const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) go(); }, { rootMargin: '1400px 0px' }); io.observe(root);
+    const blisko = () => { const r = root.getBoundingClientRect(); if (r.top < innerHeight + 1400 && r.bottom > -1400) go(); }; addEventListener('scroll', blisko, { passive: true }); setTimeout(blisko, 1500);
+    addEventListener('intro-koniec', () => { const bez = window.requestIdleCallback || (f => setTimeout(f, 1)); setTimeout(() => bez(go, { timeout: 3000 }), 2500); }, { once: true }); }
   if (window.Swiat && window.Swiat.bedPattern) gotowy(); else addEventListener('swiat', gotowy, { once: true });
 })();

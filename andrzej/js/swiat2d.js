@@ -609,6 +609,7 @@
       const x = c.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = bedPat || '#c9b18a'; x.fillRect(0, 0, W2, H2);
       const w = W2 / DPR, h = H2 / DPR, list = []; genPattern(pat, pal, -40, -40, w + 40, h + 40, () => true, list, opt);
       if (opt.colorAt) list.forEach(s => { const cc = opt.colorAt(s.x, s.y); if (cc) s.col = cc; });
+      if (opt.plaskie) list.forEach(s => { if (s.kind === 'dome') s.kind = 'block'; });
       for (const s of list) drawStone(x, s, 0, 2);
       x.setTransform(1, 0, 0, 1, 0, 0);
       if (opt.light !== false) { const gr = x.createLinearGradient(0, 0, W2, H2); gr.addColorStop(0, 'rgba(255,240,210,.16)'); gr.addColorStop(1, 'rgba(0,0,0,.22)'); x.fillStyle = gr; x.fillRect(0, 0, W2, H2); }
