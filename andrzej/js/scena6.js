@@ -184,9 +184,23 @@
     setTimeout(() => document.querySelectorAll('.rv:not(.on)').forEach(el => { if (el.getBoundingClientRect().top < innerHeight) el.classList.add('on'); }), 6000);
   }
 
+  /* ---------- środek strony: spokojny plac z jasnych płyt (raz narysowany, potem zwykłe tło – nic nie kosztuje przy przewijaniu) ---------- */
+  function plac() {
+    try {
+      const D = Math.min(devicePixelRatio || 1, 2), P = 258, Q = 130, J = 4; // płyta 60×30 przy ok. 0,42 px/mm, fuga 4 px
+      const w = P * 4, h = Q * 4, c = document.createElement('canvas'); c.width = w * D; c.height = h * D; const g = c.getContext('2d'); g.scale(D, D);
+      g.fillStyle = '#d6cdbd'; g.fillRect(0, 0, w, h); const pal = ['#e8e3d9', '#e4ded3', '#ebe7de', '#e1dbcf', '#e6e1d6'];
+      for (let r = 0; r < 4; r++) for (let i = -1; i < 4; i++) { const x = i * P + (r % 2) * P / 2, y = r * Q; const col = pal[(hash(i + 7, r + 3) * pal.length) | 0];
+        const sp = S.sprite('slab', P - J, Q - J, col, (hash(i, r) * 6) | 0); g.drawImage(sp.c, x + J / 2, y + J / 2, P - J, Q - J);
+        if (x < 0) g.drawImage(sp.c, x + w + J / 2, y + J / 2, P - J, Q - J); if (x + P > w) g.drawImage(sp.c, x - w + J / 2, y + J / 2, P - J, Q - J); }
+      g.fillStyle = 'rgba(239,234,225,.6)'; g.fillRect(0, 0, w, h);
+      c.toBlob(b => { if (!b) return; const u = URL.createObjectURL(b); const m = document.getElementById('tresc'); m.style.setProperty('--plac', `url(${u})`); m.style.setProperty('--plac-r', w + 'px'); }, 'image/webp', .86);
+    } catch (e) { /* bez tła też działa */ }
+  }
+
   /* ---------- start ---------- */
   function start() {
-    S = window.Swiat; G.gotowe = true;
+    S = window.Swiat; G.gotowe = true; plac();
     brzegiRozmiar(); brzegiRysuj();
     addEventListener('scroll', brzegiPlan, { passive: true });
     let rT = 0, lw = innerWidth, lh = innerHeight; addEventListener('resize', () => { if (Math.abs(innerWidth - lw) < 2 && Math.abs(innerHeight - lh) < 120) return; clearTimeout(rT); rT = setTimeout(() => { lw = innerWidth; lh = innerHeight; brzegiRozmiar(); brzegiRysuj(); wzRozmiar(); wzUloz(wPat, wPal, false); }, 150); });
