@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#101213">
 <link rel="canonical" href="https://entwurf.falcon-eye.de/andrzej/">
 <meta property="og:type" content="website"><meta property="og:locale" content="pl_PL">
-<meta property="og:title" content="GardenBruk – skład kostki i płyt w Mikowicach">
+<meta property="og:title" content="GardenBruk – kamień po kamieniu">
 <meta property="og:description" content="Kostka, płyty, ogrodzenia i palisady na placu z ekspozycją pod Kłodzkiem. Polbruk i Joniec. Doradztwo i pomiar.">
 <meta property="og:url" content="https://entwurf.falcon-eye.de/andrzej/"><meta property="og:image" content="https://entwurf.falcon-eye.de/andrzej/og.jpg">
 <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image">
@@ -17,17 +17,15 @@
 <link rel="preload" href="fonts/big-shoulders-display-latin-900-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" as="image" href="img/real/plac-hero.webp" media="(min-width: 821px)">
 <link rel="preload" as="image" href="img/real/plac-hero-m.webp" media="(max-width: 820px)">
-<link rel="stylesheet" href="css/v3.css?v=10">
+<link rel="stylesheet" href="css/v4.css?v=11">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"HomeAndConstructionBusiness","name":"Centrum Architektury Ogrodowej GardenBruk","alternateName":"GardenBruk","description":"Skład z ekspozycją: kostka brukowa, płyty tarasowe, ogrodzenia, palisady, kruszywo dekoracyjne, wypożyczalnia sprzętu. Pomiar u klienta.","address":{"@type":"PostalAddress","streetAddress":"Mikowice 16","postalCode":"57-300","addressLocality":"Kłodzko","addressCountry":"PL"},"telephone":"+48500250936","email":"biuro@gardenbruk.net","image":"https://entwurf.falcon-eye.de/andrzej/img/real/plac-hero.webp","sameAs":["https://www.facebook.com/gardenbruk.net/","https://www.instagram.com/gardenbruk/"],"areaServed":"Ziemia Kłodzka"}</script>
 </head>
 <body class="intro">
 <a class="skip" href="#kontakt">Przejdź do kontaktu</a>
 
-<!-- INTRO: kostka układa się na ekranie, potem odsłania prawdziwy plac -->
-<div class="intro" id="intro" aria-hidden="true">
-  <canvas id="introCv"></canvas>
-  <div class="intro-napis"><span>GARDEN</span><b>BRUK</b><small>Mikowice · Kłodzko</small></div>
-</div>
+<!-- grunt: kostka pod całą stroną (intro, układanie, unoszenie, wieczór) -->
+<canvas id="grunt" aria-hidden="true"></canvas>
+<div class="intro-napis" id="introNapis" aria-hidden="true"><span>GARDEN<b>BRUK</b></span><small>Kamień po kamieniu · Mikowice pod Kłodzkiem</small></div>
 <button class="pomin" id="pomin" type="button">Pomiń intro</button>
 
 <header class="pasek" id="pasek">
@@ -36,7 +34,7 @@
     <span>GARDEN<b>BRUK</b></span>
   </a>
   <nav class="menu" id="menu" aria-label="Menu">
-    <a href="#oferta">Oferta</a><a href="#producenci">Producenci</a><a href="#realizacje">Realizacje</a><a href="#planer">Planer</a><a href="#dla-firm">Dla firm</a><a href="#kontakt">Kontakt i dojazd</a>
+    <a href="#oferta">Oferta</a><a href="#wzory">Wzory</a><a href="#realizacje">Realizacje</a><a href="#o-nas">O nas</a><a href="#producenci">Producenci</a><a href="#planer">Planer</a><a href="#kontakt">Kontakt i dojazd</a>
   </nav>
   <a class="tel" href="tel:+48500250936"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg><span>500 250 936</span></a>
   <button class="koszyk-btn pusty" id="koszykBtn" type="button" aria-controls="koszyk" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-1.6 9.2a2 2 0 0 1-2 1.8H7.6a2 2 0 0 1-2-1.8z"/><path d="M8 20h.01M16 20h.01"/></svg><span>Zapytanie</span><b id="koszykIle">0</b></button>
@@ -45,66 +43,77 @@
 
 <main id="tresc">
 
-<!-- 1. START: prawdziwy plac z drona -->
+<!-- START: plac z drona -->
 <section class="hero" id="start">
-  <picture class="hero-foto" id="heroFoto">
+  <div class="hero-foto" id="heroFoto"><picture>
     <source media="(max-width: 820px)" srcset="img/real/plac-hero-m.webp">
-    <img src="img/real/plac-hero.webp" width="1600" height="900" alt="Plac GardenBruk w Mikowicach z lotu ptaka: ekspozycja kostki i płyt, ogrodzenia i palety z towarem, jesień" fetchpriority="high">
-  </picture>
+    <img src="img/real/plac-hero.webp" width="1600" height="900" alt="Plac GardenBruk w Mikowicach z lotu ptaka: ekspozycja kostki i płyt, ogrodzenia i palety z towarem" fetchpriority="high">
+  </picture></div>
   <div class="hero-cien" aria-hidden="true"></div>
   <div class="hero-tresc">
     <p class="nadtytul">Skład z ekspozycją · Mikowice pod Kłodzkiem</p>
-    <h1>Kostka, płyty<br>i ogrodzenia.</h1>
-    <p class="lead">Wszystko, co potrzebne na podjazd, taras i ogród: zobaczysz na żywo na naszym placu. Doradzimy, zmierzymy i dobierzemy materiał.</p>
+    <h1>Kamień<br>po kamieniu.</h1>
+    <p class="lead">Kostka, płyty i ogrodzenia. Wszystko zobaczysz na żywo na naszym placu. Przewiń, a ułożymy Ci drogę.</p>
     <div class="cta">
       <a class="btn wa-btn" href="https://wa.me/48500250936?text=Dzie%C5%84%20dobry%2C%20pisz%C4%99%20ze%20strony%20GardenBruk." target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3z"/></svg>Napisz na WhatsApp</a>
-      <a class="btn" href="tel:+48500250936">Zadzwoń: 500 250 936</a>
-      <a class="btn szkl" href="#oferta">Zobacz ofertę</a>
+      <a class="btn jasny" href="tel:+48500250936">Zadzwoń: 500 250 936</a>
     </div>
   </div>
-  <ul class="fakty" aria-label="W skrócie">
-    <li><b>Ekspozycja</b><span>wzory ułożone na placu</span></li>
-    <li><b>Polbruk · Joniec</b><span>sprawdzeni producenci</span></li>
-    <li><b>Pomiar</b><span>przyjedziemy i zmierzymy</span></li>
-    <li><b>Hurt i detal</b><span>od palety po całą budowę</span></li>
-    <li><b>Wypożyczalnia</b><span>zagęszczarka i sprzęt</span></li>
-  </ul>
-  <a class="hero-strzalka" href="#oferta" aria-label="Przewiń do oferty"><i></i></a>
+  <a class="hero-dalej" href="#oferta"><span>Przewiń</span><i></i></a>
 </section>
 
-<canvas class="pas" data-wz="herring" data-pal="grafit" aria-hidden="true"></canvas>
-
-<!-- 2. OFERTA -->
-<section class="sek" id="oferta">
-  <div class="sek-glowa">
-    <p class="nadtytul">Oferta</p>
-    <h2>Co znajdziesz na placu.</h2>
-    <p>Wybierz, co Cię interesuje, i dodaj do zapytania. Wyślesz je jednym kliknięciem na WhatsApp albo e-mailem – razem z ilością.</p>
-  </div>
-  <div class="kafle" id="kafle"></div>
-</section>
-
-<!-- 3. ANDRZEJ -->
-<section class="sek andrzej" id="o-nas">
-  <figure class="a-foto"><img src="img/andrzej-kolumny.webp" width="900" height="1598" alt="Andrzej z GardenBruk, uśmiechnięty, przed kamiennymi kolumnami" loading="lazy" decoding="async"></figure>
-  <div class="a-tekst">
-    <p class="nadtytul">Kto stoi za GardenBruk</p>
-    <h2>Andrzej.<br><span>Na placu i u Ciebie.</span></h2>
-    <p>Centrum Architektury Ogrodowej GardenBruk to Andrzej i jego plac w Mikowicach. Przyjedzie, zmierzy, doradzi i dopilnuje, żeby każdy kamień leżał jak trzeba. Kamień dobieramy do domu, a nie odwrotnie.</p>
-    <div class="opinie"><blockquote><p>„Polecam. Najlepsza jakość obsługi.”</p><cite>Aleksander J. · Facebook</cite></blockquote><blockquote><p>„Gwarantują profesjonalne doradztwo i szeroki wybór.”</p><cite>Ania O.-G. · Facebook</cite></blockquote></div>
-    <div class="cta"><a class="btn" href="tel:+48500250936">Zadzwoń do Andrzeja</a><a class="btn szkl" href="#kontakt" data-temat="Pomiar">Umów pomiar</a></div>
+<!-- OFERTA -->
+<section class="plyta" id="oferta">
+  <div class="tresc">
+    <div class="glowa"><p class="nadtytul">Oferta</p><h2>Co znajdziesz na placu.</h2><p>Dotknij, co Cię interesuje, i dodaj do zapytania. Wyślesz je jednym kliknięciem na WhatsApp albo e-mailem.</p></div>
+    <div class="kafle" id="kafle"></div>
   </div>
 </section>
 
-<canvas class="pas" data-wz="rows" data-pal="melanz" aria-hidden="true"></canvas>
+<!-- WZORY: kostka wokół układa się na nowo -->
+<section class="plyta waska" id="wzory">
+  <div class="tresc">
+    <p class="nadtytul">Wzory</p><h2>Wybierz wzór.<br><span>Plac ułoży się na nowo.</span></h2>
+    <p id="wzOpis">Jodełka: najmocniejszy układ na podjazd. Każdy wzór układamy pod Kłodzkiem.</p>
+    <div class="przewijak" role="group" aria-label="Wzór"><button type="button" class="chip on" data-wz="herring" aria-pressed="true">Jodełka</button><button type="button" class="chip" data-wz="rows" aria-pressed="false">Cegiełka</button><button type="button" class="chip" data-wz="basket" aria-pressed="false">Koszyk</button><button type="button" class="chip" data-wz="slabs" aria-pressed="false">Płyty</button><button type="button" class="chip" data-wz="arcs" aria-pressed="false">Łuki</button><button type="button" class="chip" data-wz="cobble" aria-pressed="false">Granit</button></div>
+    <div class="przewijak kolory" role="group" aria-label="Kolor"><button type="button" class="kol on" data-kol="grafit" aria-pressed="true"><i style="background-image:url(img/tex/grafit.webp)"></i>Grafit</button><button type="button" class="kol" data-kol="szary" aria-pressed="false"><i style="background-image:url(img/tex/jasny.webp)"></i>Szary</button><button type="button" class="kol" data-kol="melanz" aria-pressed="false"><i style="background-image:url(img/tex/melanz.webp)"></i>Melanż</button><button type="button" class="kol" data-kol="piaskowy" aria-pressed="false"><i style="background-image:url(img/tex/jasny.webp)" class="piask"></i>Piaskowy</button><button type="button" class="kol" data-kol="granit" aria-pressed="false"><i style="background-image:url(img/tex/granit.webp)"></i>Granit</button></div>
+    <button type="button" class="btn jasny" id="wzDoZapytania">Chcę taki wzór</button>
+  </div>
+</section>
 
-<!-- 4. PRODUCENCI -->
-<section class="sek" id="producenci">
-  <div class="prod">
-    <figure class="prod-foto"><img src="img/real/plac-ekspozycja.webp" width="1600" height="1200" alt="Ekspozycja kostki, płyt i ogrodzeń na placu GardenBruk jesienią, w tle palety Polbruk i baner Joniec" loading="lazy" decoding="async"><figcaption>Ekspozycja na placu w Mikowicach</figcaption></figure>
-    <div class="prod-tekst">
+<!-- REALIZACJE -->
+<section class="plyta" id="realizacje">
+  <div class="tresc">
+    <div class="glowa"><p class="nadtytul">Realizacje</p><h2>Ułożone przez nas.</h2><p>Podjazdy, ścieżki i wzory z kostki na Ziemi Kłodzkiej.</p></div>
+    <div class="galeria" id="galeria">
+      <button type="button" class="g-el duzy" data-src="img/real/kwiat-podjazd.webp"><img src="img/real/kwiat-podjazd.webp" width="614" height="1024" alt="Duży kwiat z żółtej i jasnej kostki na grafitowym podjeździe" loading="lazy" decoding="async"><span>Kwiat z kostki na podjeździe</span></button>
+      <button type="button" class="g-el" data-src="img/real/podjazd-grafit-zolty.webp"><img src="img/real/podjazd-grafit-zolty.webp" width="1024" height="614" alt="Podjazd z grafitowej kostki z żółtymi i jasnymi pasami" loading="lazy" decoding="async"><span>Podjazd grafitowy z pasami</span></button>
+      <button type="button" class="g-el" data-src="img/real/podjazd-szary.webp"><img src="img/real/podjazd-szary.webp" width="1024" height="768" alt="Łukowa ścieżka z jasnej kostki z ciemnymi pasami i podjazd z szarych płyt przed domem" loading="lazy" decoding="async"><span>Łukowa ścieżka i podjazd z płyt</span></button>
+    </div>
+  </div>
+</section>
+
+<!-- ANDRZEJ -->
+<section class="plyta" id="o-nas">
+  <div class="tresc dwie">
+    <figure class="a-foto"><img src="img/andrzej-kolumny.webp" width="900" height="1598" alt="Andrzej z GardenBruk, uśmiechnięty, przed kamiennymi kolumnami" loading="lazy" decoding="async"></figure>
+    <div>
+      <p class="nadtytul">Kto stoi za GardenBruk</p>
+      <h2>Andrzej.<br><span>Na placu i u Ciebie.</span></h2>
+      <p>Centrum Architektury Ogrodowej GardenBruk to Andrzej i jego plac w Mikowicach. Przyjedzie, zmierzy, doradzi i dopilnuje, żeby każdy kamień leżał jak trzeba. Kamień dobieramy do domu, a nie odwrotnie.</p>
+      <div class="opinie"><blockquote><p>„Polecam. Najlepsza jakość obsługi.”</p><cite>Aleksander J. · Facebook</cite></blockquote><blockquote><p>„Gwarantują profesjonalne doradztwo i szeroki wybór.”</p><cite>Ania O.-G. · Facebook</cite></blockquote></div>
+      <div class="cta"><a class="btn jasny" href="tel:+48500250936">Zadzwoń do Andrzeja</a><a class="btn szkl" href="#kontakt" data-temat="Pomiar">Umów pomiar</a></div>
+    </div>
+  </div>
+</section>
+
+<!-- PRODUCENCI -->
+<section class="plyta" id="producenci">
+  <div class="tresc dwie odwrot">
+    <figure class="p-foto"><img src="img/real/plac-ekspozycja.webp" width="1600" height="1200" alt="Ekspozycja kostki, płyt i ogrodzeń na placu GardenBruk jesienią, w tle palety Polbruk i baner Joniec" loading="lazy" decoding="async"><figcaption>Ekspozycja na placu w Mikowicach</figcaption></figure>
+    <div>
       <p class="nadtytul">Producenci</p>
-      <h2>Prawdziwe marki. Na żywo.</h2>
+      <h2>Prawdziwe marki.<br><span>Na żywo.</span></h2>
       <p>Na placu stoją kostka, płyty i ogrodzenia marek <b>Polbruk</b> i <b>Joniec</b>, ułożone na ekspozycji. Zobaczysz kolor w słońcu i w cieniu, zanim zamówisz.</p>
       <div class="katalogi">
         <a class="katalog" href="https://polbruk.pl/download/cenniki_katalogi/cennik/Katalog_Polbruk_2026.pdf" target="_blank" rel="noopener"><b>Polbruk</b><span>Kostka i płyty · katalog 2026 (PDF)</span><i aria-hidden="true">↗</i></a>
@@ -115,79 +124,47 @@
   </div>
 </section>
 
-<!-- 5. REALIZACJE -->
-<section class="sek" id="realizacje">
-  <div class="sek-glowa">
-    <p class="nadtytul">Realizacje</p>
-    <h2>Ułożone przez nas.</h2>
-    <p>Podjazdy, ścieżki i wzory z kostki na Ziemi Kłodzkiej.</p>
-  </div>
-  <div class="galeria" id="galeria">
-    <button type="button" class="g-el duzy" data-src="img/real/kwiat-podjazd.webp"><img src="img/real/kwiat-podjazd.webp" width="614" height="1024" alt="Duży kwiat z żółtej i jasnej kostki na grafitowym podjeździe" loading="lazy" decoding="async"><span>Kwiat z kostki na podjeździe</span></button>
-    <button type="button" class="g-el" data-src="img/real/podjazd-grafit-zolty.webp"><img src="img/real/podjazd-grafit-zolty.webp" width="1024" height="614" alt="Podjazd z grafitowej kostki z żółtymi i jasnymi pasami" loading="lazy" decoding="async"><span>Podjazd grafitowy z pasami</span></button>
-    <button type="button" class="g-el" data-src="img/real/podjazd-szary.webp"><img src="img/real/podjazd-szary.webp" width="1024" height="768" alt="Łukowa ścieżka z jasnej kostki z ciemnymi pasami i podjazd z szarych płyt przed domem" loading="lazy" decoding="async"><span>Łukowa ścieżka i podjazd z płyt</span></button>
+<!-- JAK PRACUJEMY -->
+<section class="plyta" id="jak">
+  <div class="tresc">
+    <div class="glowa"><p class="nadtytul">Jak pracujemy</p><h2>Od pomiaru po ostatni kamień.</h2></div>
+    <ol class="kroki">
+      <li><b>Telefon albo WhatsApp</b><span>Opowiedz, co planujesz. Zdjęcie podwórka bardzo pomaga.</span></li>
+      <li><b>Pomiar u Ciebie</b><span>Przyjeżdżamy, mierzymy i doradzamy na miejscu.</span></li>
+      <li><b>Wybór na placu</b><span>Kamień oglądasz na żywo, nie tylko w katalogu.</span></li>
+      <li><b>Materiał i sprzęt</b><span>Wszystko w jednym miejscu, zagęszczarkę możesz wypożyczyć.</span></li>
+    </ol>
   </div>
 </section>
 
-<canvas class="pas" data-wz="basket" data-pal="szary" aria-hidden="true"></canvas>
-
-<!-- 6. JAK PRACUJEMY -->
-<section class="sek" id="jak">
-  <div class="sek-glowa"><p class="nadtytul">Jak pracujemy</p><h2>Od pomiaru po ostatni kamień.</h2></div>
-  <ol class="kroki">
-    <li><b>Telefon albo WhatsApp</b><span>Opowiedz, co planujesz. Zdjęcie podwórka bardzo pomaga.</span></li>
-    <li><b>Pomiar u Ciebie</b><span>Przyjeżdżamy, mierzymy i doradzamy na miejscu.</span></li>
-    <li><b>Wybór na placu</b><span>Kamień oglądasz na żywo, nie tylko w katalogu.</span></li>
-    <li><b>Materiał i sprzęt</b><span>Wszystko w jednym miejscu, zagęszczarkę możesz wypożyczyć.</span></li>
-  </ol>
-</section>
-
-<!-- 7. PLANER -->
-<section class="sek" id="planer">
-  <div class="pl-uklad">
-    <div class="pl-tekst"><p class="nadtytul">Planer</p><h2>Twoje podwórko w&nbsp;kostce.</h2><p>Zrób zdjęcie podjazdu albo tarasu, zaznacz cztery rogi i wybierz kostkę. Zobaczysz efekt od razu. Zdjęcie zostaje na Twoim urządzeniu.</p></div>
+<!-- PLANER -->
+<section class="plyta" id="planer">
+  <div class="tresc dwie">
+    <div class="pl-tekst"><p class="nadtytul">Planer</p><h2>Twoje podwórko<br><span>w kostce.</span></h2><p>Zrób zdjęcie podjazdu albo tarasu, zaznacz cztery rogi i wybierz kostkę. Zobaczysz efekt od razu. Zdjęcie zostaje na Twoim urządzeniu.</p></div>
     <div class="pl" id="pl">
       <div class="pl-scena"><canvas id="plCv" aria-label="Podgląd: Twoje zdjęcie z ułożoną kostką" role="img"></canvas><span class="impuls" id="plImpuls" aria-hidden="true">← przesuń →</span></div>
       <div class="pl-ster">
-        <label class="btn plik">Zrób zdjęcie<input type="file" accept="image/*" capture="environment" id="plAparat"></label><label class="btn szkl plik">Z galerii<input type="file" accept="image/*" id="plPlik"></label><button type="button" class="chip" id="plPrzyklad">Przykład</button>
+        <label class="btn jasny plik">Zrób zdjęcie<input type="file" accept="image/*" capture="environment" id="plAparat"></label><label class="btn szkl plik">Z galerii<input type="file" accept="image/*" id="plPlik"></label><button type="button" class="chip" id="plPrzyklad">Przykład</button>
         <div class="przewijak" role="group" aria-label="Wzór"><button type="button" class="chip on" data-plw="herring" aria-pressed="true">Jodełka</button><button type="button" class="chip" data-plw="rows" aria-pressed="false">Cegiełka</button><button type="button" class="chip" data-plw="basket" aria-pressed="false">Koszyk</button><button type="button" class="chip" data-plw="slabs" aria-pressed="false">Płyty</button><button type="button" class="chip" data-plw="cobble" aria-pressed="false">Granit</button></div>
         <div class="przewijak kolory" role="group" aria-label="Kolor"><button type="button" class="kol on" data-plk="grafit" aria-pressed="true"><i style="background-image:url(img/tex/grafit.webp)"></i>Grafit</button><button type="button" class="kol" data-plk="melanz" aria-pressed="false"><i style="background-image:url(img/tex/melanz.webp)"></i>Melanż</button><button type="button" class="kol" data-plk="piaskowy" aria-pressed="false"><i style="background-image:url(img/tex/jasny.webp)" class="piask"></i>Piaskowy</button><button type="button" class="kol" data-plk="szary" aria-pressed="false"><i style="background-image:url(img/tex/jasny.webp)"></i>Szary</button></div>
-        <div class="pl-akcje"><button type="button" class="btn" id="plZapisz">Zapisz obraz</button><button type="button" class="btn szkl" id="plWyslij">Dołącz do zapytania</button></div>
+        <div class="pl-akcje"><button type="button" class="btn jasny" id="plZapisz">Zapisz obraz</button><button type="button" class="btn szkl" id="plWyslij">Dołącz do zapytania</button></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- 8. GRA -->
-<section class="sek" id="gra">
-  <div class="gra-uklad">
-    <div class="gra-tekst"><p class="nadtytul">Ułóż sam</p><h2>Tu brakuje kawałka drogi.</h2><p>Przeciągnij kamienie na miejsce, zasyp fugi piaskiem i przejedź zagęszczarką. Trzy poziomy: cegiełka, jodełka i kwiat.</p></div>
-    <div class="gra-pole">
-      <canvas id="graCv" aria-label="Gra: ułóż brakujący kawałek drogi z kostki" role="img"></canvas>
-      <div class="gra-hud" aria-live="polite"><span id="graPoziom">Poziom 1 · Cegiełka</span><span id="graCzas">0,0 s</span><span id="graPkt">0 pkt</span></div>
-      <div class="gra-start" id="graStart"><button type="button" class="btn" id="graGraj">Zagraj</button><span>Rekord na tym urządzeniu: <b id="graRekord">brak</b></span></div>
-    </div>
+<!-- DLA FIRM: wieczór, latarnie -->
+<section class="plyta waska" id="dla-firm">
+  <div class="tresc">
+    <p class="nadtytul">Dla firm</p><h2>Deweloperzy, architekci, gminy.</h2>
+    <p>Większe ilości, dostawy pod harmonogram budowy i doradztwo przy doborze materiału. Rozwijamy się i szukamy partnerów.</p>
+    <a class="btn jasny" href="#kontakt" data-temat="Współpraca dla firm">Napisz do nas</a>
   </div>
 </section>
 
-<!-- 9. WIECZÓR W 3D: kostka układa się aż do drzwi -->
-<section class="noc" id="dla-firm">
-  <div class="noc-lepka">
-    <canvas id="scena" aria-hidden="true"></canvas>
-    <div class="noc-cien" aria-hidden="true"></div>
-    <div class="noc-tekst" id="nocTekst">
-      <p class="nadtytul">Dla firm</p>
-      <h2>Deweloperzy, architekci, gminy.</h2>
-      <p>Większe ilości, dostawy pod harmonogram budowy i doradztwo przy doborze materiału. Rozwijamy się i szukamy partnerów.</p>
-      <a class="btn" href="#kontakt" data-temat="Współpraca dla firm">Napisz do nas</a>
-    </div>
-    <p class="noc-podpis" id="nocPodpis" aria-hidden="true">Przewiń – kostka ułoży się aż do drzwi</p>
-  </div>
-</section>
-
-<!-- 10. KONTAKT -->
-<section class="sek kontakt" id="kontakt">
-  <div class="kt">
+<!-- KONTAKT -->
+<section class="plyta" id="kontakt">
+  <div class="tresc dwie kt">
     <div class="kt-dane">
       <p class="nadtytul">Kontakt i dojazd</p>
       <h2>Zapraszamy na plac.</h2>
@@ -213,10 +190,17 @@
   </div>
 </section>
 
+<footer class="stopka"><p><b>GardenBruk</b> · Centrum Architektury Ogrodowej · Mikowice 16, 57-300 Kłodzko · <a href="tel:+48500250936">+48 500 250 936</a> · <a href="https://www.facebook.com/gardenbruk.net/" target="_blank" rel="noopener">Facebook</a> · <a href="polityka-prywatnosci.html">Polityka prywatności</a></p><p class="demo">Wersja demonstracyjna. Formularz e-mail trafia na razie do zespołu, który przygotowuje stronę.</p></footer>
 </main>
 
-<footer class="stopka"><p><b>GardenBruk</b> · Centrum Architektury Ogrodowej · Mikowice 16, 57-300 Kłodzko · <a href="tel:+48500250936">+48 500 250 936</a> · <a href="https://www.facebook.com/gardenbruk.net/" target="_blank" rel="noopener">Facebook</a> · <a href="polityka-prywatnosci.html">Polityka prywatności</a></p><p class="demo">Wersja demonstracyjna. Formularz e-mail trafia na razie do zespołu, który przygotowuje stronę.</p></footer>
-
+<!-- dok na telefonie: wszystko pod kciukiem -->
+<nav class="dok" id="dok" aria-label="Szybka nawigacja">
+  <a href="#oferta" data-r="oferta"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="8" height="7" rx="1.5"/><rect x="13" y="4" width="8" height="7" rx="1.5"/><rect x="3" y="13" width="8" height="7" rx="1.5"/><rect x="13" y="13" width="8" height="7" rx="1.5"/></svg><span>Oferta</span></a>
+  <a href="#realizacje" data-r="realizacje"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 15l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9" r="1.5"/></svg><span>Realizacje</span></a>
+  <a href="#planer" data-r="planer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3l2-3h6l2 3h3v12H4z"/><circle cx="12" cy="13" r="3.5"/></svg><span>Planer</span></a>
+  <a href="#kontakt" data-r="kontakt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span>Dojazd</span></a>
+  <a class="dok-wa" id="dokWa" href="https://wa.me/48500250936" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3z"/></svg><span>WhatsApp</span></a>
+</nav>
 <a class="wa-plywak" id="waPlywak" href="https://wa.me/48500250936" target="_blank" rel="noopener" aria-label="Napisz na WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3z"/></svg></a>
 
 <div class="towar" id="towar" hidden><div class="towar-panel" id="towarPanel" role="dialog" aria-modal="true" aria-label="Produkt"></div></div>
@@ -229,9 +213,9 @@
 </aside>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="js/swiat2d.js?v=10"></script>
-<script src="js/gra.js?v=10"></script>
-<script src="js/planer.js?v=10"></script>
-<script type="module" src="js/strona3.js?v=10"></script>
+<script src="js/swiat2d.js?v=11"></script>
+<script src="js/grunt.js?v=11"></script>
+<script src="js/planer.js?v=11"></script>
+<script src="js/strona4.js?v=11"></script>
 </body>
 </html>
