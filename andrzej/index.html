@@ -17,13 +17,13 @@
 <link rel="preload" href="fonts/big-shoulders-display-latin-900-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" as="image" href="img/real/plac-hero.webp" media="(min-width: 821px)">
 <link rel="preload" as="image" href="img/real/plac-hero-m.webp" media="(max-width: 820px)">
-<link rel="stylesheet" href="css/v4.css?v=11">
+<link rel="stylesheet" href="css/v5.css?v=12">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"HomeAndConstructionBusiness","name":"Centrum Architektury Ogrodowej GardenBruk","alternateName":"GardenBruk","description":"Skład z ekspozycją: kostka brukowa, płyty tarasowe, ogrodzenia, palisady, kruszywo dekoracyjne, wypożyczalnia sprzętu. Pomiar u klienta.","address":{"@type":"PostalAddress","streetAddress":"Mikowice 16","postalCode":"57-300","addressLocality":"Kłodzko","addressCountry":"PL"},"telephone":"+48500250936","email":"biuro@gardenbruk.net","image":"https://entwurf.falcon-eye.de/andrzej/img/real/plac-hero.webp","sameAs":["https://www.facebook.com/gardenbruk.net/","https://www.instagram.com/gardenbruk/"],"areaServed":"Ziemia Kłodzka"}</script>
 </head>
 <body class="intro">
 <a class="skip" href="#kontakt">Przejdź do kontaktu</a>
 
-<!-- grunt: kostka pod całą stroną (intro, układanie, unoszenie, wieczór) -->
+<!-- grunt: cała strona jest brukiem (intro, układanie, pola, otwory pod płyty, wieczór) -->
 <canvas id="grunt" aria-hidden="true"></canvas>
 <div class="intro-napis" id="introNapis" aria-hidden="true"><span>GARDEN<b>BRUK</b></span><small>Kamień po kamieniu · Mikowice pod Kłodzkiem</small></div>
 <button class="pomin" id="pomin" type="button">Pomiń intro</button>
@@ -63,16 +63,16 @@
 </section>
 
 <!-- OFERTA -->
-<section class="plyta" id="oferta">
+<section class="pole" id="oferta">
   <div class="tresc">
-    <div class="glowa"><p class="nadtytul">Oferta</p><h2>Co znajdziesz na placu.</h2><p>Dotknij, co Cię interesuje, i dodaj do zapytania. Wyślesz je jednym kliknięciem na WhatsApp albo e-mailem.</p></div>
+    <div class="glowa wjazd"><p class="nadtytul">Oferta</p><h2>Co znajdziesz na placu.</h2><p>Dotknij, co Cię interesuje, i dodaj do zapytania. Wyślesz je jednym kliknięciem na WhatsApp albo e-mailem.</p></div>
     <div class="kafle" id="kafle"></div>
   </div>
 </section>
 
-<!-- WZORY: kostka wokół układa się na nowo -->
-<section class="plyta waska" id="wzory">
-  <div class="tresc">
+<!-- WZORY: bruk wokół układa się na nowo -->
+<section class="pole waska" id="wzory">
+  <div class="tresc wjazd">
     <p class="nadtytul">Wzory</p><h2>Wybierz wzór.<br><span>Plac ułoży się na nowo.</span></h2>
     <p id="wzOpis">Jodełka: najmocniejszy układ na podjazd. Każdy wzór układamy pod Kłodzkiem.</p>
     <div class="przewijak" role="group" aria-label="Wzór"><button type="button" class="chip on" data-wz="herring" aria-pressed="true">Jodełka</button><button type="button" class="chip" data-wz="rows" aria-pressed="false">Cegiełka</button><button type="button" class="chip" data-wz="basket" aria-pressed="false">Koszyk</button><button type="button" class="chip" data-wz="slabs" aria-pressed="false">Płyty</button><button type="button" class="chip" data-wz="arcs" aria-pressed="false">Łuki</button><button type="button" class="chip" data-wz="cobble" aria-pressed="false">Granit</button></div>
@@ -81,81 +81,85 @@
   </div>
 </section>
 
-<!-- REALIZACJE -->
-<section class="plyta" id="realizacje">
+<!-- REALIZACJE: zdjęcia jako płyty w otworach -->
+<section class="pole" id="realizacje">
   <div class="tresc">
-    <div class="glowa"><p class="nadtytul">Realizacje</p><h2>Ułożone przez nas.</h2><p>Podjazdy, ścieżki i wzory z kostki na Ziemi Kłodzkiej.</p></div>
+    <div class="glowa wjazd"><p class="nadtytul">Realizacje</p><h2>Ułożone przez nas.</h2><p>Podjazdy, ścieżki i wzory z kostki na Ziemi Kłodzkiej. Dotknij zdjęcia, żeby je powiększyć.</p></div>
     <div class="galeria" id="galeria">
-      <button type="button" class="g-el duzy" data-src="img/real/kwiat-podjazd.webp"><img src="img/real/kwiat-podjazd.webp" width="614" height="1024" alt="Duży kwiat z żółtej i jasnej kostki na grafitowym podjeździe" loading="lazy" decoding="async"><span>Kwiat z kostki na podjeździe</span></button>
-      <button type="button" class="g-el" data-src="img/real/podjazd-grafit-zolty.webp"><img src="img/real/podjazd-grafit-zolty.webp" width="1024" height="614" alt="Podjazd z grafitowej kostki z żółtymi i jasnymi pasami" loading="lazy" decoding="async"><span>Podjazd grafitowy z pasami</span></button>
-      <button type="button" class="g-el" data-src="img/real/podjazd-szary.webp"><img src="img/real/podjazd-szary.webp" width="1024" height="768" alt="Łukowa ścieżka z jasnej kostki z ciemnymi pasami i podjazd z szarych płyt przed domem" loading="lazy" decoding="async"><span>Łukowa ścieżka i podjazd z płyt</span></button>
+      <button type="button" class="g-el slab foto duzy" data-src="img/real/kwiat-podjazd.webp"><img src="img/real/kwiat-podjazd.webp" width="614" height="1024" alt="Duży kwiat z żółtej i jasnej kostki na grafitowym podjeździe" loading="lazy" decoding="async"><span>Kwiat z kostki na podjeździe</span></button>
+      <button type="button" class="g-el slab foto" data-src="img/real/podjazd-grafit-zolty.webp"><img src="img/real/podjazd-grafit-zolty.webp" width="1024" height="614" alt="Podjazd z grafitowej kostki z żółtymi i jasnymi pasami" loading="lazy" decoding="async"><span>Podjazd grafitowy z pasami</span></button>
+      <button type="button" class="g-el slab foto" data-src="img/real/podjazd-szary.webp"><img src="img/real/podjazd-szary.webp" width="1024" height="768" alt="Łukowa ścieżka z jasnej kostki z ciemnymi pasami i podjazd z szarych płyt przed domem" loading="lazy" decoding="async"><span>Łukowa ścieżka i podjazd z płyt</span></button>
     </div>
   </div>
 </section>
 
 <!-- ANDRZEJ -->
-<section class="plyta" id="o-nas">
-  <div class="tresc dwie">
-    <figure class="a-foto"><img src="img/andrzej-kolumny.webp" width="900" height="1598" alt="Andrzej z GardenBruk, uśmiechnięty, przed kamiennymi kolumnami" loading="lazy" decoding="async"></figure>
-    <div>
-      <p class="nadtytul">Kto stoi za GardenBruk</p>
-      <h2>Andrzej.<br><span>Na placu i u Ciebie.</span></h2>
-      <p>Centrum Architektury Ogrodowej GardenBruk to Andrzej i jego plac w Mikowicach. Przyjedzie, zmierzy, doradzi i dopilnuje, żeby każdy kamień leżał jak trzeba. Kamień dobieramy do domu, a nie odwrotnie.</p>
-      <div class="opinie"><blockquote><p>„Polecam. Najlepsza jakość obsługi.”</p><cite>Aleksander J. · Facebook</cite></blockquote><blockquote><p>„Gwarantują profesjonalne doradztwo i szeroki wybór.”</p><cite>Ania O.-G. · Facebook</cite></blockquote></div>
-      <div class="cta"><a class="btn jasny" href="tel:+48500250936">Zadzwoń do Andrzeja</a><a class="btn szkl" href="#kontakt" data-temat="Pomiar">Umów pomiar</a></div>
+<section class="pole" id="o-nas">
+  <div class="tresc">
+    <div class="glowa wjazd"><p class="nadtytul">Kto stoi za GardenBruk</p><h2>Andrzej.<br><span>Na placu i u Ciebie.</span></h2></div>
+    <div class="dwie">
+      <figure class="a-foto slab foto"><img src="img/andrzej-kolumny.webp" width="900" height="1598" alt="Andrzej z GardenBruk, uśmiechnięty, przed kamiennymi kolumnami" loading="lazy" decoding="async"></figure>
+      <div class="slab jasna tekst">
+        <p>Centrum Architektury Ogrodowej GardenBruk to Andrzej i jego plac w Mikowicach. Przyjedzie, zmierzy, doradzi i dopilnuje, żeby każdy kamień leżał jak trzeba. Kamień dobieramy do domu, a nie odwrotnie.</p>
+        <div class="opinie"><blockquote><p>„Polecam. Najlepsza jakość obsługi.”</p><cite>Aleksander J. · Facebook</cite></blockquote><blockquote><p>„Gwarantują profesjonalne doradztwo i szeroki wybór.”</p><cite>Ania O.-G. · Facebook</cite></blockquote></div>
+        <div class="cta"><a class="btn" href="tel:+48500250936">Zadzwoń do Andrzeja</a><a class="btn jasny" href="#kontakt" data-temat="Pomiar">Umów pomiar</a></div>
+      </div>
     </div>
   </div>
 </section>
 
 <!-- PRODUCENCI -->
-<section class="plyta" id="producenci">
-  <div class="tresc dwie odwrot">
-    <figure class="p-foto"><img src="img/real/plac-ekspozycja.webp" width="1600" height="1200" alt="Ekspozycja kostki, płyt i ogrodzeń na placu GardenBruk jesienią, w tle palety Polbruk i baner Joniec" loading="lazy" decoding="async"><figcaption>Ekspozycja na placu w Mikowicach</figcaption></figure>
-    <div>
-      <p class="nadtytul">Producenci</p>
-      <h2>Prawdziwe marki.<br><span>Na żywo.</span></h2>
-      <p>Na placu stoją kostka, płyty i ogrodzenia marek <b>Polbruk</b> i <b>Joniec</b>, ułożone na ekspozycji. Zobaczysz kolor w słońcu i w cieniu, zanim zamówisz.</p>
-      <div class="katalogi">
-        <a class="katalog" href="https://polbruk.pl/download/cenniki_katalogi/cennik/Katalog_Polbruk_2026.pdf" target="_blank" rel="noopener"><b>Polbruk</b><span>Kostka i płyty · katalog 2026 (PDF)</span><i aria-hidden="true">↗</i></a>
-        <a class="katalog" href="https://joniec.pl/gdzie-kupic/gardenbruk/493" target="_blank" rel="noopener"><b>Joniec</b><span>Ogrodzenia, palisady, mała architektura</span><i aria-hidden="true">↗</i></a>
+<section class="pole" id="producenci">
+  <div class="tresc">
+    <div class="glowa wjazd"><p class="nadtytul">Producenci</p><h2>Prawdziwe marki.<br><span>Na żywo.</span></h2></div>
+    <div class="dwie odwrot">
+      <figure class="p-foto slab foto"><img src="img/real/plac-ekspozycja.webp" width="1600" height="1200" alt="Ekspozycja kostki, płyt i ogrodzeń na placu GardenBruk jesienią, w tle palety Polbruk i baner Joniec" loading="lazy" decoding="async"><figcaption>Ekspozycja na placu w Mikowicach</figcaption></figure>
+      <div class="slab jasna tekst">
+        <p>Na placu stoją kostka, płyty i ogrodzenia marek <b>Polbruk</b> i <b>Joniec</b>, ułożone na ekspozycji. Zobaczysz kolor w słońcu i w cieniu, zanim zamówisz.</p>
+        <div class="katalogi">
+          <a class="katalog" href="https://polbruk.pl/download/cenniki_katalogi/cennik/Katalog_Polbruk_2026.pdf" target="_blank" rel="noopener"><b>Polbruk</b><span>Kostka i płyty · katalog 2026 (PDF)</span><i aria-hidden="true">↗</i></a>
+          <a class="katalog" href="https://joniec.pl/gdzie-kupic/gardenbruk/493" target="_blank" rel="noopener"><b>Joniec</b><span>Ogrodzenia, palisady, mała architektura</span><i aria-hidden="true">↗</i></a>
+        </div>
+        <p class="maly">Nie ma Twojego wzoru na placu? Zapytaj – sprowadzimy go.</p>
       </div>
-      <p class="maly">Nie ma Twojego wzoru na placu? Zapytaj – sprowadzimy go.</p>
     </div>
   </div>
 </section>
 
 <!-- JAK PRACUJEMY -->
-<section class="plyta" id="jak">
+<section class="pole" id="jak">
   <div class="tresc">
-    <div class="glowa"><p class="nadtytul">Jak pracujemy</p><h2>Od pomiaru po ostatni kamień.</h2></div>
+    <div class="glowa wjazd"><p class="nadtytul">Jak pracujemy</p><h2>Od pomiaru po ostatni kamień.</h2></div>
     <ol class="kroki">
-      <li><b>Telefon albo WhatsApp</b><span>Opowiedz, co planujesz. Zdjęcie podwórka bardzo pomaga.</span></li>
-      <li><b>Pomiar u Ciebie</b><span>Przyjeżdżamy, mierzymy i doradzamy na miejscu.</span></li>
-      <li><b>Wybór na placu</b><span>Kamień oglądasz na żywo, nie tylko w katalogu.</span></li>
-      <li><b>Materiał i sprzęt</b><span>Wszystko w jednym miejscu, zagęszczarkę możesz wypożyczyć.</span></li>
+      <li class="slab jasna"><b>Telefon albo WhatsApp</b><span>Opowiedz, co planujesz. Zdjęcie podwórka bardzo pomaga.</span></li>
+      <li class="slab jasna"><b>Pomiar u Ciebie</b><span>Przyjeżdżamy, mierzymy i doradzamy na miejscu.</span></li>
+      <li class="slab jasna"><b>Wybór na placu</b><span>Kamień oglądasz na żywo, nie tylko w katalogu.</span></li>
+      <li class="slab jasna"><b>Materiał i sprzęt</b><span>Wszystko w jednym miejscu, zagęszczarkę możesz wypożyczyć.</span></li>
     </ol>
   </div>
 </section>
 
 <!-- PLANER -->
-<section class="plyta" id="planer">
-  <div class="tresc dwie">
-    <div class="pl-tekst"><p class="nadtytul">Planer</p><h2>Twoje podwórko<br><span>w kostce.</span></h2><p>Zrób zdjęcie podjazdu albo tarasu, zaznacz cztery rogi i wybierz kostkę. Zobaczysz efekt od razu. Zdjęcie zostaje na Twoim urządzeniu.</p></div>
-    <div class="pl" id="pl">
-      <div class="pl-scena"><canvas id="plCv" aria-label="Podgląd: Twoje zdjęcie z ułożoną kostką" role="img"></canvas><span class="impuls" id="plImpuls" aria-hidden="true">← przesuń →</span></div>
-      <div class="pl-ster">
-        <label class="btn jasny plik">Zrób zdjęcie<input type="file" accept="image/*" capture="environment" id="plAparat"></label><label class="btn szkl plik">Z galerii<input type="file" accept="image/*" id="plPlik"></label><button type="button" class="chip" id="plPrzyklad">Przykład</button>
-        <div class="przewijak" role="group" aria-label="Wzór"><button type="button" class="chip on" data-plw="herring" aria-pressed="true">Jodełka</button><button type="button" class="chip" data-plw="rows" aria-pressed="false">Cegiełka</button><button type="button" class="chip" data-plw="basket" aria-pressed="false">Koszyk</button><button type="button" class="chip" data-plw="slabs" aria-pressed="false">Płyty</button><button type="button" class="chip" data-plw="cobble" aria-pressed="false">Granit</button></div>
-        <div class="przewijak kolory" role="group" aria-label="Kolor"><button type="button" class="kol on" data-plk="grafit" aria-pressed="true"><i style="background-image:url(img/tex/grafit.webp)"></i>Grafit</button><button type="button" class="kol" data-plk="melanz" aria-pressed="false"><i style="background-image:url(img/tex/melanz.webp)"></i>Melanż</button><button type="button" class="kol" data-plk="piaskowy" aria-pressed="false"><i style="background-image:url(img/tex/jasny.webp)" class="piask"></i>Piaskowy</button><button type="button" class="kol" data-plk="szary" aria-pressed="false"><i style="background-image:url(img/tex/jasny.webp)"></i>Szary</button></div>
-        <div class="pl-akcje"><button type="button" class="btn jasny" id="plZapisz">Zapisz obraz</button><button type="button" class="btn szkl" id="plWyslij">Dołącz do zapytania</button></div>
+<section class="pole" id="planer">
+  <div class="tresc">
+    <div class="dwie">
+      <div class="pl-tekst wjazd"><p class="nadtytul">Planer</p><h2>Twoje podwórko<br><span>w kostce.</span></h2><p>Zrób zdjęcie podjazdu albo tarasu, zaznacz cztery rogi i wybierz kostkę. Zobaczysz efekt od razu. Zdjęcie zostaje na Twoim urządzeniu.</p></div>
+      <div class="pl" id="pl">
+        <div class="pl-scena slab foto"><canvas id="plCv" aria-label="Podgląd: Twoje zdjęcie z ułożoną kostką" role="img"></canvas><span class="impuls" id="plImpuls" aria-hidden="true">← przesuń →</span></div>
+        <div class="pl-ster wjazd">
+          <label class="btn jasny plik">Zrób zdjęcie<input type="file" accept="image/*" capture="environment" id="plAparat"></label><label class="btn plik">Z galerii<input type="file" accept="image/*" id="plPlik"></label><button type="button" class="chip" id="plPrzyklad">Przykład</button>
+          <div class="przewijak" role="group" aria-label="Wzór"><button type="button" class="chip on" data-plw="herring" aria-pressed="true">Jodełka</button><button type="button" class="chip" data-plw="rows" aria-pressed="false">Cegiełka</button><button type="button" class="chip" data-plw="basket" aria-pressed="false">Koszyk</button><button type="button" class="chip" data-plw="slabs" aria-pressed="false">Płyty</button><button type="button" class="chip" data-plw="cobble" aria-pressed="false">Granit</button></div>
+          <div class="przewijak kolory" role="group" aria-label="Kolor"><button type="button" class="kol on" data-plk="grafit" aria-pressed="true"><i style="background-image:url(img/tex/grafit.webp)"></i>Grafit</button><button type="button" class="kol" data-plk="melanz" aria-pressed="false"><i style="background-image:url(img/tex/melanz.webp)"></i>Melanż</button><button type="button" class="kol" data-plk="piaskowy" aria-pressed="false"><i style="background-image:url(img/tex/jasny.webp)" class="piask"></i>Piaskowy</button><button type="button" class="kol" data-plk="szary" aria-pressed="false"><i style="background-image:url(img/tex/jasny.webp)"></i>Szary</button></div>
+          <div class="pl-akcje"><button type="button" class="btn jasny" id="plZapisz">Zapisz obraz</button><button type="button" class="btn" id="plWyslij">Dołącz do zapytania</button></div>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
 <!-- DLA FIRM: wieczór, latarnie -->
-<section class="plyta waska" id="dla-firm">
-  <div class="tresc">
+<section class="pole waska" id="dla-firm">
+  <div class="tresc wjazd">
     <p class="nadtytul">Dla firm</p><h2>Deweloperzy, architekci, gminy.</h2>
     <p>Większe ilości, dostawy pod harmonogram budowy i doradztwo przy doborze materiału. Rozwijamy się i szukamy partnerów.</p>
     <a class="btn jasny" href="#kontakt" data-temat="Współpraca dla firm">Napisz do nas</a>
@@ -163,30 +167,34 @@
 </section>
 
 <!-- KONTAKT -->
-<section class="plyta" id="kontakt">
-  <div class="tresc dwie kt">
-    <div class="kt-dane">
-      <p class="nadtytul">Kontakt i dojazd</p>
-      <h2>Zapraszamy na plac.</h2>
-      <p class="adres">Centrum Architektury Ogrodowej GardenBruk<br>Mikowice 16, 57-300 Kłodzko</p>
-      <a class="duzy" href="tel:+48500250936">+48 500 250 936</a>
-      <a class="mail" href="mailto:biuro@gardenbruk.net">biuro@gardenbruk.net</a>
-      <div class="kt-btn"><a class="btn wa-btn" id="ktWa" href="https://wa.me/48500250936" target="_blank" rel="noopener">WhatsApp</a><a class="btn szkl" href="https://www.google.com/maps/dir/?api=1&amp;destination=Mikowice+16,+57-300+K%C5%82odzko" target="_blank" rel="noopener">Nawiguj na plac</a></div>
-      <div class="mapa" id="mapa"><button type="button" class="mapa-btn" id="mapaBtn"><img src="img/real/plac-z-gory.webp" width="1600" height="900" alt="" loading="lazy" decoding="async"><span>Pokaż mapę dojazdu<small>Mapa OpenStreetMap ładuje się dopiero po kliknięciu.</small></span></button></div>
+<section class="pole" id="kontakt">
+  <div class="tresc">
+    <div class="dwie kt">
+      <div class="kt-dane">
+        <div class="kt-tekst wjazd">
+          <p class="nadtytul">Kontakt i dojazd</p>
+          <h2>Zapraszamy na plac.</h2>
+          <p class="adres">Centrum Architektury Ogrodowej GardenBruk<br>Mikowice 16, 57-300 Kłodzko</p>
+          <a class="duzy" href="tel:+48500250936">+48 500 250 936</a>
+          <a class="mail" href="mailto:biuro@gardenbruk.net">biuro@gardenbruk.net</a>
+          <div class="kt-btn"><a class="btn wa-btn" id="ktWa" href="https://wa.me/48500250936" target="_blank" rel="noopener">WhatsApp</a><a class="btn jasny" href="https://www.google.com/maps/dir/?api=1&amp;destination=Mikowice+16,+57-300+K%C5%82odzko" target="_blank" rel="noopener">Nawiguj na plac</a></div>
+        </div>
+        <div class="mapa slab foto" id="mapa"><button type="button" class="mapa-btn" id="mapaBtn"><img src="img/real/plac-z-gory.webp" width="1600" height="900" alt="" loading="lazy" decoding="async"><span>Pokaż mapę dojazdu<small>Mapa OpenStreetMap ładuje się dopiero po kliknięciu.</small></span></button></div>
+      </div>
+      <form class="formularz slab jasna" id="form" action="https://formsubmit.co/info@falcon-eye.de" method="POST" novalidate>
+        <h3>Zapytanie</h3>
+        <input type="hidden" name="_subject" value="Zapytanie ze strony GardenBruk (wersja demonstracyjna)"><input type="hidden" name="_template" value="table"><input type="hidden" name="_captcha" value="false">
+        <input type="text" name="_honey" class="ukryte" tabindex="-1" autocomplete="off" aria-label="Zostaw to pole puste">
+        <textarea name="zapytanie" id="fZapytanie" class="ukryte" tabindex="-1" aria-hidden="true"></textarea>
+        <div class="f-rzad"><label>Imię i nazwisko<input name="imie" id="fImie" autocomplete="name" required></label><label>Telefon<input name="telefon" id="fTel" type="tel" autocomplete="tel" required></label></div>
+        <label>Miejscowość<input name="miejscowosc" id="fMiejsce" autocomplete="address-level2"></label>
+        <label>Wiadomość<textarea name="wiadomosc" id="fWiad" rows="3" placeholder="Np. podjazd ok. 60 m², grafit, pomiar w listopadzie"></textarea></label>
+        <div class="f-koszyk" id="fKoszyk" hidden></div>
+        <label class="zgoda"><input type="checkbox" id="fZgoda" required> <span>Zgadzam się na kontakt w sprawie zapytania (<a href="polityka-prywatnosci.html">polityka prywatności</a>).</span></label>
+        <div class="f-akcje"><button class="btn wa-btn" type="button" id="fWa">Wyślij na WhatsApp</button><button class="btn" type="submit" id="fMail">Wyślij e-mailem</button></div>
+        <p class="f-info" id="fInfo" role="status"></p>
+      </form>
     </div>
-    <form class="formularz" id="form" action="https://formsubmit.co/info@falcon-eye.de" method="POST" novalidate>
-      <h3>Zapytanie</h3>
-      <input type="hidden" name="_subject" value="Zapytanie ze strony GardenBruk (wersja demonstracyjna)"><input type="hidden" name="_template" value="table"><input type="hidden" name="_captcha" value="false">
-      <input type="text" name="_honey" class="ukryte" tabindex="-1" autocomplete="off" aria-label="Zostaw to pole puste">
-      <textarea name="zapytanie" id="fZapytanie" class="ukryte" tabindex="-1" aria-hidden="true"></textarea>
-      <div class="f-rzad"><label>Imię i nazwisko<input name="imie" id="fImie" autocomplete="name" required></label><label>Telefon<input name="telefon" id="fTel" type="tel" autocomplete="tel" required></label></div>
-      <label>Miejscowość<input name="miejscowosc" id="fMiejsce" autocomplete="address-level2"></label>
-      <label>Wiadomość<textarea name="wiadomosc" id="fWiad" rows="3" placeholder="Np. podjazd ok. 60 m², grafit, pomiar w listopadzie"></textarea></label>
-      <div class="f-koszyk" id="fKoszyk" hidden></div>
-      <label class="zgoda"><input type="checkbox" id="fZgoda" required> <span>Zgadzam się na kontakt w sprawie zapytania (<a href="polityka-prywatnosci.html">polityka prywatności</a>).</span></label>
-      <div class="f-akcje"><button class="btn wa-btn" type="button" id="fWa">Wyślij na WhatsApp</button><button class="btn szkl" type="submit" id="fMail">Wyślij e-mailem</button></div>
-      <p class="f-info" id="fInfo" role="status"></p>
-    </form>
   </div>
 </section>
 
@@ -209,13 +217,13 @@
 <aside class="koszyk" id="koszyk" aria-label="Twoje zapytanie" hidden>
   <div class="ks-gora"><h3>Twoje zapytanie</h3><button type="button" class="zamknij" id="koszykZamknij" aria-label="Zamknij"></button></div>
   <div class="ks-lista" id="ksLista"></div><div class="ks-kalk" id="ksKalk"></div>
-  <div class="ks-dol"><button type="button" class="btn wa-btn" id="ksWa">Wyślij na WhatsApp</button><a class="btn szkl" href="#kontakt" id="ksForm">Uzupełnij dane i wyślij</a></div>
+  <div class="ks-dol"><button type="button" class="btn wa-btn" id="ksWa">Wyślij na WhatsApp</button><a class="btn" href="#kontakt" id="ksForm">Uzupełnij dane i wyślij</a></div>
 </aside>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="js/swiat2d.js?v=11"></script>
-<script src="js/grunt.js?v=11"></script>
-<script src="js/planer.js?v=11"></script>
-<script src="js/strona4.js?v=11"></script>
+<script src="js/swiat2d.js?v=12"></script>
+<script src="js/grunt.js?v=12"></script>
+<script src="js/planer.js?v=12"></script>
+<script src="js/strona4.js?v=12"></script>
 </body>
 </html>
