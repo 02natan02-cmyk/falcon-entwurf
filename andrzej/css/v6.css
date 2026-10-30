@@ -60,7 +60,7 @@ p{margin:0 0 1em;max-width:62ch;text-wrap:pretty}
 /* ---------- intro ---------- */
 #intro{position:fixed;inset:0;width:100vw;height:100vh;z-index:60;display:block;background:#0c0d0e;pointer-events:none}
 body.intro-leci #intro{background:transparent}
-body:not(.intro) #intro{display:none}
+#intro.znika{opacity:0;transition:opacity .6s ease}
 .intro-napis{position:fixed;left:50%;top:50%;z-index:65;transform:translate(-50%,-50%);text-align:center;color:#fff;pointer-events:none;opacity:0;visibility:hidden}
 .intro-napis span{display:block;font:900 clamp(56px,11vw,150px)/.9 var(--f-d);letter-spacing:.02em;text-shadow:0 10px 50px rgba(0,0,0,.75)}
 .intro-napis b{color:var(--ziel-j)}
@@ -101,8 +101,7 @@ body.intro .pasek,body.intro .dok,body.intro .wa-plywak{opacity:0;pointer-events
 /* ---------- start: plac z drona ---------- */
 .hero{position:relative;height:100vh;height:100svh;min-height:560px;display:flex;flex-direction:column;justify-content:flex-end;color:#fff;overflow:hidden;background:#1d2024;isolation:isolate}
 .hero-foto{position:absolute;inset:0;z-index:-2}
-.hero-foto img{width:100%;height:100%;object-fit:cover;object-position:50% 58%;transform:scale(1.5);transform-origin:36% 62%;transition:transform 3s cubic-bezier(.18,.7,.18,1);will-change:transform}
-body.odslona .hero-foto img{transform:scale(1.02)}
+.hero-foto img{width:100%;height:100%;object-fit:cover;object-position:50% 58%;will-change:transform}
 .hero-cien{position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgba(8,10,10,.66) 0%,rgba(8,10,10,.3) 42%,rgba(8,10,10,0) 70%),linear-gradient(rgba(8,10,10,.25),transparent 25%,transparent 55%,rgba(8,10,10,.72))}
 .hero-tresc{padding:0 clamp(18px,4vw,64px) 10vh;width:min(100%,900px);will-change:transform}
 .hero h1{text-shadow:0 8px 40px rgba(0,0,0,.45)}
@@ -291,7 +290,7 @@ body.odslona .hero-dalej{opacity:1}
   :root{--brzeg:22px}
   body{font-size:16px}
   h1{font-size:clamp(56px,15vw,92px)}.tytul{font-size:clamp(44px,13vw,64px)}.tytul span{font-size:18px}
-  .hero-foto img{object-position:50% 100%;transform-origin:50% 48%;transform:scale(1.4)}
+  .hero-foto img{object-position:50% 100%}
   .hero-cien{background:linear-gradient(rgba(8,10,10,.4),rgba(8,10,10,0) 30%,rgba(8,10,10,.1) 50%,rgba(8,10,10,.84) 80%)}
   .hero-tresc{padding:0 16px 96px;width:auto}
   .hero .lead{margin:14px 0 20px}
