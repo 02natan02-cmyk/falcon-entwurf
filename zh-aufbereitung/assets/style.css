@@ -914,3 +914,11 @@ a.wd:hover .ic{animation:wdic .6s var(--ease)}
   .hs-q{padding:16px 18px}
 }
 @media (prefers-reduced-motion:reduce){.st i:last-child{transition:none}}
+/* Karte erst nach Klick (Zwei-Klick, 31.10.) */
+.map2k{position:relative;border-radius:var(--r);overflow:hidden;min-height:320px;display:grid;place-items:end start;isolation:isolate;background:#0b1012}
+.map2k>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;filter:saturate(.8) brightness(.75)}
+.map2k::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(6,9,10,.1),rgba(6,9,10,.8))}
+.m2k-c{padding:clamp(20px,3vw,34px);color:#fff;max-width:640px}
+.m2k-c p{margin:0;color:rgba(255,255,255,.9)}.m2k-c a:not(.btn){color:var(--aqua)}
+.m2k-c .ctas{margin-top:16px}.m2k-c .btn-line{color:#fff}
+.map2k.on{display:block;min-height:0;background:none}.map2k.on::after{display:none}

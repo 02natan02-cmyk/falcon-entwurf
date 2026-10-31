@@ -563,13 +563,13 @@
     const nextD = (m, d, off) => { const now = new Date(); now.setHours(0, 0, 0, 0); for (let k = -1; k < 3; k++) { const t = new Date(now.getFullYear() + k, m, d); t.setDate(t.getDate() + off); if (t > now) return t; } };
     const calc = () => { const s = +pls.value, e = +ple.value; return { s, e, a: nextD(s, 1, -21), b: nextD(e + 1, 7, 0) }; };
     const fmt = d => d.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' });
-    yr.innerHTML = M.map((m, i) => `<button type="button" data-mo="${i}"><span>${m}</span><small></small></button>`).join('');
+    yr.innerHTML = M.map((m, i) => `<button type="button" data-mo="${i}"><span>${m}</span> <small></small></button>`).join('');
     const mb = $$('[data-mo]', yr);
     const draw = () => { const { s, e, a, b } = calc();
       mb.forEach((el, i) => { const tour = s <= e ? i >= s && i <= e : i >= s || i <= e, rem = i === a.getMonth() || i === b.getMonth(), tag = i === s ? 'Start' : i === e ? 'Ende' : '';
         el.className = [tour && 'tour', rem && 'rem', tag && 'tag'].filter(Boolean).join(' '); el.style.setProperty('--k', (i - s + 12) % 12);
         el.querySelector('small').innerHTML = tag || (rem ? BELL : '');
-        el.setAttribute('aria-label', ML[i] + (i === s ? ', erste Tour' : '') + (i === e ? ', letzte Tour' : '') + (rem ? ', Erinnerung' : '')); });
+        el.setAttribute('aria-label', M[i] + (tag ? ' ' + tag : '') + ' (' + ML[i] + (i === s ? ', erste Tour' : '') + (i === e ? ', letzte Tour' : '') + (rem ? ', Erinnerung' : '') + ')'); });
       const L = [[a, 'Saison-Aufbereitung vereinbaren'], [b, 'Einwintern']].sort((x, y) => x[0] - y[0]);
       info.textContent = `Nächste Erinnerung: ${fmt(L[0][0])} (${L[0][1]}) · danach: ${fmt(L[1][0])} (${L[1][1]})`; };
     let want = 'start', plT = false;
@@ -631,6 +631,9 @@
   $$('a[href^="#"]').forEach(a => { if (a.closest('.lnav')) return; a.addEventListener('click', e => { const t = $(a.getAttribute('href')); if (!t) return; e.preventDefault(); lenis ? lenis.scrollTo(t, { offset: -70 }) : t.scrollIntoView({ behavior: 'smooth' }); }); });
   $$('a[href^="index.html#"]').forEach(a => { if (root.dataset.page !== 'home') return; a.addEventListener('click', e => { const t = $(a.getAttribute('href').slice(10)); if (!t) return; e.preventDefault(); lenis ? lenis.scrollTo(t, { offset: -70 }) : t.scrollIntoView({ behavior: 'smooth' }); }); });
   if (location.hash && $(location.hash)) setTimeout(() => lenis ? lenis.scrollTo($(location.hash), { offset: -70, immediate: true }) : null, 500);
+
+  /* ---------- Kontakt: Karte erst nach Klick laden (Zwei-Klick, Datenschutz) ---------- */
+  $$('[data-map2k]').forEach(m => { const go = $('[data-map2k-go]', m); if (go) go.addEventListener('click', () => { const f = document.createElement('iframe'); f.title = m.dataset.title.replace('&amp;', '&'); f.src = m.dataset.src; f.loading = 'lazy'; m.replaceChildren(f); m.classList.add('on'); }); });
 
   /* ---------- Halle: Tore gehen auf ---------- */
   $$('[data-halle]').forEach(h => onView(h, () => setTimeout(() => h.classList.add('open'), 250), '-15%'));
