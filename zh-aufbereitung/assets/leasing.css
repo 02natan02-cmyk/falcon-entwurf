@@ -10,10 +10,13 @@
 /* ---------- Kopf + Rückgabeprotokoll ---------- */
 .ls-top{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:clamp(36px,5vw,84px);align-items:center}
 .ls-kick{color:var(--teal-d)}
-.ls-h{max-width:15ch;font-size:clamp(28px,5.2vw,64px)}
-.ls-no{display:inline-block;margin-top:.12em;padding:.06em .32em .1em;border-radius:.18em;color:var(--teal-d);box-shadow:inset 0 0 0 .07em var(--teal);transform:rotate(-3deg);transform-origin:20% 70%;background:rgba(63,224,229,.1)}
-.js-ls .ls-no{opacity:0;transform:rotate(-9deg) scale(1.9)}
-.ls-no.in{opacity:1!important;transform:rotate(-3deg) scale(1)!important;transition:transform .42s cubic-bezier(.3,1.7,.5,1),opacity .15s}
+.ls-h{max-width:19ch;font-size:clamp(27px,4.4vw,56px);line-height:1.1}
+.ls-q{display:block}
+/* „Nicht mit uns.“ als eigener Stempel unter der Frage, mit Luft nach oben (Natan 31.10.: ging ins „erschlagen“ rein) */
+.ls-no{display:block;width:fit-content;margin:.42em 0 .06em .04em;padding:.12em .4em .16em;border-radius:.2em;font-size:1.08em;line-height:1;color:var(--teal-d);box-shadow:inset 0 0 0 .07em var(--teal);transform:rotate(-2deg);transform-origin:12% 50%;background:rgba(63,224,229,.12)}
+.js-ls .ls-no{opacity:0;transform:rotate(-8deg) scale(1.8)}
+.ls-no.in{opacity:1!important;transform:rotate(-2deg) scale(1)!important;transition:transform .42s cubic-bezier(.3,1.7,.5,1),opacity .15s}
+.ls-h1{font-size:clamp(34px,7.4vw,110px)}
 .ls-why{margin:18px 0 0;max-width:52ch;color:var(--mute);font-size:16.5px}
 .ls-why b{color:var(--ink)}
 
@@ -36,28 +39,28 @@
 .lp.flip .lp-pi{transform:rotateY(180deg)}
 .lp-clip{position:absolute;top:-24px;right:58px;width:16px;height:46px;border:3px solid #9aa6a8;border-radius:9px;z-index:3;box-shadow:1px 1px 0 rgba(255,255,255,.6)}
 .lp-list{list-style:none;counter-reset:lp;margin:16px 0 0;padding:0}
-.lp-list li{counter-increment:lp;position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;padding:11px 2px;border-bottom:1.5px dashed rgba(6,9,10,.12);font-size:15px;transition:opacity .45s,transform .45s var(--ease)}
+.lp-list li{counter-increment:lp;position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:baseline;column-gap:10px;row-gap:5px;padding:10px 2px 11px;border-bottom:1.5px dashed rgba(6,9,10,.12);font-size:15px;line-height:1.3;transition:opacity .45s,transform .45s var(--ease)}
 .lp-list li::before{content:counter(lp,decimal-leading-zero);font:800 11px var(--disp);color:var(--mute)}
-.lp-t{min-width:0;transition:color .3s}
-.lp-e,.lp-ok{grid-column:3;grid-row:1;justify-self:end;white-space:nowrap}
-.lp-e{font:700 14px var(--body);font-variant-numeric:tabular-nums;color:#c03a2b;letter-spacing:.04em;transition:opacity .3s,transform .3s}
-.lp-ok{font:800 11px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--teal-d);padding:4px 8px;border-radius:6px;box-shadow:inset 0 0 0 1.5px var(--teal);opacity:0;transform:scale(1.9) rotate(-8deg)}
+.lp-t{grid-column:2;min-width:0}
+.lp-e{grid-column:3;grid-row:1;justify-self:end;white-space:nowrap;font:700 14.5px var(--body);font-variant-numeric:tabular-nums;color:#c03a2b;text-decoration:line-through 2px transparent;transition:color .3s,text-decoration-color .25s}
+.lp-ok{grid-column:2/4;grid-row:2;justify-self:start;font:800 10.5px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--teal-d);padding:3px 7px;border-radius:6px;box-shadow:inset 0 0 0 1.5px var(--teal);opacity:0;transform:scale(1.8) rotate(-6deg);transform-origin:left center}
 .lp.pre .lp-list li,.lp.run .lp-list li:not(.in){opacity:0;transform:translateX(-14px)}
-.lp-list li.ok .lp-t{color:var(--mute);text-decoration:line-through;text-decoration-color:var(--teal);text-decoration-thickness:2px}
-.lp-list li.ok .lp-e{opacity:0;transform:translateY(-8px)}
+.lp-list li.ok .lp-e{color:#9aa6a8;text-decoration-color:#c03a2b}
 .lp-list li.ok .lp-ok{opacity:1;transform:none;transition:transform .32s cubic-bezier(.3,1.7,.5,1),opacity .12s}
-.lp-sum{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:4px 12px;margin:16px 0 0;padding-top:12px;border-top:2px solid var(--ink)}
+.lp-sum{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:2px 12px;margin:16px 0 0;padding-top:12px;border-top:2px solid var(--ink)}
 .lp-sum span{font:700 12px var(--body);letter-spacing:.1em;text-transform:uppercase}
-.lp-sum b{font:800 19px var(--disp);color:#c03a2b;font-variant-numeric:tabular-nums;transition:opacity .4s}
-.lp-sum em{grid-column:1/-1;justify-self:end;font:700 13px var(--body);font-style:normal;color:var(--teal-d);opacity:0;transition:opacity .4s .2s}
-.lp.done .lp-sum b{opacity:.28;text-decoration:line-through}
-.lp.done .lp-sum em{opacity:1}
-.lp-stamp{position:absolute;left:50%;top:58%;z-index:4;padding:12px 20px 10px;border:4px solid var(--teal);border-radius:14px;color:var(--teal-d);text-align:center;pointer-events:none;opacity:0;
-  transform:translate(-50%,-50%) rotate(-13deg) scale(2.6);background:rgba(255,253,247,.55);mix-blend-mode:multiply;
+.lp-sum b{grid-column:2;font:800 clamp(19px,2.2vw,24px) var(--disp);color:#c03a2b;font-variant-numeric:tabular-nums;white-space:nowrap;transition:color .3s}
+.lp-sum s{grid-column:2;justify-self:end;font:700 13px var(--body);color:#9aa6a8;text-decoration-color:#c03a2b;text-decoration-thickness:2px;opacity:0;transition:opacity .4s}
+.lp.done .lp-sum b{color:var(--teal-d)}
+.lp.done .lp-sum s{opacity:1}
+.lp-st-zone{position:relative;height:96px;margin-top:6px}
+.lp-stamp{position:absolute;left:50%;top:50%;z-index:4;padding:11px 20px 9px;border:4px solid var(--teal);border-radius:14px;color:var(--teal-d);text-align:center;pointer-events:none;opacity:0;
+  transform:translate(-50%,-50%) rotate(-7deg) scale(2.4);background:rgba(255,253,247,.6);mix-blend-mode:multiply;
   -webkit-mask-image:radial-gradient(circle at 30% 40%,#000 55%,rgba(0,0,0,.72) 75%,#000 90%);mask-image:radial-gradient(circle at 30% 40%,#000 55%,rgba(0,0,0,.72) 75%,#000 90%)}
-.lp-stamp b{display:block;font:800 clamp(24px,3.2vw,36px)/1 var(--disp);letter-spacing:-.02em;white-space:nowrap}
+.lp-stamp b{display:block;font:800 clamp(22px,3vw,32px)/1 var(--disp);letter-spacing:-.02em;white-space:nowrap}
 .lp-stamp small{display:block;margin-top:6px;font:800 9.5px var(--body);letter-spacing:.22em;text-transform:uppercase}
-.lp.done .lp-stamp{opacity:.94;transform:translate(-50%,-50%) rotate(-13deg) scale(1);transition:transform .34s cubic-bezier(.3,1.5,.5,1),opacity .1s}
+.lp-fn{margin:4px 0 0;font-size:11.5px;line-height:1.4;color:var(--mute)}
+.lp.done .lp-stamp{opacity:.94;transform:translate(-50%,-50%) rotate(-7deg) scale(1);transition:transform .34s cubic-bezier(.3,1.5,.5,1),opacity .1s}
 .lp-re{display:block;margin:22px auto 0;padding:10px 16px;border:0;border-radius:999px;background:transparent;color:var(--teal-d);font:700 14px var(--body);cursor:pointer;opacity:0;transition:opacity .4s}
 .lp.done .lp-re,.lp:not(.pre):not(.run) .lp-re{opacity:1}
 .lp-re:hover{background:rgba(10,166,173,.1)}
@@ -204,9 +207,60 @@
   .lp-paper{padding:26px 18px 20px}
   .lp-hd{padding-right:118px}
   .lp-pol{width:118px;right:-6px}
-  .lp-list li{font-size:14px;gap:8px}
+  .lp-list li{font-size:14px;column-gap:8px}
+  .lp-e{font-size:13.5px}
   .lc-f{grid-template-columns:minmax(0,1fr)}
   .lc-card{padding:24px 20px}
   .lc-card .ctas .btn{flex:1 1 100%}
 }
-@media (prefers-reduced-motion:reduce){.lsg::after,.ls-sweep,.pl-hint,.pl-hint .hand{animation:none}.js-ls .ls-no{opacity:1;transform:rotate(-3deg)}}
+@media (max-width:440px){
+  .lp-pol{width:96px;right:-4px;padding:5px 5px 20px}
+  .lp-pol figcaption{font-size:9px}
+  .lp-hd{padding-right:92px}
+  .lp-k{font-size:17px}
+  .lp-clip{right:40px}
+}
+@media (prefers-reduced-motion:reduce){.lsg::after,.ls-sweep,.pl-hint,.pl-hint .hand{animation:none}.js-ls .ls-no{opacity:1;transform:rotate(-2deg)}}
+
+/* ===== Prüfrunde 31.10.2026 ===== */
+.lsg::before{display:none}                                   /* senkrechte Linien wirkten wie Kachelnähte */
+/* PC: Frage + Text als eine Gruppe links, mittig neben dem Protokoll – Knöpfe bleiben im ersten Bildschirm */
+.ls-top{grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr);align-items:center}
+.ls-l .ls-head{margin-top:clamp(18px,2.2vw,28px)}
+.ls-h{max-width:none;font-size:clamp(27px,2.95vw,42px)}
+.lsg .ls-why,.lsg .ls-chk .mute,.ls-ph p{color:#3c4a4d}
+.lp-sub span{white-space:nowrap}
+.lp-st-zone{height:clamp(120px,10.5vw,146px);margin-top:10px}
+.lp-st-zone::before{content:"";position:absolute;inset:20px 2% 0;border:1.5px dashed rgba(6,9,10,.14);border-radius:12px}
+.lp-vm{position:absolute;left:2%;top:2px;font:800 9.5px var(--body);letter-spacing:.2em;text-transform:uppercase;color:#6b7779}
+.lp-stamp{top:calc(50% + 10px)}
+.lp-fn{margin:10px 0 0;font-size:12.5px;line-height:1.45;color:#46534f}
+.lp-re{color:var(--ink);background:rgba(255,255,255,.75);box-shadow:inset 0 0 0 1.5px rgba(6,9,10,.18)}
+.lp-re:hover{background:#fff}
+.ls-phero::after{background:linear-gradient(180deg,rgba(6,9,10,.62),rgba(6,9,10,.38) 32%,rgba(6,9,10,.72) 62%,rgba(6,9,10,.92))}
+.ls-phero .h1,.ls-phero .lead{text-shadow:0 2px 22px rgba(0,0,0,.45)}
+.ls-run{padding-bottom:clamp(70px,8vw,110px)}
+@media (max-width:900px){.ls-top{grid-template-columns:minmax(0,1fr)}.ls-h{font-size:clamp(27px,5.6vw,46px)}}
+@media (max-width:560px){
+  .lp{width:calc(100% - 14px)}
+  .lp-paper{transform:rotate(-1.2deg)}
+  .lp-st-zone{height:114px}
+}
+@media (max-width:360px){.ls-h{font-size:25px}}
+.phero>picture{position:absolute;inset:0;z-index:-2}
+.phero>picture>img{width:100%;height:100%;object-fit:cover}
+@media (max-width:700px){.ls-phero>picture>img{object-position:50% 38%}}
+
+/* Prüfrunde 2: gestrichene Beträge lesbar, Stempel passt in den Vermerk, Titel ohne Trennung, Fotos passen in den Bildschirm */
+.lp-list li.ok .lp-e{color:#5f6c6e;text-decoration-thickness:1.5px;text-decoration-color:rgba(192,58,43,.8)}
+.lp-sum s{color:#5f6c6e;text-decoration-thickness:1.5px;margin-top:4px}
+.lq summary,.fl-c,.pl figcaption{text-wrap:balance}
+@media (min-width:901px){.pl-stage{aspect-ratio:5/6}}   /* PC: Fotokarte passt samt Unterschrift in den Bildschirm, Raster bleibt bündig */
+@media (max-width:440px){
+  .lp-k{font-size:16px}
+  .lp-stamp{padding:8px 14px 7px;border-width:3px;border-radius:11px}
+  .lp-stamp b{font-size:19px}
+  .lp-stamp small{font-size:8px;letter-spacing:.18em;margin-top:5px}
+  .lp-st-zone{height:104px}
+}
+@media (max-width:360px){.lp-pol,.lp-clip{display:none}.lp-hd{padding-right:0;min-height:0}}

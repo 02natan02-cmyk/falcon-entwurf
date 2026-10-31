@@ -45,7 +45,7 @@
     const { d, m } = berlin(), wd = d >= 1 && d <= 5, open = wd && m >= O && m < C;
     let txt; if (open) { const r = C - m; txt = `Geöffnet · noch ${Math.floor(r / 60) ? Math.floor(r / 60) + ' Std ' : ''}${r % 60} Min`; }
     else { let k = 0; if (!(wd && m < O)) { do { k++; } while ([0, 6].includes((d + k) % 7)); } txt = `Geschlossen · öffnet ${k === 0 ? 'heute' : k === 1 ? 'morgen' : DN[(d + k) % 7]} um 08:00`; }
-    $$('[data-status]').forEach(s => { s.classList.toggle('open', open); s.classList.toggle('closed', !open); s.querySelector('b').textContent = open ? 'Jetzt geöffnet' : txt.replace('Geschlossen · ', 'Geschlossen – '); });
+    $$('[data-status]').forEach(s => { s.classList.toggle('open', open); s.classList.toggle('closed', !open); s.querySelector('b').textContent = open ? 'Jetzt geöffnet' : txt; });
     const big = $('[data-status-big]'), sub = $('[data-status-sub]'); if (big) { big.textContent = open ? 'Geöffnet' : 'Mo–Fr'; sub.textContent = open ? txt.replace('Geöffnet · ', '') + ' heute' : '08:00–16:30 · ' + txt.split(' · ')[1]; }
     $$('[data-countdown]').forEach(c => c.textContent = txt);
   };
@@ -165,7 +165,8 @@
     st.addEventListener('pointerdown', e => { touch(); down = true; dragging = false; sx = e.clientX; sy = e.clientY; if (e.pointerType === 'mouse') { dragging = true; st.setPointerCapture(e.pointerId); move(e); } });
     const move = e => { const r = st.getBoundingClientRect(); set((e.clientX - r.left) / r.width * 100); };
     st.addEventListener('pointermove', e => { if (!down) return; if (!dragging) { if (Math.abs(e.clientX - sx) > 6 && Math.abs(e.clientX - sx) > Math.abs(e.clientY - sy)) { dragging = true; try { st.setPointerCapture(e.pointerId); } catch (_) {} } else return; } move(e); });
-    const up = () => { down = false; dragging = false; };
+    // 31.10.: Vorher- und Nachher-Foto zeigen nicht exakt denselben Ausschnitt – nach dem Loslassen fährt der Abzieher deshalb ganz durch oder ganz zurück, statt halb stehen zu bleiben
+    const up = () => { const was = dragging; down = false; dragging = false; if (was && x > 0 && x < 100) animTo(x >= 50 ? 100 : 0, .55); };
     st.addEventListener('pointerup', up); st.addEventListener('pointercancel', up);
     st.addEventListener('click', e => { if (Math.abs(e.clientX - sx) < 4 && x < 5) { animTo(100); } });
     const animTo = (to, dur = 1.6) => { if (!hasG) return set(to); tw && tw.kill(); const o = { v: x }; tw = gsap.to(o, { v: to, duration: dur, ease: 'power2.inOut', onUpdate: () => set(o.v), onComplete: () => tw = null }); };
@@ -176,7 +177,7 @@
       for (const d of drips) { d.l = Math.min(d.l + d.v * .016 * DPR(), 34 * DPR()); d.y += d.v * .006; d.a -= .016; if (d.a <= 0) continue; const g = ctx.createLinearGradient(0, d.y - d.l, 0, d.y); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, `rgba(235,250,252,${.4 * d.a})`); ctx.strokeStyle = g; ctx.lineWidth = d.w; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(d.x, d.y - d.l); ctx.lineTo(d.x, d.y); ctx.stroke(); ctx.fillStyle = `rgba(255,255,255,${.7 * d.a})`; ctx.beginPath(); ctx.arc(d.x, d.y, d.w * 1.2, 0, 7); ctx.fill(); }
       drips = drips.filter(d => d.a > 0).slice(-160); })();
     // v6: Impuls für JEDE Karte beim ersten Sichtkontakt (Abzieher fährt ein Stück und zurück), Paare leicht versetzt
-    onView(st, () => setTimeout(() => { if (touched || x > 2 || !hasG || reduce) return; const o = { v: 0 }; tw = gsap.timeline({ onComplete: () => tw = null }).to(o, { v: 44, duration: 1.15, ease: 'power2.inOut', onUpdate: () => set(o.v) }).to(o, { v: 0, duration: .95, ease: 'power2.inOut', onUpdate: () => set(o.v) }, '+=.4'); }, bfSlot()), '-22%');
+    onView(st, () => setTimeout(() => { if (touched || x > 2 || !hasG || reduce) return; const o = { v: 0 }; tw = gsap.timeline({ onComplete: () => tw = null }).to(o, { v: 92, duration: 1.5, ease: 'power2.inOut', onUpdate: () => set(o.v) }).to(o, { v: 0, duration: 1.1, ease: 'power2.inOut', onUpdate: () => set(o.v) }, '+=1.1'); }, bfSlot()), '-22%');
   });
   const all = $('[data-bf-all]'); if (all) all.addEventListener('click', () => bfs.forEach((b, i) => setTimeout(() => b._anim(100, 1.2), i * 180)));
   countDone();

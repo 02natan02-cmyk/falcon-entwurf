@@ -16,16 +16,21 @@
 
   /* ---------- Rückgabeprotokoll: Posten erscheinen, Z&H stempelt sie weg, Foto dreht sich ---------- */
   $$('[data-lp]').forEach(lp => {
-    const lis = $$('.lp-list li', lp); let tms = [];
+    const lis = $$('.lp-list li', lp), tot = $('[data-lp-tot]', lp); let tms = [];
     const at = (t, f) => tms.push(setTimeout(f, t));
+    const eur = v => v.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+    const SUM = tot ? +tot.dataset.sum : 0; let cur = SUM, raf = 0;
+    const roll = to => { cancelAnimationFrame(raf); const from = cur, t0 = performance.now(); cur = to;   // Summe zählt nach jedem erledigten Posten herunter
+      const f = n => { const k = Math.min(1, (n - t0) / 380), v = from + (to - from) * (1 - Math.pow(1 - k, 3)); if (tot) tot.textContent = eur(Math.round(v)); if (k < 1) raf = requestAnimationFrame(f); }; raf = requestAnimationFrame(f); };
+    const setTot = v => { cancelAnimationFrame(raf); cur = v; if (tot) tot.textContent = eur(v); };
     const run = () => {
       tms.forEach(clearTimeout); tms = [];
-      lp.classList.remove('done', 'flip', 'thud'); lis.forEach(li => li.classList.remove('in', 'ok'));
-      if (reduce) { lp.classList.remove('pre', 'run'); lis.forEach(li => li.classList.add('in', 'ok')); lp.classList.add('done', 'flip'); return; }
+      lp.classList.remove('done', 'flip', 'thud'); lis.forEach(li => li.classList.remove('in', 'ok')); setTot(0);
+      if (reduce) { lp.classList.remove('pre', 'run'); lis.forEach(li => li.classList.add('in', 'ok')); lp.classList.add('done', 'flip'); setTot(0); return; }
       lp.classList.add('pre', 'run'); void lp.offsetWidth;
       let t = 120; at(t, () => lp.classList.remove('pre'));
-      t += 650; lis.forEach(li => { at(t, () => li.classList.add('in')); t += 230; });
-      t += 900; lis.forEach(li => { at(t, () => li.classList.add('ok')); t += 380; });
+      t += 650; let sub = 0; lis.forEach(li => { sub += +li.dataset.amt || 0; const s0 = sub; at(t, () => { li.classList.add('in'); roll(s0); }); t += 260; });   // Summe wächst mit jedem Posten
+      t += 900; let rest = SUM; lis.forEach(li => { rest -= +li.dataset.amt || 0; const r = rest; at(t, () => { li.classList.add('ok'); roll(Math.max(0, r)); }); t += 420; });
       at(t - 150, () => lp.classList.add('flip'));
       t += 420; at(t, () => { lp.classList.add('done', 'thud'); lp.classList.remove('run'); });
       at(t + 500, () => lp.classList.remove('thud'));
@@ -139,7 +144,7 @@
     car.addEventListener('input', () => { userAct(); upd(); }); date.addEventListener('input', () => { userAct(); upd(); }); date.addEventListener('change', upd);
     upd();
     // Selbst-Impuls: Hand tippt „Folie & Beschriftung“ und „Kleberreste“ an (bleiben als Vorschlag gewählt)
-    const moveTo = b => { const r = b.getBoundingClientRect(), R = wrap.getBoundingClientRect(); ghost.style.transform = `translate(${Math.round(r.left - R.left + r.width * .5 - 16)}px,${Math.round(r.top - R.top + r.height * .45)}px)`; };
+    const moveTo = b => { const r = b.getBoundingClientRect(), R = wrap.getBoundingClientRect(); ghost.style.transform = `translate(${Math.round(r.left - R.left + r.width * .9 - 12)}px,${Math.round(r.top - R.top + r.height * .72)}px)`; };   // Fingerspitze unten rechts, Beschriftung bleibt lesbar
     onView(wrap, () => { if (user || reduce) { if (reduce && !user) { chips.slice(0, 2).forEach(c => c.setAttribute('aria-pressed', 'true')); upd(); } return; }
       demo = true; ghost.style.transition = 'none'; moveTo(chips[0]); void ghost.offsetWidth; ghost.style.transition = ''; ghost.classList.add('on'); let t = 450;
       chips.slice(0, 2).forEach((b, i) => { tms.push(setTimeout(() => moveTo(b), t)); t += 520;

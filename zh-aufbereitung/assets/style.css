@@ -514,7 +514,7 @@ a.wd:hover .ic{animation:wdic .6s var(--ease)}
    radial-gradient(circle at 35% 35%,#fff 0 22%,rgba(255,255,255,0) 26%) 5px 30px/52px 52px,
    linear-gradient(160deg,#f3fafb,#d6e9ec)}
 .sv-media.in .foam{clip-path:inset(0 0 0 100%)}
-.sq{position:absolute;top:-4%;bottom:-4%;left:0;width:0;z-index:3;pointer-events:none;transition:left 1.7s var(--ease),opacity .5s 1.6s}
+.sq{position:absolute;top:-4%;bottom:-4%;left:0;width:0;z-index:3;pointer-events:none;transition:left 1.7s var(--ease),opacity .35s 1.35s}
 .sq::before{content:"";position:absolute;top:0;bottom:0;left:-7px;width:14px;border-radius:7px;background:linear-gradient(90deg,#0d1416,#2b3a3e 40%,#0d1416);box-shadow:6px 0 18px rgba(0,0,0,.35)}
 .sq::after{content:"";position:absolute;top:0;bottom:0;left:-1px;width:2px;background:linear-gradient(var(--aqua),#fff,var(--aqua))}
 .sq i{position:absolute;top:50%;left:-22px;width:44px;height:44px;margin-top:-22px;border-radius:50%;background:var(--aqua);box-shadow:0 10px 26px -6px rgba(0,0,0,.5)}
@@ -922,3 +922,57 @@ a.wd:hover .ic{animation:wdic .6s var(--ease)}
 .m2k-c p{margin:0;color:rgba(255,255,255,.9)}.m2k-c a:not(.btn){color:var(--aqua)}
 .m2k-c .ctas{margin-top:16px}.m2k-c .btn-line{color:#fff}
 .map2k.on{display:block;min-height:0;background:none}.map2k.on::after{display:none}
+
+/* ===== Prüfrunde 31.10.2026 (zwei unabhängige Prüfer) ===== */
+/* Überschriften ohne Einzelwort in der letzten Zeile, Fließtext ohne einsame Wörter */
+h1,h2,h3,.h1,.h2,.h3,.kick{text-wrap:balance}
+p,li,figcaption,dd,blockquote{text-wrap:pretty}
+/* Handy: Menüknopf an den rechten Rand (die Menüblende öffnet sich von dort) */
+@media (max-width:900px){.hdr-r{margin-left:auto}}
+/* Kopf über hellen Fotos: dunkler Verlauf oben, Menüknopf mit eigenem Grund */
+.phero::before{content:"";position:absolute;inset:0 0 auto;height:180px;z-index:-1;pointer-events:none;background:linear-gradient(180deg,rgba(6,9,10,.6),rgba(6,9,10,0))}
+.hdr:not(.solid):not(.dark) .burger{background:rgba(6,9,10,.42);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+/* Handy-Leiste: jeder Knopf mit Innenabstand, gleich große Symbole, bei sehr schmalen Handys Anrufen nur als Symbol */
+.dock{grid-template-columns:minmax(min-content,1fr) minmax(min-content,1.1fr) minmax(min-content,1.35fr)}
+.dock a{padding:0 10px;white-space:nowrap;min-width:0}
+.dock svg,.dock .wai{width:19px;height:19px}
+.dock a:first-child svg{width:20px;height:20px}
+@media (max-width:420px){.dock{gap:6px;padding:7px;left:10px;right:10px}.dock a{font-size:13px;gap:6px;padding:0 9px}}
+@media (max-width:374px){.dock{grid-template-columns:52px minmax(0,1fr) minmax(0,1.3fr)}.dock a:first-child{padding:0}.dock .dl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}}
+/* Fußzeile: Links als Links erkennbar, untere Zeile sauber ausgerichtet */
+.ftr-g a{text-decoration:underline;text-decoration-color:rgba(63,224,229,.45);text-decoration-thickness:1px;text-underline-offset:4px}
+.ftr-g a:hover{text-decoration-color:var(--aqua)}
+.ftr-brand a{text-decoration:none}
+.ftr-b{align-items:center}
+.ftr-b a{padding:12px 0;text-decoration:underline;text-decoration-color:rgba(255,255,255,.25);text-underline-offset:4px}
+.ftr-ln{display:flex;flex-wrap:wrap;align-items:center;column-gap:20px}
+.ftr-ln>*{white-space:nowrap}
+@media (min-width:561px) and (max-width:900px){.ftr-g{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:560px){.ftr-g{gap:24px}.ftr p{margin-bottom:12px}.ftr-g>div>p:last-child{margin-bottom:0}.ftr-b{flex-direction:column;align-items:flex-start;gap:6px}.ftr-ln{column-gap:16px}}
+/* Kontakt: Kartentext liegt auf ruhigem dunklem Grund */
+.map2k>img{filter:saturate(.7) brightness(.62)}
+.map2k::after{background:linear-gradient(180deg,rgba(6,9,10,.15),rgba(6,9,10,.82) 48%,rgba(6,9,10,.92))}
+.m2k-c{max-width:560px}
+/* Entwurf-Hinweis: kompakt deutlich zurückhaltender */
+.concept.mini{padding:6px 11px;opacity:.78}
+.concept.mini:hover,.concept.mini:focus-visible{opacity:1}
+/* Tippen am Handy, Klicken am PC */
+.t-mouse{display:none}
+@media (hover:hover) and (pointer:fine) and (not (any-pointer:coarse)){.t-touch{display:none}.t-mouse{display:inline}}
+/* Handy: Knopfreihen gleichmäßig breit statt zufällig */
+@media (max-width:560px){.ls-top .ctas .btn,.cta .ctas .btn,.sv .ctas .btn{flex:1 1 auto;justify-content:center}}
+/* PC-Kopfzeile mit sechs Menüpunkten: Öffnungsstatus erst ab 1400 px, Burger schon unter 1041 px */
+@media (max-width:1399px){.hdr-r .status{display:none}}
+@media (min-width:901px) and (max-width:1040px){.nav{display:none}.burger{display:block}.hdr-r{margin-left:auto}}
+.sv{scroll-margin-top:150px}
+/* Prüfrunde 2 */
+.bf-tag{z-index:6}                                  /* Vorher/Nachher-Etikett liegt über dem Abzieher, wird nie angeschnitten */
+@media (max-width:560px){.ftr-g{gap:12px}.ftr-brand{margin-bottom:14px}}
+/* Abnahme 31.10.: lesbare Knöpfe und Abschluss (Kontrast mindestens 4,5 : 1) */
+.btn-wa{background:#0f7f43;box-shadow:0 12px 30px -14px rgba(15,127,67,.9)}
+.btn-wa:hover{background:#0c6e3a}
+.dock a.wa{background:#0f7f43}
+.cta{background:linear-gradient(140deg,#055f64,#06747a 55%,#077d83)}
+@media (max-width:374px){.dock{grid-template-columns:46px minmax(0,1fr) minmax(0,1.1fr)}.dock a{font-size:12.5px;gap:5px;padding:0 8px}.dock a:first-child{background:rgba(255,255,255,.17)}}
+.ftr-brand .logo-full{transform:translateX(-2.9%)}   /* Logo-Schwung bündig mit dem Textrand */
+.cta .h2{font-size:clamp(34px,3.9vw,56px)}
