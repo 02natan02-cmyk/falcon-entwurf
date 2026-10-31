@@ -1,0 +1,74 @@
+/* Z&H Aufbereitung – Geschichten aus Alis Fotos (31.10.2026, Falcon Eye)
+   Leistungen: Rundgang ums Auto (ziehen) · Vorher/Nachher mit Schaum und Abzieher · echtes Abperl-Video */
+
+/* Medien-Spalte: Bild + Leiste darunter; jede zweite Leistung steht rechts */
+.sv-mw{min-width:0}
+.sv:nth-child(even) .sv-mw{order:2}
+@media (max-width:900px){.sv:nth-child(even) .sv-mw{order:0}}
+.sv-cap{display:flex;justify-content:space-between;align-items:baseline;gap:14px;margin:12px 2px 0;font-size:14.5px;line-height:1.45;color:var(--mute);text-wrap:pretty}
+.sv-cap .rg-n{flex:none;font:700 13px var(--disp);color:var(--teal-d);font-variant-numeric:tabular-nums}
+.sv-media.rg,.sv-media.vn{aspect-ratio:4/3;background:#d9dfe0}
+
+/* gemeinsamer Hinweis mit Hand (wie beim Befund auf der Startseite) */
+.rg-hint,.vn-hint{position:absolute;left:50%;bottom:14px;z-index:6;transform:translateX(-50%);display:inline-flex;align-items:center;gap:8px;max-width:calc(100% - 28px);padding:8px 15px 8px 11px;border-radius:999px;background:rgba(6,9,10,.76);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 0 0 1px rgba(63,224,229,.4),0 10px 24px -8px rgba(0,0,0,.5);color:#fff;font:700 12.5px var(--body);letter-spacing:.02em;white-space:nowrap;pointer-events:none;transition:opacity .45s,transform .45s var(--ease)}
+.rg-hint .hand,.vn-hint .hand{color:var(--aqua)}
+.rg-hint .hand{animation:swipe 1.5s ease-in-out infinite}
+.vn-hint .hand{animation:tapme 1.3s ease-in-out infinite}
+.rg-hint b,.vn-hint b{font-weight:700;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------- Rundgang ums Auto ---------- */
+.rg{touch-action:pan-y;cursor:grab;-webkit-user-select:none;user-select:none;box-shadow:0 30px 60px -36px rgba(6,9,10,.45)}
+.rg.drag{cursor:grabbing}
+.sv-media.rg img{transform:none;transition:opacity .16s linear}
+.rg-i{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;pointer-events:none;-webkit-user-drag:none}
+.rg-i.on{opacity:1}
+.rg-map{position:absolute;right:12px;bottom:12px;z-index:5;width:clamp(66px,8.5vw,92px);height:auto;border-radius:50%;background:rgba(6,9,10,.66);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:0 0 0 1px rgba(255,255,255,.14)}
+.rg-orb{fill:none;stroke:rgba(255,255,255,.3);stroke-width:1.4;stroke-dasharray:2.5 3.5}
+.rg-car{fill:#f3f6f6}
+.rg-win{fill:#25363a}
+.rg-cam{transform-origin:50px 50px;transition:transform .32s var(--ease)}
+.rg-cone{fill:rgba(63,224,229,.28)}
+.rg-dot{fill:var(--aqua);stroke:#fff;stroke-width:2}
+.rg-lab{position:absolute;left:12px;top:12px;z-index:5;padding:7px 12px;border-radius:999px;background:rgba(6,9,10,.74);color:#fff;font:700 12px var(--body);letter-spacing:.08em;text-transform:uppercase;pointer-events:none}
+.rg input{position:absolute;left:0;bottom:0;width:1px;height:1px;margin:0;opacity:0;pointer-events:none}
+.rg:has(input:focus-visible){outline:3px solid var(--aqua);outline-offset:3px}
+.rg.touched .rg-hint{opacity:0;transform:translate(-50%,10px)}
+@media (max-width:980px){.rg-hint{bottom:auto;top:56px}}
+@media (max-width:560px){.rg-map{width:62px}}
+
+/* ---------- Vorher/Nachher: einschäumen und abziehen ---------- */
+.vn{box-shadow:0 30px 60px -36px rgba(6,9,10,.45)}
+.sv-media.vn img{transform:none}
+.vn-i{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;-webkit-user-drag:none}
+.vn-i.on{opacity:1}
+.sv-media.vn .foam.vn-foam{clip-path:inset(0 100% 0 0);transition:none}
+.sv-media.vn .sq.vn-sq{left:0;opacity:0;transition:none}
+.vn-tag{position:absolute;top:14px;left:14px;z-index:5;padding:7px 12px;border-radius:999px;background:rgba(122,98,71,.94);color:#fff;font:700 12px var(--body);letter-spacing:.08em;text-transform:uppercase;pointer-events:none;transition:background-color .3s,color .3s}
+.vn.is-n .vn-tag{background:var(--aqua);color:var(--ink)}
+.vn.is-n .vn-tag::after{content:" ✓"}
+.vn-hit{position:absolute;inset:0;z-index:4;width:100%;height:100%;padding:0;border:0;background:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.vn-hit:focus-visible{outline:3px solid var(--aqua);outline-offset:-3px;border-radius:var(--r)}
+.vn-hint{opacity:0;transform:translate(-50%,10px)}
+.vn.hint .vn-hint{opacity:1;transform:translateX(-50%)}
+.vn.wash .vn-hint{opacity:0}
+.vn-bar{margin-top:14px}
+.vn-q{min-height:2.5em;margin:0 0 10px;font:800 clamp(17px,1.5vw,20px)/1.25 var(--disp);letter-spacing:-.01em;text-wrap:balance}
+.vn-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px}
+.vn-ps,.vn-sw{display:flex;flex-wrap:wrap;gap:6px}
+.vn-ps button,.vn-sw button{min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink);font:700 13.5px var(--body);cursor:pointer;transition:background-color .2s,border-color .2s,color .2s}
+.vn-ps button[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+.vn-sw{padding:3px;border-radius:999px;background:#e9eeee}
+.vn-sw button{min-height:40px;border:0;background:none}
+.vn-sw button[aria-pressed=true]{background:#fff;box-shadow:0 2px 8px -2px rgba(6,9,10,.25)}
+.vn-sw button[data-vn-s=n][aria-pressed=true]{background:var(--aqua)}
+.vn-ps button:focus-visible,.vn-sw button:focus-visible{outline:3px solid var(--aqua);outline-offset:2px}
+@media (hover:hover){.vn-ps button:hover{border-color:var(--teal)}.vn-sw button:hover{color:var(--teal-d)}}
+@media (max-width:560px){.vn-ps button{padding:0 12px}.vn-row{gap:10px}.vn-hint{font-size:12px}}
+
+/* ---------- Abperl-Video ---------- */
+.sv-media.vid video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.vid-tag{position:absolute;top:14px;left:14px;z-index:4;display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:999px;background:rgba(6,9,10,.74);color:#fff;font:700 12px var(--body);letter-spacing:.08em;text-transform:uppercase;pointer-events:none}
+.vid-tag i{width:8px;height:8px;border-radius:50%;background:#ff4d4d;box-shadow:0 0 0 3px rgba(255,77,77,.25);animation:recblink 1.4s ease-in-out infinite}
+@keyframes recblink{50%{opacity:.35}}
+
+@media (prefers-reduced-motion:reduce){.rg-hint .hand,.vn-hint .hand,.vid-tag i{animation:none}.rg-cam{transition:none}}
