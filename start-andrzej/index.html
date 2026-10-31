@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dla Andrzeja</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Pokaz specjalny tylko dla ciebie. Kurtyna w górę – zapnij pasy.">
+<meta name="theme-color" content="#0b0405">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Andrzej, ten pokaz jest tylko dla ciebie">
+<meta property="og:description" content="Kurtyna w górę. Zapnij pasy.">
+<meta property="og:image" content="https://entwurf.falcon-eye.de/start-andrzej/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://entwurf.falcon-eye.de/start-andrzej/">
+<link rel="icon" href="../andrzej/img/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/big-shoulders-display-latin-900-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/manrope-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face{font-family:BSD;src:url(fonts/big-shoulders-display-latin-900-normal.woff2) format("woff2");font-weight:900;font-display:swap;unicode-range:U+0000-00FF,U+2000-206F}
+@font-face{font-family:BSD;src:url(fonts/big-shoulders-display-latin-ext-900-normal.woff2) format("woff2");font-weight:900;font-display:swap;unicode-range:U+0100-024F,U+1E00-1EFF}
+@font-face{font-family:MR;src:url(fonts/manrope-latin-wght-normal.woff2) format("woff2");font-weight:200 800;font-display:swap;unicode-range:U+0000-00FF,U+2000-206F}
+@font-face{font-family:MR;src:url(fonts/manrope-latin-ext-wght-normal.woff2) format("woff2");font-weight:200 800;font-display:swap;unicode-range:U+0100-024F,U+1E00-1EFF}
+:root{--zl:#f2d38a;--zl2:#c9a24a;--cz:#8e121c;--cz2:#650b13;--cz3:#3d0509;--noc:#0b0405;--atr:#2a1606}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--noc);color:#f6efe2;font-family:MR,system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent}
+button{font:inherit;cursor:pointer}
+/* Film und Umgebungslicht */
+.amb{position:fixed;left:-15%;top:-15%;width:130%;height:130%;filter:blur(48px) saturate(1.5);opacity:0;transition:opacity 1.6s;pointer-events:none}
+.gra .amb{opacity:.55}
+#film{position:fixed;inset:0;width:100%;height:100%;object-fit:contain;background:transparent;outline:0}
+.pasek{position:fixed;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.08);z-index:5;opacity:0;transition:opacity .6s}
+.gra .pasek{opacity:1}
+.pasek b{position:absolute;inset:0;background:linear-gradient(90deg,var(--zl2),var(--zl));transform-origin:0 50%;transform:scaleX(0);box-shadow:0 0 12px rgba(242,211,138,.6)}
+.pauza{position:fixed;left:50%;top:50%;z-index:6;width:96px;height:96px;margin:-48px 0 0 -48px;border-radius:50%;border:2px solid rgba(242,211,138,.8);background:rgba(11,4,5,.6);color:var(--zl);display:none;place-content:center;font:800 15px/1 MR;letter-spacing:.08em;text-transform:uppercase;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.pauza i{display:block;margin:0 auto 8px;width:0;height:0;border-left:22px solid var(--zl);border-top:14px solid transparent;border-bottom:14px solid transparent;transform:translateX(3px)}
+.stoi .pauza{display:grid}
+.krec{position:fixed;left:50%;top:50%;z-index:6;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;border:3px solid rgba(242,211,138,.2);border-top-color:var(--zl);display:none;animation:krec 1s linear infinite}
+.laduje:not(.stoi) .krec{display:block}
+@keyframes krec{to{transform:rotate(360deg)}}
+.dzwiek{position:fixed;left:50%;bottom:28px;z-index:7;transform:translateX(-50%);display:none;padding:12px 20px;border-radius:999px;border:0;background:var(--zl);color:var(--atr);font-weight:800}
+.cicho .dzwiek{display:block}
+/* Knöpfe oben */
+.gorne{position:fixed;top:calc(12px + env(safe-area-inset-top));right:12px;z-index:40;display:flex;gap:8px}
+.gorne button{padding:9px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.28);background:rgba(11,4,5,.45);color:#efe3c8;font:600 13px/1 MR;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:.75;transition:opacity .2s}
+.gorne button:hover,.gorne button:focus-visible{opacity:1}
+.gorne .pe{width:38px;padding:9px 0;font-size:15px}
+.koniec .gorne{display:none}
+/* Brama: Theater mit Eintrittskarte */
+.brama{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:20px;overflow:hidden;background:radial-gradient(70% 50% at 50% 100%,#4a1013 0%,#1a0608 45%,var(--noc) 80%);transition:opacity .7s .35s}
+.rwij .brama{opacity:0;pointer-events:none}
+.brama[hidden]{display:none}
+.zaslona{position:absolute;top:0;bottom:0;width:22vw;max-width:300px;background:repeating-linear-gradient(90deg,rgba(0,0,0,.55) 0,rgba(0,0,0,.04) 18px,rgba(255,215,200,.13) 30px,rgba(0,0,0,.04) 42px,rgba(0,0,0,.55) 60px),linear-gradient(180deg,var(--cz) 0%,var(--cz2) 55%,var(--cz3) 100%);box-shadow:inset 0 -90px 140px rgba(0,0,0,.55),0 0 60px rgba(0,0,0,.7);animation:fala 7s ease-in-out infinite}
+.zaslona::after{content:"";position:absolute;left:0;right:0;bottom:0;height:30px;background:linear-gradient(#e7c76f,#9c7524);-webkit-mask:repeating-linear-gradient(90deg,#000 0 7px,transparent 7px 10px);mask:repeating-linear-gradient(90deg,#000 0 7px,transparent 7px 10px)}
+.zaslona.l{left:0;transform-origin:0 0}.zaslona.r{right:0;transform-origin:100% 0;animation-delay:-3.5s}
+@keyframes fala{50%{transform:skewY(.6deg) scaleX(1.03)}}
+.lambr{position:absolute;left:0;right:0;top:0;height:9vh;min-height:54px;background:repeating-linear-gradient(90deg,var(--cz2) 0,var(--cz) 2.2vw,var(--cz2) 4.4vw);box-shadow:0 12px 30px rgba(0,0,0,.6);border-bottom:4px solid var(--zl2)}
+.snop{position:absolute;left:50%;top:-10vh;width:min(120vw,900px);height:130vh;transform:translateX(-50%);background:linear-gradient(180deg,rgba(255,240,210,.28),rgba(255,240,210,.03));clip-path:polygon(43% 0,57% 0,100% 100%,0 100%);mix-blend-mode:screen;pointer-events:none;opacity:0;animation:snop 1.4s steps(1) .2s forwards,oddech 5s ease-in-out 1.6s infinite}
+@keyframes snop{0%{opacity:.5}12%{opacity:0}22%{opacity:.8}30%{opacity:.2}40%,100%{opacity:1}}
+@keyframes oddech{50%{opacity:.82}}
+.pyl{position:absolute;inset:0;pointer-events:none}
+.pyl i{position:absolute;bottom:-10px;width:3px;height:3px;border-radius:50%;background:#f7e2a6;opacity:0;animation:pyl 9s linear infinite}
+@keyframes pyl{10%{opacity:.7}90%{opacity:.4}100%{transform:translate(var(--dx,20px),-105vh);opacity:0}}
+/* Bilet */
+.bilet{position:relative;z-index:2;width:min(86vw,384px);color:var(--atr);filter:drop-shadow(0 34px 60px rgba(0,0,0,.75));animation:wjazd 1.15s cubic-bezier(.2,.85,.25,1) .45s both;cursor:pointer}
+@keyframes wjazd{from{opacity:0;transform:translateY(70px) rotate(-7deg) scale(.9)}to{opacity:1;transform:none}}
+.b-gora,.b-dol{position:relative;background:linear-gradient(155deg,#fbe9b6 0%,#ecc977 45%,#d3ad57 75%,#c19744 100%);overflow:hidden}
+.b-gora{border-radius:20px 20px 4px 4px;padding:26px 24px 22px;text-align:center;-webkit-mask:radial-gradient(circle at 0 100%,#0000 13px,#000 14px) 0 0/51% 100% no-repeat,radial-gradient(circle at 100% 100%,#0000 13px,#000 14px) 100% 0/51% 100% no-repeat;mask:radial-gradient(circle at 0 100%,#0000 13px,#000 14px) 0 0/51% 100% no-repeat,radial-gradient(circle at 100% 100%,#0000 13px,#000 14px) 100% 0/51% 100% no-repeat}
+.b-gora::after{content:"";position:absolute;left:20px;right:20px;bottom:0;border-bottom:2px dashed rgba(60,30,5,.38)}
+.b-dol{border-radius:4px 4px 20px 20px;padding:18px 24px 20px;text-align:center;-webkit-mask:radial-gradient(circle at 0 0,#0000 13px,#000 14px) 0 0/51% 100% no-repeat,radial-gradient(circle at 100% 0,#0000 13px,#000 14px) 100% 0/51% 100% no-repeat;mask:radial-gradient(circle at 0 0,#0000 13px,#000 14px) 0 0/51% 100% no-repeat,radial-gradient(circle at 100% 0,#0000 13px,#000 14px) 100% 0/51% 100% no-repeat}
+.b-gora::before,.b-dol::before{content:"";position:absolute;top:-50%;left:-60%;width:40%;height:200%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);transform:rotate(12deg);animation:blysk 4.2s ease-in-out 1.8s infinite}
+@keyframes blysk{0%{left:-60%}35%,100%{left:130%}}
+.b-gora small{display:block;font:800 11px/1.4 MR;letter-spacing:.3em;text-transform:uppercase;color:#6b3f12}
+.b-gora h1{margin:10px 0 6px;font:900 clamp(54px,16vw,76px)/.9 BSD;text-transform:uppercase;letter-spacing:.01em;color:var(--atr)}
+.b-gora h1 em{display:block;font-style:normal;color:var(--cz)}
+.b-gora .tylko{margin:0;font:700 15px/1.4 MR;color:#4a2a0a}
+.meta{display:grid;grid-template-columns:repeat(3,1fr);margin:18px 0 6px;border-top:1px solid rgba(60,30,5,.25)}
+.meta span{padding:10px 4px 0;font:700 10px/1.3 MR;letter-spacing:.2em;text-transform:uppercase;color:#6b3f12}
+.meta b{display:block;margin-top:3px;font:900 26px/1 BSD;letter-spacing:.02em;color:var(--atr)}
+.meta span+span{border-left:1px solid rgba(60,30,5,.25)}
+.wejdz{display:inline-flex;align-items:center;gap:12px;padding:16px 28px;border:0;border-radius:999px;background:linear-gradient(180deg,#a3151f,#6d0b12);color:#fff3d8;font:800 17px/1 MR;letter-spacing:.02em;box-shadow:0 0 0 5px rgba(142,18,28,.22),0 14px 30px -8px rgba(80,5,10,.8);animation:puls 2.1s ease-in-out 1.8s infinite}
+.wejdz i{width:0;height:0;border-left:13px solid #fff3d8;border-top:8px solid transparent;border-bottom:8px solid transparent}
+.wejdz:focus-visible{outline:3px solid #fff;outline-offset:3px}
+@keyframes puls{50%{box-shadow:0 0 0 13px rgba(142,18,28,.06),0 14px 30px -8px rgba(80,5,10,.9);transform:scale(1.03)}}
+.hint{margin:12px 0 0;font:700 12px/1.4 MR;color:#5a3510}
+.blad-tekst{display:none;margin:10px 0 0;font:700 13px/1.4 MR;color:var(--cz)}
+.blad .blad-tekst{display:block}
+/* Abriss beim Start */
+.rwij .b-dol{transform:translateY(70vh) rotate(-16deg);opacity:0;transition:transform 1s cubic-bezier(.55,0,.85,.45),opacity 1s .2s}
+.rwij .b-gora{transform:translateY(-14vh) rotate(3deg) scale(.94);opacity:0;transition:transform .9s cubic-bezier(.4,0,.6,1) .12s,opacity .7s .2s}
+.rwij .zaslona.l{transform:translateX(-105%);transition:transform 1.1s cubic-bezier(.7,0,.2,1)}
+.rwij .zaslona.r{transform:translateX(105%);transition:transform 1.1s cubic-bezier(.7,0,.2,1)}
+.rwij .lambr{transform:translateY(-110%);transition:transform 1s cubic-bezier(.7,0,.2,1) .15s}
+/* Ende: Vorhang fällt, weiter zur Seite */
+.kon{position:fixed;inset:0;z-index:30;display:grid;place-content:center;justify-items:center;gap:14px;text-align:center;pointer-events:none;padding:0 24px}
+.kon .kz{position:absolute;top:0;bottom:0;width:51vw;background:repeating-linear-gradient(90deg,rgba(0,0,0,.55) 0,rgba(0,0,0,.04) 18px,rgba(255,215,200,.13) 30px,rgba(0,0,0,.04) 42px,rgba(0,0,0,.55) 60px),linear-gradient(180deg,var(--cz) 0%,var(--cz2) 55%,var(--cz3) 100%);box-shadow:inset 0 -90px 140px rgba(0,0,0,.55);transition:transform 1.3s cubic-bezier(.7,0,.2,1)}
+.kon .kz.l{left:0;transform:translateX(-102%)}.kon .kz.r{right:0;transform:translateX(102%)}
+.kon>p,.kon>h2,.kon>button{position:relative;opacity:0;transform:translateY(16px);transition:opacity .6s,transform .7s cubic-bezier(.2,.8,.2,1)}
+.kon>p{margin:0;font:800 12px/1.4 MR;letter-spacing:.3em;text-transform:uppercase;color:var(--zl)}
+.kon>h2{margin:0;font:900 clamp(46px,11vw,96px)/.92 BSD;text-transform:uppercase;color:#fff;text-shadow:0 10px 40px rgba(0,0,0,.6)}
+.kon>h2 em{font-style:normal;color:var(--zl)}
+.kon>button{margin-top:8px;padding:15px 26px;border:0;border-radius:999px;background:var(--zl);color:var(--atr);font:800 16px/1 MR}
+.koniec .kon{pointer-events:auto}
+.koniec .kon .kz{transform:none}
+.koniec .kon>p,.koniec .kon>h2,.koniec .kon>button{opacity:1;transform:none;transition-delay:1s}
+.koniec .kon>h2{transition-delay:1.15s}.koniec .kon>button{transition-delay:1.35s}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:600px){.zaslona{width:12vw}.b-gora{padding:22px 18px 20px}.b-dol{padding:16px 18px 18px}}
+@media (max-height:640px){.b-gora h1{font-size:52px}.meta{margin-top:12px}.b-gora{padding-top:18px}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important;transition-delay:0s!important}.snop{opacity:1}}
+</style>
+</head>
+<body>
+<canvas class="amb" id="amb" aria-hidden="true"></canvas>
+<video id="film" playsinline preload="auto" poster="poster.jpg" aria-label="Film dla Andrzeja, 3 minuty 39 sekund, po polsku z napisami"></video>
+<div class="pasek" aria-hidden="true"><b id="postep"></b></div>
+<button class="pauza" id="pauza" type="button" aria-label="Odtwórz dalej"><span><i></i>Dalej</span></button>
+<div class="krec" aria-hidden="true"></div>
+<button class="dzwiek" id="dzwiek" type="button">🔊 Włącz dźwięk</button>
+<main class="brama" id="brama">
+  <div class="snop" aria-hidden="true"></div>
+  <div class="pyl" id="pyl" aria-hidden="true"></div>
+  <div class="zaslona l" aria-hidden="true"></div><div class="zaslona r" aria-hidden="true"></div>
+  <div class="lambr" aria-hidden="true"></div>
+  <div class="bilet" id="bilet">
+    <div class="b-gora">
+      <small>Teatr GardenBruk · Kłodzko</small>
+      <h1>Dla <em>Andrzeja</em></h1>
+      <p class="tylko">Pokaz specjalny – tylko dla ciebie</p>
+      <div class="meta"><span>Rząd<b>1</b></span><span>Miejsce<b>1</b></span><span>Bilet<b>VIP</b></span></div>
+    </div>
+    <div class="b-dol">
+      <button class="wejdz" id="start" type="button"><i></i>Wejdź na salę</button>
+      <p class="hint">Włącz dźwięk 🔊 · 3 min 39 s</p>
+      <p class="blad-tekst">Film się nie załadował. Wejdź prosto na stronę.</p>
+    </div>
+  </div>
+</main>
+<div class="kon" id="kon" aria-live="polite">
+  <div class="kz l" aria-hidden="true"></div><div class="kz r" aria-hidden="true"></div>
+  <p>Kurtyna opada</p>
+  <h2>Twoja strona <em>czeka</em></h2>
+  <button id="wejdz2" type="button">Wejdź teraz →</button>
+</div>
+<div class="gorne">
+  <button class="pe" id="pe" type="button" aria-label="Pełny ekran" hidden>⛶</button>
+  <button id="skip" type="button">Prosto do strony →</button>
+</div>
+<script>
+(function(){
+  var CEL = '/andrzej/';
+  function $(i){ return document.getElementById(i); }
+  var film=$('film'), b=document.body, de=document.documentElement, started=false, done=false;
+  // Qualität: 1080p, bei Datensparmodus oder langsamer Verbindung 720p
+  var c=navigator.connection, wolno=!!(c&&(c.saveData||/(^|-)(2g|3g)$/.test(c.effectiveType||'')));
+  var SRC=wolno?['film_720.mp4']:['film_1080.mp4','film_720.mp4'], si=0;
+  film.src=SRC[0];
+  film.addEventListener('error', function(){
+    if(si<SRC.length-1){ var t=film.currentTime||0; si++; film.src=SRC[si]; film.load(); if(started){ film.addEventListener('loadedmetadata', function f(){ film.removeEventListener('loadedmetadata',f); try{ film.currentTime=t; }catch(e){} film.play().catch(function(){}); }); } }
+    else { b.classList.add('blad'); if(started) koniec(); }
+  });
+  function idz(){ location.replace(CEL); }
+  function start(){
+    if(started) return; started=true;
+    var p=film.play();
+    if(p&&p.catch) p.catch(function(){ film.muted=true; film.play().catch(function(){}); b.classList.add('cicho'); });
+    if(matchMedia('(pointer:coarse)').matches){ var rf=de.requestFullscreen||de.webkitRequestFullscreen; if(rf){ try{ var q=rf.call(de,{navigationUI:'hide'}); if(q&&q.catch) q.catch(function(){}); }catch(e){} } }
+    b.classList.add('rwij');
+    setTimeout(function(){ b.classList.add('gra'); $('brama').hidden=true; }, 1150);
+  }
+  function przelacz(){ if(!started||done) return; if(film.paused) film.play().catch(function(){}); else film.pause(); }
+  function koniec(){ if(done) return; done=true; b.classList.add('koniec'); b.classList.remove('stoi'); setTimeout(idz, 3400); }
+  $('start').addEventListener('click', function(e){ e.stopPropagation(); start(); });
+  $('bilet').addEventListener('click', start);
+  film.addEventListener('click', przelacz);
+  $('pauza').addEventListener('click', przelacz);
+  $('dzwiek').addEventListener('click', function(){ film.muted=false; b.classList.remove('cicho'); });
+  $('skip').addEventListener('click', idz);
+  $('wejdz2').addEventListener('click', idz);
+  film.addEventListener('pause', function(){ if(started && !done && !film.ended) b.classList.add('stoi'); });
+  film.addEventListener('play', function(){ b.classList.remove('stoi'); });
+  film.addEventListener('waiting', function(){ b.classList.add('laduje'); });
+  film.addEventListener('playing', function(){ b.classList.remove('laduje'); });
+  film.addEventListener('ended', koniec);
+  addEventListener('keydown', function(e){
+    if(e.code==='Space'||e.key===' '){ if(document.activeElement && document.activeElement.tagName==='BUTTON' && !started) return; e.preventDefault(); if(!started) start(); else przelacz(); }
+  });
+  // Vollbild am PC
+  var rfs=de.requestFullscreen||de.webkitRequestFullscreen;
+  if(rfs && !matchMedia('(pointer:coarse)').matches){ var pe=$('pe'); pe.hidden=false; pe.addEventListener('click', function(){ var fe=document.fullscreenElement||document.webkitFullscreenElement; if(fe){ (document.exitFullscreen||document.webkitExitFullscreen).call(document); } else { try{ var q=rfs.call(de); if(q&&q.catch) q.catch(function(){}); }catch(e){} } }); }
+  // Staub im Scheinwerfer
+  var pyl=$('pyl'); for(var i=0;i<26;i++){ var s=document.createElement('i'); s.style.left=(30+Math.random()*40)+'%'; s.style.animationDelay=(-Math.random()*9)+'s'; s.style.animationDuration=(7+Math.random()*6)+'s'; s.style.setProperty('--dx',((Math.random()-.5)*80)+'px'); s.style.transform='scale('+(.5+Math.random())+')'; pyl.appendChild(s); }
+  // Umgebungslicht aus dem Film und Fortschritt
+  var cv=$('amb'), g=cv.getContext('2d'), last=0, post=$('postep'); cv.width=18; cv.height=32;
+  (function loop(t){
+    if(started && film.readyState>=2 && t-last>120){ last=t; try{ g.drawImage(film,0,0,18,32); }catch(e){} }
+    if(film.duration) post.style.transform='scaleX('+(film.currentTime/film.duration)+')';
+    if(!done) requestAnimationFrame(loop);
+  })(0);
+})();
+</script>
+</body>
+</html>
