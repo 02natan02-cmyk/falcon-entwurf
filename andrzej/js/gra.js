@@ -43,7 +43,7 @@
     b.strokeStyle = 'rgba(70,50,30,.7)'; b.setLineDash([6, 5]); b.lineWidth = 1.6;
     slots.forEach(s => { b.save(); b.translate(s.x, s.y); b.rotate(s.rot); b.strokeRect(-s.w / 2 + 2, -s.h / 2 + 2, s.w - 4, s.h - 4); if (s.kolor === 'z') { b.fillStyle = 'rgba(217,177,95,.35)'; b.fillRect(-s.w / 2 + 3, -s.h / 2 + 3, s.w - 6, s.h - 6); } b.restore(); });
     b.setLineDash([]);
-    reka = { x: W * (mob ? .5 : .5), y: H * (mob ? .82 : .84) }; nast = nowy(); cover = null; zag = null; fx = [];
+    reka = { x: W * (mob ? .5 : .5), y: H * (mob ? .82 : .84) }; nast = nowy(); cover = null; zag = null; fx = []; piach = null; fugi = null;
     $('#graPoziom').textContent = 'Poziom ' + (n + 1) + ' · ' + L.n;
   }
   function kwiat(a, b) { const cx = W / 2, cy = (gap ? (gap.y0 + gap.y1) / 2 : H * .45), R = Math.min(W * .4, (gap ? gap.y1 - gap.y0 : H * .4) * .62);
@@ -73,8 +73,10 @@
     if (podpowiedz && stan === 'gra') { const p = podpowiedz; x.strokeStyle = `rgba(255,235,170,${.5 + Math.sin(ts / 180) * .4})`; x.lineWidth = 3; x.save(); x.translate(p.x, p.y); x.rotate(p.rot); x.strokeRect(-p.w / 2, -p.h / 2, p.w, p.h); x.restore(); }
     if (drag) { x.globalAlpha = .3; x.fillStyle = '#000'; x.fillRect(drag.st.x - drag.st.w / 2 + 10, drag.st.y - drag.st.h / 2 + 14, drag.st.w, drag.st.h); x.globalAlpha = 1; kamien({ ...drag.st, w: drag.st.w * 1.12, h: drag.st.h * 1.12 }, 2); }
     // piasek do zamiatania
-    if (cover) { const g = cover; for (let j = 0; j < g.ny; j++) for (let i = 0; i < g.nx; i++) { const v = g.c[j * g.nx + i]; if (v >= 1) continue;
-      x.fillStyle = g.ukryj ? `rgba(110,90,60,${(1 - v) * .3})` : `rgba(214,190,145,${(1 - v) * .85})`; x.fillRect(g.x0 + i * g.cw, g.y0 + j * g.ch, g.cw + .5, g.ch + .5); } }
+    // v9.6: prawdziwy piasek – ziarnisty, zamiatany w fugi (zamiast płaskich prostokątów)
+    if (fugi && (stan === 'zag' || stan === 'koniec')) { x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(fugi, gap.x0 * D - 4 * D, gap.y0 * D - 4 * D); x.setTransform(D, 0, 0, D, 0, 0); }
+    if (cover && !cover.ukryj && piach) { maskuj(fugi, v => v); maskuj(piach, v => 1 - v); }
+    if (cover && cover.ukryj) maskuj(null, v => (1 - v) * .3, 'rgb(84,66,44)');
     if (zag) { const z = zag; const jx = (Math.random() - .5) * 2, jy = (Math.random() - .5) * 2; x.save(); x.translate(z.x + jx, z.y + jy); const s = W < 520 ? .8 : 1.1; x.scale(s, s);
       x.fillStyle = 'rgba(0,0,0,.38)'; x.fillRect(-26, -16, 62, 44); x.fillStyle = '#3b3d40'; x.fillRect(-30, -22, 60, 40); x.fillStyle = '#e8a419'; x.fillRect(-24, -18, 48, 26); x.fillStyle = '#1e1f21'; x.fillRect(-8, -14, 16, 12);
       x.strokeStyle = '#222'; x.lineWidth = 3; x.beginPath(); x.moveTo(-14, 18); x.lineTo(-10, 46); x.lineTo(10, 46); x.lineTo(14, 18); x.stroke(); x.restore(); }
@@ -108,13 +110,14 @@
 
   /* ---------- sterowanie ---------- */
   function pos(e) { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+  const zajmij = () => { if (window.GBekran) window.GBekran.zajete = true; }; // v9.6: ten dotyk należy do gry, strona się nie przewija
   cv.addEventListener('pointerdown', e => { const p = pos(e);
     if (stan === 'demo') { // od razu łap kamień: start gry i przeciąganie jednym ruchem
       const blisko = (nast && Math.hypot(p.x - nast.x, p.y - nast.y) < Math.max(nast.w, nast.h) + 28) || Math.hypot(p.x - reka.x, p.y - reka.y) < 80;
-      if (!blisko) return; start(); if (nast) { nast.x = p.x; nast.y = p.y; } }
-    if (stan === 'gra' && nast) { const d = Math.hypot(p.x - nast.x, p.y - nast.y); if (d < Math.max(nast.w, nast.h) * .9 + 14) { drag = { st: nast, dx: nast.x - p.x, dy: nast.y - p.y, sx: p.x, sy: p.y, t: performance.now() }; cv.setPointerCapture(e.pointerId); } }
-    if (stan === 'piasek') { cv.setPointerCapture(e.pointerId); zamiataj(p); }
-    if (stan === 'zag') { cv.setPointerCapture(e.pointerId); zag.x = p.x; zag.y = p.y; zageszczaj(p); }
+      if (!blisko) return; zajmij(); start(); if (nast) { nast.x = p.x; nast.y = p.y; } }
+    if (stan === 'gra' && nast) { const d = Math.hypot(p.x - nast.x, p.y - nast.y); if (d < Math.max(nast.w, nast.h) * .9 + 14) { drag = { st: nast, dx: nast.x - p.x, dy: nast.y - p.y, sx: p.x, sy: p.y, t: performance.now() }; zajmij(); cv.setPointerCapture(e.pointerId); } }
+    if (stan === 'piasek') { zajmij(); cv.setPointerCapture(e.pointerId); zamiataj(p); }
+    if (stan === 'zag') { zajmij(); cv.setPointerCapture(e.pointerId); zag.x = p.x; zag.y = p.y; zageszczaj(p); }
   });
   cv.addEventListener('click', () => { if (stan === 'demo') start(); });
   cv.addEventListener('pointercancel', () => { if (drag) { drag.st.x = reka.x; drag.st.y = reka.y; drag = null; } });
@@ -131,13 +134,33 @@
     else { pudla++; st.x = reka.x; st.y = reka.y; }
     $('#graPkt').textContent = pkt + ' pkt'; });
 
-  function siatka() { return { x0: gap.x0, y0: gap.y0, nx: 14, ny: 8, cw: (gap.x1 - gap.x0) / 14, ch: (gap.y1 - gap.y0) / 8, c: new Float32Array(14 * 8) }; }
+  function siatka() { return { x0: gap.x0, y0: gap.y0, nx: 28, ny: 16, cw: (gap.x1 - gap.x0) / 28, ch: (gap.y1 - gap.y0) / 16, c: new Float32Array(28 * 16) }; }
+  /* v9.6: warstwy piasku – „piach” leży na kostce (ziarna), „fugi” to piasek wsypany między kamienie; pokazywane przez gładką maskę zamiatania */
+  let piach = null, fugi = null, maskC = null, maskX = null, maskD = null, tmpC = null, tmpX = null;
+  function nowyC(w, h) { const c2 = document.createElement('canvas'); c2.width = Math.max(1, Math.ceil(w)); c2.height = Math.max(1, Math.ceil(h)); return c2; }
+  function warstwyPiasku() { const gw = (gap.x1 - gap.x0) + 8, gh = (gap.y1 - gap.y0) + 8, w = gw * D, h = gh * D; let s0 = 7;
+    const r = () => { s0 = (s0 * 16807) % 2147483647; return s0 / 2147483647; };
+    piach = nowyC(w, h); let g = piach.getContext('2d'); g.setTransform(D, 0, 0, D, 4 * D, 4 * D);
+    for (let i = 0; i < 36; i++) { const px = r() * (gw - 8), py = r() * (gh - 8), rr = 14 + r() * 40, gr = g.createRadialGradient(px, py, 0, px, py, rr); gr.addColorStop(0, 'rgba(214,192,148,.55)'); gr.addColorStop(1, 'rgba(214,192,148,0)'); g.fillStyle = gr; g.fillRect(px - rr, py - rr, rr * 2, rr * 2); }
+    const T = ['#e3cfa5', '#d4bc8d', '#c8ad7b', '#ead9b5', '#b89c6a', '#f1e4c6']; const n = (gw * gh) / 2.2;
+    for (let i = 0; i < n; i++) { const px = r() * (gw - 8), py = r() * (gh - 8), sz = .7 + r() * 1.5; g.globalAlpha = .55 + r() * .45; g.fillStyle = T[(r() * T.length) | 0]; g.fillRect(px, py, sz, sz); }
+    g.globalAlpha = .5; g.fillStyle = '#6f5a3c'; for (let i = 0; i < n / 14; i++) g.fillRect(r() * (gw - 8), r() * (gh - 8), .9, .9); g.globalAlpha = 1;
+    fugi = nowyC(w, h); g = fugi.getContext('2d'); g.setTransform(D, 0, 0, D, (4 - gap.x0) * D, (4 - gap.y0) * D); g.lineJoin = 'round';
+    for (const s of slots) { g.save(); g.translate(s.x, s.y); g.rotate(s.rot); g.strokeStyle = 'rgba(205,182,138,.95)'; g.lineWidth = 3.2; g.strokeRect(-s.w / 2 - .6, -s.h / 2 - .6, s.w + 1.2, s.h + 1.2);
+      g.fillStyle = 'rgba(236,222,190,.9)'; const per = 2 * (s.w + s.h); for (let k = 0; k < per / 1.6; k++) { const t = r() * per; let a, b; if (t < s.w) { a = t - s.w / 2; b = -s.h / 2; } else if (t < s.w + s.h) { a = s.w / 2; b = t - s.w - s.h / 2; } else if (t < 2 * s.w + s.h) { a = t - s.w - s.h - s.w / 2; b = s.h / 2; } else { a = -s.w / 2; b = t - 2 * s.w - s.h - s.h / 2; }
+        g.fillRect(a + (r() - .5) * 3, b + (r() - .5) * 3, .9 + r(), .9 + r()); } g.restore(); }
+    maskC = nowyC(28, 16); maskX = maskC.getContext('2d'); maskD = maskX.createImageData(28, 16); tmpC = nowyC(w, h); tmpX = tmpC.getContext('2d'); }
+  function maskuj(src, f, kolor) { if (!tmpC || !cover) return; const g = cover, d = maskD.data; for (let i = 0; i < g.nx * g.ny; i++) d[i * 4 + 3] = Math.max(0, Math.min(1, f(g.c[i]))) * 255;
+    maskX.putImageData(maskD, 0, 0); const t = tmpX, w = tmpC.width, h = tmpC.height; t.globalCompositeOperation = 'source-over'; t.clearRect(0, 0, w, h);
+    if (src) t.drawImage(src, 0, 0); else { t.fillStyle = kolor; t.fillRect(0, 0, w, h); }
+    t.globalCompositeOperation = 'destination-in'; t.imageSmoothingEnabled = true; t.drawImage(maskC, 4 * D, 4 * D, w - 8 * D, h - 8 * D); t.globalCompositeOperation = 'source-over';
+    x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(tmpC, (gap.x0 - 4) * D, (gap.y0 - 4) * D); x.setTransform(D, 0, 0, D, 0, 0); }
   function maluj(p, rad, ile) { const g = cover; let suma = 0; for (let j = 0; j < g.ny; j++) for (let i = 0; i < g.nx; i++) { const cx = g.x0 + (i + .5) * g.cw, cy = g.y0 + (j + .5) * g.ch;
       const d = Math.hypot(cx - p.x, cy - p.y); if (d < rad) g.c[j * g.nx + i] = Math.min(1, g.c[j * g.nx + i] + ile * (1 - d / rad)); suma += g.c[j * g.nx + i] >= 1 ? 1 : 0; }
     return suma / (g.nx * g.ny); }
   function zamiataj(p) { if (maluj(p, Math.max(50, W * .09), .7) > .86) { cover = null; pkt += 50; faza('zag'); } }
   function zageszczaj(p) { kurz(p.x + (Math.random() - .5) * 30, p.y + 30); if (maluj(p, Math.max(48, W * .08), .55) > .86) { pkt += 50; koniec(); } }
-  function faza(f) { stan = f; if (f === 'piasek') { cover = siatka(); }
+  function faza(f) { stan = f; if (f === 'piasek') { cover = siatka(); warstwyPiasku(); }
     if (f === 'zag') { cover = siatka(); cover.c.fill(0); cover.ukryj = true; zag = { x: reka.x, y: reka.y }; } }
   function start() { cv.classList.add('gram'); stan = 'gra'; demoHand = null; przygotuj(lvl); t0 = performance.now(); pkt = lvl === 0 ? 0 : pkt; pudla = 0; idle = 0; $('#graStart').classList.add('ukryj'); $('#graPkt').textContent = pkt + ' pkt'; }
   function koniec() { cv.classList.remove('gram'); if (lvl === POZ.length - 1) dispatchEvent(new Event('gra-koniec'));
