@@ -228,7 +228,8 @@ void main(){ vec3 m = mix(vec3(1.), vec3(.2, .24, .36), uNoc); vec3 add = vec3(0
     else if (el.dataset.lampy) for (let yy = 120; yy < h - 60; yy += 320) lampy.push([(yy / 320 | 0) % 2 ? w - 6 : 6, yy, 170]);
     ow.forEach(o => { o.key = o.y; }); ow.sort((a, b) => a.key - b.key);
     const noc = el.classList.contains('ciemna') ? 1 : el.dataset.lampy ? .7 : 0;
-    return { reg, clip, kw, ow, lampy, noc };
+    const P = PAL[pal] || PAL.grafit, L = P.reduce((q, c) => { const [R, G2, B] = hex(c); return q + .2126 * R + .7152 * G2 + .0722 * B; }, 0) / P.length;
+    return { reg, clip, kw, ow, lampy, noc, jasnosc: clamp((L - .3) / .45, 0, 1) };
   }
 
   /* ---------- kawałki tła w sekcjach ---------- */
@@ -271,7 +272,8 @@ void main(){ vec3 m = mix(vec3(1.), vec3(.2, .24, .36), uNoc); vec3 add = vec3(0
     if (c.cv.width !== wp || c.cv.height !== hp) { c.cv.width = wp; c.cv.height = hp; c.ctx = null; } c.cv.style.height = c.h + 'px';
     const x = c.ctx || (c.ctx = c.cv.getContext('2d', { alpha: false })); x.drawImage(offCv, 0, 0, wp, hp, 0, 0, wp, hp);
     // tło lekko przygaszone, żeby treść z przodu była wyraźniejsza (noc już jest ciemna)
-    const a = s.plan.noc ? .4 : 1, gr = x.createLinearGradient(0, 0, wp, 0); gr.addColorStop(0, `rgba(16,13,9,${.12 * a})`); gr.addColorStop(.28, `rgba(16,13,9,${.3 * a})`); gr.addColorStop(.72, `rgba(16,13,9,${.3 * a})`); gr.addColorStop(1, `rgba(16,13,9,${.12 * a})`);
+    // jasny bruk (bianco, piaskowy …) przygaszony mocniej, żeby jasne płyty z tekstem wyraźnie od niego odstawały
+    const a = s.plan.noc ? .4 : 1, j = s.plan.jasnosc * .16, gr = x.createLinearGradient(0, 0, wp, 0); gr.addColorStop(0, `rgba(16,13,9,${(.12 + j * .6) * a})`); gr.addColorStop(.28, `rgba(16,13,9,${(.3 + j) * a})`); gr.addColorStop(.72, `rgba(16,13,9,${(.3 + j) * a})`); gr.addColorStop(1, `rgba(16,13,9,${(.12 + j * .6) * a})`);
     x.fillStyle = gr; x.fillRect(0, 0, wp, hp);
     c.gotowy = true; c.brudny = false; c.cv.classList.add('ok'); }
 

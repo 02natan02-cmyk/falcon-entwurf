@@ -586,3 +586,15 @@ html.gra-okno .gs-trzyma{display:none!important}
 @media (pointer:coarse){.p2:not(.pelny) .p2-scena{position:relative;top:auto;z-index:auto}}
 /* v10: Planer-Panel hält die Seite nicht fest – Wischen läuft an die Seite weiter (vorher blieb das Scrollen am Handy im Panel hängen) */
 .p2:not(.pelny) .p2-panel{overscroll-behavior:auto}
+/* v10.1 Lesbarkeit (Natan 31.10.): Überschriften scharf statt leuchtend, Textplatten hell und ruhig, klar vom Pflaster abgesetzt */
+.sek.strefa .tytul{color:#fff;background-color:#1c1d20;background-image:linear-gradient(rgba(22,23,26,.5),rgba(22,23,26,.5)),url(../img/hd/tablica.webp);background-size:auto,420px;text-shadow:0 2px 0 rgba(0,0,0,.5)!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.07),inset 0 -3px 0 rgba(0,0,0,.4),0 26px 44px -16px rgba(0,0,0,.8),0 4px 10px rgba(0,0,0,.4)}
+.sek.strefa .tytul span{color:#f1ece2;font-weight:600;text-shadow:none!important}
+.sek.strefa .tytul + .lead,.sek.strefa .lead#wzOpis,.strefa .a-tekst,.strefa .p-tekst,.strefa .kt-dane,.strefa .wz-ster,.strefa .kroki{
+  background-color:#f8f5ef;background-image:linear-gradient(rgba(249,246,240,.86),rgba(249,246,240,.86)),url(../img/hd/plyta.webp);background-size:auto,420px;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.07),0 28px 50px -18px rgba(0,0,0,.75),0 6px 14px rgba(0,0,0,.32)}
+.sek.strefa:not(.ciemna) .tytul + .lead,.sek.strefa:not(.ciemna) .lead#wzOpis{color:#1d1a16;font-weight:500;text-shadow:none!important;border-left:5px solid var(--ziel);padding-left:18px}
+.strefa .a-tekst .tytul + .lead,.strefa .p-tekst .tytul + .lead{border-left:0;padding-left:0}
+.strefa .a-tekst p,.strefa .p-tekst p,.strefa .kt-dane p,.strefa .wz-ster p,.strefa .kroki p,.strefa .a-tekst .lead,.strefa .p-tekst .lead{color:#2a2620;text-shadow:none!important}
+.sek.strefa:not(.ciemna) .lead{text-shadow:none!important}
+.strefa .kroki span,.strefa .a-tekst small,.strefa .p-tekst small,.strefa .kt-dane small{color:#3d3831}
