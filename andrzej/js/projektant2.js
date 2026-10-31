@@ -106,8 +106,8 @@ void main(){
     if (t.x > 0. && t.y > 0. && t.x < 1. && t.y < 1.) { vec4 k = texture(tK, t, .5); float m = k.a * texture(tM, v).r;
       float L = texture(tC, v).r; float s = clamp(L / max(uLref, .03), .45, 1.2); s = mix(1., pow(s, .85), .75);
       vec3 n = k.rgb / max(k.a, .001) * uTint * s + (h12(floor(vS)) - .5) * .03; n *= mix(.8, 1., smoothstep(.3, 1., m)); col = mix(f, n, smoothstep(0., .6, m)); } }
-  col = mix(col, col * vec3(1.04, .9, .76), uWiecz); col *= mix(1., .82, uWiecz);
-  col = mix(col, col * vec3(.24, .28, .42) + vec3(.005, .008, .02), uNoc);
+  if (v.x >= uSplit) { col = mix(col, col * vec3(1.04, .9, .76), uWiecz); col *= mix(1., .86, uWiecz);
+    col = mix(col, col * vec3(.4, .44, .6) + vec3(.01, .014, .03), uNoc); }
   o = vec4(col, 1.);
 }`;
   function initGL() { try { gl = cv.getContext('webgl2', { antialias: false, premultipliedAlpha: false, preserveDrawingBuffer: true }); } catch (e) { gl = null; } if (!gl) return;
@@ -236,7 +236,7 @@ void main(){
       const hitO = trafObiekt(sx, sy); if (hitO.usun) { st.wyb = hitO.i; usunObiekt(); dwa = null; toast('Usunięto · ↶ przywraca'); return; }
       if (hitO.i >= 0) { const tn = performance.now(); if (dwa && dwa.i === hitO.i && tn - dwa.t < 420) { st.wyb = hitO.i; usunObiekt(); dwa = null; toast('Usunięto · ↶ przywraca'); return; } dwa = { i: hitO.i, t: tn }; }
       if (hitO.i >= 0) { st.wyb = hitO.i; zapamietaj(); ciag = hitO.skala ? { t: 'skala', i: hitO.i, s0: st.obiekty[hitO.i].s, y0: sy } : { t: 'obiekt', i: hitO.i, d: [p[0] - st.obiekty[hitO.i].x, p[1] - st.obiekty[hitO.i].y] }; panel(); rysuj(); return; }
-      if (st.obiektTyp) { zapamietaj(); st.obiekty.push({ t: st.obiektTyp, x: p[0], y: p[1], s: 1 }); st.wyb = st.obiekty.length - 1; ciag = { t: 'obiekt', i: st.wyb, d: [0, 0] }; panel(); rysuj(); toast(OBIEKTY[st.obiektTyp].n + ': przeciągnij, aby przesunąć · ✕ usuwa'); return; }
+      if (st.obiektTyp) { zapamietaj(); if (st.porownaj && p[0] < st.split) { st.porownaj = false; st.porRecznie = false; $('#p2Porownaj').setAttribute('aria-pressed', 'false'); } st.obiekty.push({ t: st.obiektTyp, x: p[0], y: p[1], s: 1 }); st.wyb = st.obiekty.length - 1; ciag = { t: 'obiekt', i: st.wyb, d: [0, 0] }; panel(); rysuj(); toast(OBIEKTY[st.obiektTyp].n + ': przeciągnij, aby przesunąć · ✕ usuwa'); return; }
       st.wyb = -1; panel(); ciag = { t: 'pan', s: [sx, sy], o: [view.ox, view.oy] }; rysuj(); return; }
     ciag = { t: 'pan', s: [sx, sy], o: [view.ox, view.oy] };
   });
@@ -286,7 +286,7 @@ void main(){
   /* ---------- panel ---------- */
   function krok(k) { st.krok = k; $$('.p2-kroki [data-k]').forEach(b => { const on = +b.dataset.k === k; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; }); $$('.p2-krok').forEach(p => { p.hidden = +p.dataset.k !== k; });
     if (k === 3 && st.narz !== 'rysuj' && st.narz !== 'lasso') st.narz = st.strefy.length ? 'edytuj' : 'rysuj'; if (k === 4 && !['gumka', 'pedzel'].includes(st.narz)) st.narz = 'obiekty'; if (k !== 3) st.rysowane = null;
-    if (k === 5 && !st.porownaj) { st.porownaj = true; st.split = .5; } if (k !== 5 && st.porownaj && !st.porRecznie) st.porownaj = false;
+    if (k === 5 && !st.porownaj) { st.porownaj = true; st.split = .5; } if (k !== 5 && st.porownaj) { st.porownaj = false; st.porRecznie = false; $('#p2Porownaj').setAttribute('aria-pressed', 'false'); }
     scena.dataset.krok = k; panel(); podpowiedz(); rysuj();
     if (st.ruszony && k >= 2 && k <= 4 && DOTYK() && !root.classList.contains('pelny')) pelny(true); }
   function podpowiedz() { const t = { 1: 'Zrób zdjęcie albo wybierz przykład', 2: 'Przeciągnij 4 żółte punkty na rogi terenu', 3: st.narz === 'rysuj' ? (st.rysowane && st.rysowane.length > 2 ? 'Dotknij zielonego punktu, aby zamknąć obszar' : 'Dotykaj kolejnych rogów obszaru') : st.narz === 'lasso' ? 'Obrysuj obszar palcem' : 'Przeciągaj punkty · „+” dodaje punkt · dotknij obszaru, aby go wybrać',
@@ -428,7 +428,7 @@ void main(){
   function ustaw(img, przyk) { const max = MOB() ? 1600 : 2200, s = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight)); const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * s); c.height = Math.round(img.naturalHeight * s);
     c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); st.foto = c; st.fW = c.width; st.fH = c.height; st.zrodlo = przyk; root.style.setProperty('--p2ar', (c.width / c.height).toFixed(3)); const P2 = przyk >= 0 ? PRZYKLADY[przyk] : null;
     st.rogi = P2 ? P2.rogi.map(r => r.slice()) : [[.22, .5], [.78, .5], [.97, .96], [.03, .96]]; st.wm = P2 ? P2.w : 6; st.lm = P2 ? P2.l : 8;
-    st.strefy = P2 ? P2.strefy.map(z => ({ ...z, pts: z.pts.map(q => q.slice()), obrzR: 1, obrot: 0 })) : []; st.obiekty = []; st.akt = st.strefy.length - 1; st.wyb = -1; hist.length = 0; przod.length = 0;
+    st.strefy = P2 ? P2.strefy.map(z => ({ ...z, pts: z.pts.map(q => q.slice()), obrzR: 1, obrot: 0 })) : []; st.obiekty = []; st.akt = st.strefy.length - 1; st.wyb = -1; hist.length = 0; przod.length = 0; st.pora = 'dzien'; st.porownaj = false; st.porRecznie = false; st.split = 1; $('#p2Porownaj').setAttribute('aria-pressed', 'false');
     try { const zap = przyk >= 0 && localStorage.getItem('gb-p2-' + przyk); if (zap) Object.assign(st, JSON.parse(zap)); } catch (e) { /* */ }
     maska = document.createElement('canvas'); maska.width = Math.max(64, st.fW >> 1); maska.height = Math.max(64, st.fH >> 1); mx = maska.getContext('2d'); mx.fillStyle = '#fff'; mx.fillRect(0, 0, maska.width, maska.height);
     liczCienie(); view.fit = true; rozmiar(); if (gl) { wgraj('f', c, false); wgraj('m', maska, false); wgraj('c', cien, false); } planujKamien(true); panel(); if (window.GBprojektantStart) { const q = window.GBprojektantStart; window.GBprojektantStart = null; setTimeout(() => ustawZewn(q.pat, q.pal), 80); } $$('.p2-przyk').forEach((b, i) => b.setAttribute('aria-pressed', String(i === przyk)));
@@ -448,7 +448,7 @@ void main(){
 
   /* ---------- sam się pokazuje: pierwszy raz rysuje obszar, sadzi drzewo, zapala lampy ---------- */
   let pokaz = false;
-  function ruszony() { if (!st.ruszony) { st.ruszony = true; root.classList.remove('p2-demo'); } }
+  function ruszony() { if (!st.ruszony) { st.ruszony = true; if (pokaz) { st.pora = 'dzien'; st.porownaj = false; st.porRecznie = false; st.split = 1; panel(); rysuj(); } root.classList.remove('p2-demo'); } }
   function demo() { if (pokaz || RM || st.ruszony || !st.foto || st.zrodlo !== 0) return; pokaz = true; root.classList.add('p2-demo'); const kroki = [
       () => { st.porownaj = true; st.split = 1; anim(1300, u => { st.split = 1 - .55 * u; }); },
       () => { if (st.ruszony) return; zapamietaj(); st.obiekty.push({ t: 'klon_jesien', x: .07, y: .64, s: .8 }, { t: 'latarnia', x: .78, y: .55, s: 1 }, { t: 'slupek', x: .97, y: .99, s: 1 }); rysuj(); },
