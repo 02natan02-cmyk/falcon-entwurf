@@ -354,7 +354,7 @@ const lpR = n => n === 1 ? 'ruch' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 
     const pasekH = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pasek')) || 64;
     const dokH = () => { const d = document.getElementById('dok'); return d && getComputedStyle(d).display !== 'none' ? innerHeight - d.getBoundingClientRect().top : 0; };
     const czyGra = p => !p.hidden && (p.classList.contains('gra-aktywna') || !!p.querySelector('canvas.gram'));
-    function sprawdz() { const a = $$('.gra-pole').find(czyGra) || null; if (a === akt) return; if (akt) akt.classList.remove('trzyma'); akt = a; if (a) { a.classList.add('trzyma'); zaczep(a); } }
+    function sprawdz() { const a = (innerWidth < 821 || DOTYK) ? null : $$('.gra-pole').find(czyGra) || null; /* telefon/tablet: gry grają w osobnym oknie, strona nigdy nie jest „trzymana” */ if (a === akt) return; if (akt) akt.classList.remove('trzyma'); akt = a; if (a) { a.classList.add('trzyma'); zaczep(a); } }
     function zaczep(p) { const r = p.getBoundingClientRect(), top = pasekH() + 8, dol = innerHeight - dokH() - 8; let dy = 0;
       if (r.height <= dol - top) { if (r.top < top) dy = r.top - top; else if (r.bottom > dol) dy = r.bottom - dol; } else dy = r.top - top;
       if (Math.abs(dy) > 3) scrollBy({ top: dy, behavior: RM ? 'instant' : 'smooth' });

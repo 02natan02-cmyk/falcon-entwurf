@@ -35,10 +35,3 @@
   pola.addEventListener('touchstart', e => { if (!akt && MOBI() && e.target.closest('.gra-pole') && !e.target.closest('button,a')) { e.stopPropagation(); } }, { capture: true, passive: true });
   window.GBoknoGry = { otworz: id => otworz(document.getElementById(id)), zamknij: () => zamknij(false), stan: () => (akt ? akt.id : '') };
 })();
-/* v9.8 – świat w tle lekko przyciemniony pod treścią (poza ekranem startowym), żeby pola z przodu były wyraźniejsze */
-(function () {
-  const sw = document.getElementById('swiat9'); if (!sw) return;
-  const c = document.createElement('div'); c.className = 'cien-swiat'; c.setAttribute('aria-hidden', 'true'); sw.after(c);
-  const hero = document.getElementById('start'); if (!hero) return;
-  new IntersectionObserver(es => es.forEach(e => document.documentElement.classList.toggle('cien-on', e.intersectionRatio < .35)), { threshold: [0, .35, .6, 1] }).observe(hero);
-})();
