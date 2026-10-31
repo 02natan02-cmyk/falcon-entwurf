@@ -94,3 +94,5 @@
     const blisko = () => { const r = sek.getBoundingClientRect(); if (r.top < innerHeight + 900 && r.bottom > -900) go(); }; addEventListener('scroll', blisko, { passive: true }); setTimeout(blisko, 1500); }
   if (window.Swiat && window.Swiat.bedPattern) gotowy(); else addEventListener('swiat', gotowy, { once: true });
 })();
+// v9.2: całą nakładkę startową można dotknąć, żeby zacząć
+['zg', 'mem'].forEach(k => { const box = document.getElementById(k + 'Start'), b = document.getElementById(k + 'Graj'); if (box && b) box.addEventListener('click', e => { if (!e.target.closest('a,button')) b.click(); }); });

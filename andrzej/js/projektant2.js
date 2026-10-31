@@ -6,7 +6,7 @@
   'use strict';
   const root = document.getElementById('p2'); if (!root) return;
   const $ = s => root.querySelector(s), $$ = s => [...root.querySelectorAll(s)];
-  const RM = matchMedia('(prefers-reduced-motion: reduce)').matches, MOB = () => innerWidth < 821;
+  const RM = matchMedia('(prefers-reduced-motion: reduce)').matches, MOB = () => innerWidth < 821, DOTYK = () => MOB() || matchMedia('(pointer: coarse)').matches;
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v)), toast = m => window.GBtoast && GBtoast(m);
   const scena = $('#p2Scena'), cv = $('#p2Gl'), nak = $('#p2Nak'), nx = nak.getContext('2d'), lupa = $('#p2Lupa'), lx = lupa.getContext('2d');
 
@@ -218,7 +218,7 @@ void main(){
   const blisko = (a, b, px) => { const [ax, ay] = naEkran(a), [bx, by] = naEkran(b); return Math.hypot(ax - bx, ay - by) < px; };
   // dotyk poza pełnym ekranem: strona przewija się normalnie, a dotknięcie zdjęcia otwiera projektant na cały ekran
   let tap = null; const wLinii = () => !root.classList.contains('pelny');
-  scena.addEventListener('pointerdown', e => { if (!st.foto) return; if (e.pointerType === 'touch' && wLinii()) { tap = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now() }; return; } dotyk = e.pointerType === 'touch'; scena.setPointerCapture(e.pointerId); wsk.set(e.pointerId, pos(e)); ruszony();
+  scena.addEventListener('pointerdown', e => { if (!st.foto || e.target.closest('button')) return; if (e.pointerType === 'touch' && wLinii()) return; dotyk = e.pointerType === 'touch'; scena.setPointerCapture(e.pointerId); wsk.set(e.pointerId, pos(e)); ruszony();
     if (wsk.size === 2) { const [a, b] = [...wsk.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), c: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], z: view.z }; ciag = null; ukryjLupe(); return; }
     const [sx, sy] = pos(e), p = zEkranu(sx, sy), R = dotyk ? 30 : 18;
     if (st.porownaj && Math.abs(naEkran([st.split, 0])[0] - sx) < 30) { ciag = { t: 'split' }; return; }
@@ -279,7 +279,8 @@ void main(){
   function krok(k) { st.krok = k; $$('.p2-kroki [data-k]').forEach(b => { const on = +b.dataset.k === k; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; }); $$('.p2-krok').forEach(p => { p.hidden = +p.dataset.k !== k; });
     if (k === 3 && st.narz !== 'rysuj' && st.narz !== 'lasso') st.narz = st.strefy.length ? 'edytuj' : 'rysuj'; if (k === 4 && !['gumka', 'pedzel'].includes(st.narz)) st.narz = 'obiekty'; if (k !== 3) st.rysowane = null;
     if (k === 5 && !st.porownaj) { st.porownaj = true; st.split = .5; } if (k !== 5 && st.porownaj && !st.porRecznie) st.porownaj = false;
-    scena.dataset.krok = k; panel(); podpowiedz(); rysuj(); }
+    scena.dataset.krok = k; panel(); podpowiedz(); rysuj();
+    if (st.ruszony && k >= 2 && k <= 4 && DOTYK() && !root.classList.contains('pelny')) pelny(true); }
   function podpowiedz() { const t = { 1: 'Zrób zdjęcie albo wybierz przykład', 2: 'Przeciągnij 4 żółte punkty na rogi terenu', 3: st.narz === 'rysuj' ? (st.rysowane && st.rysowane.length > 2 ? 'Dotknij zielonego punktu, aby zamknąć obszar' : 'Dotykaj kolejnych rogów obszaru') : st.narz === 'lasso' ? 'Obrysuj obszar palcem' : 'Przeciągaj punkty · „+” dodaje punkt · dotknij obszaru, aby go wybrać',
       4: st.narz === 'gumka' ? 'Zamaluj miejsca bez kostki (np. auto)' : st.obiektTyp ? 'Dotknij zdjęcia, aby postawić: ' + OBIEKTY[st.obiektTyp].n : 'Wybierz roślinę albo lampę i dotknij zdjęcia', 5: 'Przesuń linię: przed i po' }[st.krok]; $('#p2Wsk').textContent = t; }
   function panel() {
@@ -375,10 +376,18 @@ void main(){
   $('#p2ZoomM').addEventListener('click', () => { const r = scena.getBoundingClientRect(); zoomWokol(1 / 1.5, r.width / 2, r.height / 2); });
   $('#p2Dopasuj').addEventListener('click', dopasuj);
   $('#p2Porownaj').addEventListener('click', () => { st.porownaj = !st.porownaj; st.porRecznie = st.porownaj; if (st.porownaj) st.split = .5; $('#p2Porownaj').setAttribute('aria-pressed', String(st.porownaj)); rysuj(); });
-  function pelny(on) { root.classList.toggle('pelny', on); document.documentElement.classList.toggle('p2-pelny', on); $('#p2Pelny').setAttribute('aria-pressed', String(on)); $('#p2Pelny').title = on ? 'Zamknij pełny ekran' : 'Pełny ekran';
+  let histP = false;
+  window.addEventListener('popstate', () => { if (histP) { histP = false; if (root.classList.contains('pelny')) pelny(false, true); } });
+  function pelny(on, zHist) { const by = root.classList.contains('pelny');
+    if (on && !by) { try { history.pushState({ p2pelny: 1 }, ''); histP = true; } catch (e) {} }
+    if (!on && by && histP && !zHist) { histP = false; try { history.back(); } catch (e) {} }
+    if (!on && by) requestAnimationFrame(() => { const r = root.getBoundingClientRect(); if (r.bottom < 80 || r.top > innerHeight - 80) root.scrollIntoView({ block: 'start' }); });
+    root.classList.toggle('pelny', on); document.documentElement.classList.toggle('p2-pelny', on); $('#p2Pelny').setAttribute('aria-pressed', String(on)); $('#p2Pelny').title = on ? 'Zamknij pełny ekran' : 'Pełny ekran';
     requestAnimationFrame(() => { view.fit = true; rozmiar(); }); }
   $('#p2Pelny').addEventListener('click', () => pelny(!root.classList.contains('pelny')));
   $('#p2Wyjdz').addEventListener('click', () => pelny(false));
+  $('#p2Dotknij').addEventListener('click', () => { ruszony(); pelny(true); toast('Rysuj palcem, dwoma palcami przybliżaj. Wyjście: „✕ Wróć do strony” lub przycisk Wstecz.'); });
+  addEventListener('pageshow', e => { if (e.persisted && root.classList.contains('pelny')) { histP = false; pelny(false, true); } });
 
   /* ---------- wynik ---------- */
   function obraz(cb, max) { const s0 = { z: view.z, ox: view.ox, oy: view.oy }, por = st.porownaj, kr = st.krok, wy = st.wyb; st.porownaj = false; st.krok = 0; st.wyb = -1; dopasujBez();
@@ -414,7 +423,7 @@ void main(){
     maska = document.createElement('canvas'); maska.width = Math.max(64, st.fW >> 1); maska.height = Math.max(64, st.fH >> 1); mx = maska.getContext('2d'); mx.fillStyle = '#fff'; mx.fillRect(0, 0, maska.width, maska.height);
     liczCienie(); view.fit = true; rozmiar(); if (gl) { wgraj('f', c, false); wgraj('m', maska, false); wgraj('c', cien, false); } planujKamien(true); panel(); if (window.GBprojektantStart) { const q = window.GBprojektantStart; window.GBprojektantStart = null; setTimeout(() => ustawZewn(q.pat, q.pal), 80); } $$('.p2-przyk').forEach((b, i) => b.setAttribute('aria-pressed', String(i === przyk)));
     if (przyk < 0) { krok(2); toast('Ustaw perspektywę: 4 żółte punkty na rogi terenu'); } }
-  function plik(e) { const f = e.target.files && e.target.files[0]; if (!f) return; ruszony(); e.target.value = ''; const u = URL.createObjectURL(f); if (!S) { czeka = u; return; } laduj(u, -1); if (MOB()) pelny(true); }
+  function plik(e) { const f = e.target.files && e.target.files[0]; if (!f) return; ruszony(); e.target.value = ''; const u = URL.createObjectURL(f); if (!S) { czeka = u; return; } laduj(u, -1); if (DOTYK()) pelny(true); }
   let czeka = null; $('#p2Aparat').addEventListener('change', plik); $('#p2Plik').addEventListener('change', plik);
   scena.addEventListener('dragover', e => { e.preventDefault(); scena.classList.add('upusc'); }); scena.addEventListener('dragleave', () => scena.classList.remove('upusc'));
   scena.addEventListener('drop', e => { e.preventDefault(); scena.classList.remove('upusc'); const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f && f.type.startsWith('image/')) { ruszony(); laduj(URL.createObjectURL(f), -1); } });

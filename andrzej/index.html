@@ -17,8 +17,8 @@
 <link rel="preload" href="fonts/big-shoulders-display-latin-900-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" as="image" href="img/real/plac-hero.webp" media="(min-width: 821px)">
 <link rel="preload" as="image" href="img/real/plac-hero-m.webp" media="(max-width: 820px)">
-<link rel="stylesheet" href="css/v6.css?v=19">
-<link rel="stylesheet" href="css/v9.css?v=19">
+<link rel="stylesheet" href="css/v6.css?v=20">
+<link rel="stylesheet" href="css/v9.css?v=20">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"HomeAndConstructionBusiness","name":"Centrum Architektury Ogrodowej GardenBruk","alternateName":"GardenBruk","description":"Skład z ekspozycją: kostka brukowa, płyty tarasowe, ogrodzenia, palisady, kruszywo dekoracyjne, wypożyczalnia sprzętu. Pomiar u klienta.","address":{"@type":"PostalAddress","streetAddress":"Mikowice 16","postalCode":"57-300","addressLocality":"Kłodzko","addressCountry":"PL"},"telephone":"+48500250936","email":"biuro@gardenbruk.net","image":"https://entwurf.falcon-eye.de/andrzej/img/real/plac-hero.webp","sameAs":["https://www.facebook.com/gardenbruk.net/","https://www.instagram.com/gardenbruk/"],"areaServed":"Ziemia Kłodzka"}</script>
 </head>
 <body class="intro">
@@ -95,7 +95,7 @@
       <p class="lead">Zrób zdjęcie podwórka. Palcem narysuj podjazd, ścieżkę i taras, każdemu daj inną kostkę. Posadź drzewa, postaw lampy i zobacz wszystko wieczorem i w nocy. Zdjęcie zostaje na Twoim urządzeniu.</p>
     </div>
     <div class="p2" id="p2">
-      <div class="p2-scena" id="p2Scena" data-krok="1"><span class="p2-dotknij" aria-hidden="true">✍ Dotknij, aby projektować na pełnym ekranie</span>
+      <div class="p2-scena" id="p2Scena" data-krok="1"><button type="button" class="p2-dotknij" id="p2Dotknij">✍ Projektuj na pełnym ekranie</button>
         <canvas id="p2Gl" role="img" aria-label="Podgląd: zdjęcie działki z nową kostką, roślinami i światłem"></canvas>
         <canvas id="p2Nak" aria-hidden="true"></canvas>
         <canvas id="p2Lupa" class="p2-lupa" width="248" height="248" hidden aria-hidden="true"></canvas>
@@ -108,7 +108,7 @@
           <button type="button" id="p2Porownaj" title="Przed i po" aria-label="Porównaj przed i po" aria-pressed="false">◐</button>
           <button type="button" id="p2Pelny" title="Pełny ekran" aria-label="Pełny ekran" aria-pressed="false">⛶</button>
         </div>
-        <button type="button" class="p2-wyjdz" id="p2Wyjdz">Zamknij pełny ekran</button>
+        <button type="button" class="p2-wyjdz" id="p2Wyjdz">✕ Wróć do strony</button>
         <div class="p2-wsk" id="p2Wsk" role="status"></div>
         <div class="pk-laduje" id="p2Lad" hidden><i></i>Układam kostkę…</div>
       </div>
@@ -286,7 +286,7 @@
       <div class="gra-pole foto" id="gUloz" role="tabpanel" aria-labelledby="tUloz">
         <canvas id="graCv" aria-label="Gra: ułóż brakujący kawałek drogi z kostki" role="img"></canvas>
         <div class="gra-hud" aria-live="polite"><span id="graPoziom">Poziom 1 · Cegiełka</span><span id="graCzas">0,0 s</span><span id="graPkt">0 pkt</span></div>
-        <div class="gra-start" id="graStart"><button type="button" class="btn" id="graGraj">Zagraj</button><span>Rekord na tym urządzeniu: <b id="graRekord">brak</b></span></div>
+        <div class="gra-start gs-przez" id="graStart"><button type="button" class="btn" id="graGraj">▶ Zagraj</button><span class="gs-hint">albo od razu chwyć kamień i przeciągnij go na wolne miejsce</span><span>Rekord na tym urządzeniu: <b id="graRekord">brak</b></span></div>
       </div>
       <div class="gra-pole foto zg" id="gZgad" role="tabpanel" aria-labelledby="tZgad" hidden>
         <canvas id="zgCv" role="img" aria-label="Gra: rozpoznaj wzór ułożonej kostki"></canvas>
@@ -294,12 +294,12 @@
         <div class="gra-hud" aria-live="polite"><span id="zgRunda">Runda 1 z 8</span><span id="zgSeria"></span><span id="zgPkt">0 pkt</span></div>
         <div class="zg-odp" id="zgOdp" role="group" aria-label="Który to wzór?"></div>
         <div class="zg-info" id="zgInfo" aria-live="polite"></div>
-        <div class="gra-start" id="zgStart"><button type="button" class="btn" id="zgGraj">Zagraj</button><span>Osiem rund. Im szybciej, tym więcej punktów. Rekord: <b id="zgRekord">brak</b></span></div>
+        <div class="gra-start" id="zgStart"><button type="button" class="btn" id="zgGraj">▶ Zagraj</button><span>Osiem rund. Im szybciej, tym więcej punktów. Rekord: <b id="zgRekord">brak</b></span></div>
       </div>
       <div class="gra-pole mem-pole" id="gMem" role="tabpanel" aria-labelledby="tMem" hidden>
         <div class="mem" id="mem" role="grid" aria-label="Memory: znajdź pary kostek"></div>
         <div class="gra-hud" aria-live="polite"><span id="memRuchy">0 ruchów</span><span id="memCzas">0,0 s</span><span id="memPary">0 z 6 par</span></div>
-        <div class="gra-start" id="memStart"><button type="button" class="btn" id="memGraj">Zagraj</button><span>Odkryj dwie kostki. Pasują? Zostają. Rekord: <b id="memRekord">brak</b></span></div>
+        <div class="gra-start" id="memStart"><button type="button" class="btn" id="memGraj">▶ Zagraj</button><span>Odkryj dwie kostki. Pasują? Zostają. Rekord: <b id="memRekord">brak</b></span></div>
       </div>
     </div>
   </div>
@@ -399,13 +399,13 @@
 </aside>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="js/swiat2d.js?v=19"></script>
-<script src="js/swiat9.js?v=19"></script>
-<script src="js/intro9.js?v=19"></script>
-<script src="js/gra.js?v=19"></script>
-<script src="js/gry.js?v=19"></script>
-<script src="js/projektant2.js?v=19"></script>
-<script src="js/strona9.js?v=19"></script>
-<script src="js/wozek.js?v=19"></script>
+<script src="js/swiat2d.js?v=20"></script>
+<script src="js/swiat9.js?v=20"></script>
+<script src="js/intro9.js?v=20"></script>
+<script src="js/gra.js?v=20"></script>
+<script src="js/gry.js?v=20"></script>
+<script src="js/projektant2.js?v=20"></script>
+<script src="js/strona9.js?v=20"></script>
+<script src="js/wozek.js?v=20"></script>
 </body>
 </html>

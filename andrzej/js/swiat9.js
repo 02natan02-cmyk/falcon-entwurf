@@ -29,11 +29,11 @@ ${PROJ}
 uniform float uTime, uShadow; uniform vec4 uHole[24]; uniform vec4 uClip[16];
 out vec2 vL; out vec2 vH; out vec3 vCol; out vec2 vUv; out float vA, vZ, vRot, vShape, vKind, vMel; out vec2 vW; out vec4 vClip;
 void main(){
-  float p = aT < 0. ? 1. - clamp((uTime + aT) / .5, 0., 1.) : clamp((uTime - aT) / .62, 0., 1.); float e = 1. - pow(1. - p, 3.);
+  float p = aT < 0. ? 1. - clamp((uTime + aT) / .4, 0., 1.) : clamp((uTime - aT) / .46, 0., 1.); float e = 1. - pow(1. - p, 3.);
   float z = (1. - e) * 1.9 + sin(clamp((p - .78) / .22, 0., 1.) * 3.14159) * .05;
   float lift = 0.; vec2 drift = vec2(0.);
   int hi = int(aD.y);
-  if (hi >= 0) { vec4 H = uHole[hi]; float q = clamp((uTime - H.x - aD.x * .35) / .8, 0., 1.); lift = q; z += q * q * 2.6; drift = normalize(aA.xy - H.yz + vec2(.001)) * q * q * 90.; }
+  if (hi >= 0) { vec4 H = uHole[hi]; float q = clamp((uTime - H.x - aD.x * .25) / .6, 0., 1.); lift = q; z += q * q * 2.6; drift = normalize(aA.xy - H.yz + vec2(.001)) * q * q * 90.; }
   vA = smoothstep(0., .1, p) * (1. - smoothstep(.45, .95, lift));
   vec2 hf = aA.zw * .5; vec2 loc = aC * (hf + 3.);
   float r = aB.x + (1. - e) * (fract(aD.x * 7.31) - .5) * .7 + lift * (fract(aD.x * 3.17) - .5) * 1.6;
@@ -103,7 +103,7 @@ void main(){
 precision highp float; layout(location=0) in vec2 aC; layout(location=1) in vec4 aA; layout(location=2) in vec4 aB; layout(location=5) in float aT;
 ${PROJ}
 uniform float uTime, uShadow; out vec2 vUv; out float vA;
-void main(){ float p = aT < 0. ? 1. - clamp((uTime + aT) / .45, 0., 1.) : clamp((uTime - aT) / .9, 0., 1.); float e = p < 1. ? 1. - pow(1. - p, 3.) * cos(p * 9.) : 1.; float sc = mix(.2, 1., clamp(e, 0., 1.15));
+void main(){ float p = aT < 0. ? 1. - clamp((uTime + aT) / .36, 0., 1.) : clamp((uTime - aT) / .7, 0., 1.); float e = p < 1. ? 1. - pow(1. - p, 3.) * cos(p * 9.) : 1.; float sc = mix(.2, 1., clamp(e, 0., 1.15));
   float h = aB.y; vec2 hf = vec2(aA.z * .5) * sc; vec2 w = aA.xy + aC * hf; float r = aA.w; mat2 R = mat2(cos(r), sin(r), -sin(r), cos(r)); w = aA.xy + R * (aC * hf);
   vec2 sp = uShadow > .5 ? proj(w + vec2(.9, 1.3) * h * 26., 0., aB.w) : proj(w, h, aB.w);
   gl_Position = clip(sp); vec2 t = aC * .5 + .5; float idx = aB.x; vUv = vec2((mod(idx, 4.) + t.x) / 4., (floor(idx / 4.) + t.y) / 2.); vA = smoothstep(0., .25, p); }`;
@@ -150,11 +150,11 @@ void main(){ vec3 m = mix(vec3(1.), vec3(.2, .24, .36), uNoc); vec3 add = vec3(0
     gl.bindVertexArray(null); }
   function wyzwol(g, ileKlucz, t) { // wszystkie kamienie z kluczem < ileKlucz dostają czas startu (tylko nowe – rosnąco)
     if (!g.n) return false; let i = g.ptr; if (i >= g.n || g.keys[i] > ileKlucz) return false; const s = i;
-    const K1 = g.stride === 16 ? .62 : .9, K0 = g.stride === 16 ? .5 : .45;
-    while (i < g.n && g.keys[i] <= ileKlucz) { const o = g.trig[i]; if (t >= 0 && o < 0) { const pd = 1 - clamp((t + o) / K0, 0, 1); g.trig[i] = t - pd * K1; } else g.trig[i] = t < 0 ? t : t + (g.stride === 16 ? g.data[i * 16 + 8] * .22 : hash(i, 3) * .25) * (RM ? 0 : 1); i++; }
+    const K1 = g.stride === 16 ? .46 : .7, K0 = g.stride === 16 ? .4 : .36;
+    while (i < g.n && g.keys[i] <= ileKlucz) { const o = g.trig[i]; if (t >= 0 && o < 0) { const pd = 1 - clamp((t + o) / K0, 0, 1); g.trig[i] = t - pd * K1; } else g.trig[i] = t < 0 ? t : t + (g.stride === 16 ? g.data[i * 16 + 8] * .15 : hash(i, 3) * .18) * (RM ? 0 : 1); i++; }
     g.ptr = i; gl.bindBuffer(gl.ARRAY_BUFFER, g.tb); gl.bufferSubData(gl.ARRAY_BUFFER, s * 4, g.trig.subarray(s, i)); return true; }
   function cofnij(g, ileKlucz, t) { // przewijanie w górę: kamienie ponad czołem odlatują (najdalsze pierwsze), płynnie z bieżącego stanu
-    if (!g.n || g.ptr <= 0 || g.keys[g.ptr - 1] <= ileKlucz) return false; const e = g.ptr; let i = g.ptr; const K1 = g.stride === 16 ? .62 : .9, K0 = g.stride === 16 ? .5 : .45;
+    if (!g.n || g.ptr <= 0 || g.keys[g.ptr - 1] <= ileKlucz) return false; const e = g.ptr; let i = g.ptr; const K1 = g.stride === 16 ? .46 : .7, K0 = g.stride === 16 ? .4 : .36;
     while (i > 0 && g.keys[i - 1] > ileKlucz) { i--; const o = g.trig[i]; let st0 = t + (RM ? 0 : hash(i, 7) * .12); if (o >= 0 && o < 1e8) { const pl = clamp((t - o) / K1, 0, 1); if (pl < 1) st0 = t - (1 - pl) * K0; } g.trig[i] = RM ? -(t - 1) : -st0; }
     g.ptr = i; gl.bindBuffer(gl.ARRAY_BUFFER, g.tb); gl.bufferSubData(gl.ARRAY_BUFFER, i * 4, g.trig.subarray(i, e)); return true; }
   const KW = grupa(16), KS = grupa(16), OB = grupa(8), OS = grupa(8); // kamienie świat/etap, obiekty świat/etap
@@ -257,10 +257,10 @@ void main(){ vec3 m = mix(vec3(1.), vec3(.2, .24, .36), uNoc); vec3 add = vec3(0
       if (OB && wyzwol(OS, p + .02, t)) aktywne = true; if (cofnij(OS, p + .02, t)) aktywne = true;
       KADRY.forEach(k => k.el.classList.toggle('on', p >= k.od && p < k.do)); document.documentElement.style.setProperty('--etap', p.toFixed(3)); }
     // czoło budowy: 85 % wysokości ekranu (widać, jak kamienie lądują)
-    const f = y + vh * .86; if (f > front) { front = f; if (wyzwol(KW, f, t)) aktywne = true; if (wyzwol(OB, f, t)) aktywne = true; }
+    const f = y + vh * .95; if (f > front) { front = f; if (wyzwol(KW, f, t)) aktywne = true; if (wyzwol(OB, f, t)) aktywne = true; }
     else if (f < front - 36) { front = f; if (cofnij(KW, f, t)) aktywne = true; if (cofnij(OB, f, t)) aktywne = true; }
     // dziury: kamienie podnoszą się, gdy element wjeżdża w ekran; element pojawia się w zwolnionym miejscu
-    DZIURY.forEach(d => { if (d.t > 1e8 && d.y - y < vh * .74) { d.t = t + .85; d.el.classList.add('wyrasta'); aktywne = true; } });
+    DZIURY.forEach(d => { if (d.t > 1e8 && d.y - y < vh * .88) { d.t = t + .45; d.el.classList.add('wyrasta'); aktywne = true; } });
     // noc na końcu strony: ostatnie dwa ekrany
     const noc = clamp((y + vh - (pageH - vh * 2.2)) / (vh * 1.6), 0, 1);
     if (t - lastActive < 1.3) aktywne = true;

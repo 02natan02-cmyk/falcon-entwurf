@@ -81,7 +81,7 @@
     // efekty: kurz
     fx = fx.filter(f => (f.t += 1 / 60) < f.d); fx.forEach(f => { const a = 1 - f.t / f.d; x.fillStyle = `rgba(222,204,168,${a * .7})`; x.beginPath(); x.arc(f.x + f.vx * f.t * 60, f.y + f.vy * f.t * 60, f.r * (1 + f.t * 2), 0, 7); x.fill(); });
     // podpis fazy
-    let msg = ''; if (stan === 'demo') msg = 'Przeciągnij kamień na wolne miejsce'; else if (stan === 'gra') msg = POZ[lvl].pat === 'herring' ? 'Dotknij kamienia na palecie, żeby go obrócić' : POZ[lvl].pat === 'flower' ? 'Żółte do kwiatu, grafit dookoła' : ''; else if (stan === 'piasek') msg = 'Zasyp fugi piaskiem: przesuwaj palcem po kostce'; else if (stan === 'zag') msg = 'Przeciągnij zagęszczarkę po całej powierzchni';
+    let msg = ''; if (stan === 'demo') msg = ''; else if (stan === 'gra') msg = POZ[lvl].pat === 'herring' ? 'Dotknij kamienia na palecie, żeby go obrócić' : POZ[lvl].pat === 'flower' ? 'Żółte do kwiatu, grafit dookoła' : ''; else if (stan === 'piasek') msg = 'Zasyp fugi piaskiem: przesuwaj palcem po kostce'; else if (stan === 'zag') msg = 'Przeciągnij zagęszczarkę po całej powierzchni';
     if (msg) { x.font = `800 ${W < 520 ? 13 : 15}px Manrope,sans-serif`; const tw = x.measureText(msg).width + 26; x.fillStyle = 'rgba(10,10,10,.62)'; const yy = gap.y1 + (W < 520 ? 26 : 30); rr(W / 2 - tw / 2, yy - 15, tw, 30, 15); x.fill(); x.fillStyle = '#fff'; x.textAlign = 'center'; x.fillText(msg, W / 2, yy + 5); }
     if (stan === 'demo' && demoHand) { const h = demoHand; x.save(); x.translate(h.x, h.y); x.fillStyle = 'rgba(255,255,255,.92)'; x.beginPath(); x.arc(0, 0, 13, 0, 7); x.fill(); x.strokeStyle = 'rgba(0,0,0,.4)'; x.lineWidth = 2; x.stroke(); x.restore(); }
   }
@@ -109,11 +109,15 @@
   /* ---------- sterowanie ---------- */
   function pos(e) { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
   cv.addEventListener('pointerdown', e => { const p = pos(e);
-    if (stan === 'demo') { start(); return; }
+    if (stan === 'demo') { // od razu łap kamień: start gry i przeciąganie jednym ruchem
+      const blisko = (nast && Math.hypot(p.x - nast.x, p.y - nast.y) < Math.max(nast.w, nast.h) + 28) || Math.hypot(p.x - reka.x, p.y - reka.y) < 80;
+      if (!blisko) return; start(); if (nast) { nast.x = p.x; nast.y = p.y; } }
     if (stan === 'gra' && nast) { const d = Math.hypot(p.x - nast.x, p.y - nast.y); if (d < Math.max(nast.w, nast.h) * .9 + 14) { drag = { st: nast, dx: nast.x - p.x, dy: nast.y - p.y, sx: p.x, sy: p.y, t: performance.now() }; cv.setPointerCapture(e.pointerId); } }
     if (stan === 'piasek') { cv.setPointerCapture(e.pointerId); zamiataj(p); }
     if (stan === 'zag') { cv.setPointerCapture(e.pointerId); zag.x = p.x; zag.y = p.y; zageszczaj(p); }
   });
+  cv.addEventListener('click', () => { if (stan === 'demo') start(); });
+  cv.addEventListener('pointercancel', () => { if (drag) { drag.st.x = reka.x; drag.st.y = reka.y; drag = null; } });
   cv.addEventListener('pointermove', e => { const p = pos(e);
     if (drag) { drag.st.x = p.x + drag.dx; drag.st.y = p.y + drag.dy; }
     if (stan === 'piasek' && e.buttons) zamiataj(p);
