@@ -161,14 +161,16 @@ void main(){
     const noc = st.pora === 'noc', wiecz = st.pora === 'wieczor';
     // obiekty (od tyłu do przodu) + światło
     const ob = st.obiekty.map((o, i) => ({ o, i })).sort((a, b) => a.o.y - b.o.y);
-    if (noc || wiecz) { g.globalCompositeOperation = 'lighter'; for (const { o } of ob) { const T2 = OBIEKTY[o.t]; if (!T2.lampa) continue; plamaSwiatla(g, o, T2, noc ? 1 : .45); } g.globalCompositeOperation = 'source-over'; }
-    for (const { o, i } of ob) { const T2 = OBIEKTY[o.t], im = IMG[T2.src]; if (!im || !im.complete || !im.naturalWidth) continue; const hpx = T2.h * pxNaMetr(o.x, o.y) * o.s / st.fW * Wd * view.z, wpx = hpx * im.naturalWidth / im.naturalHeight;
+    const ukryj = st.krok === 2, blado = st.krok === 3; if (blado) g.globalAlpha = .3;
+    if ((noc || wiecz) && !ukryj) { g.globalCompositeOperation = 'lighter'; for (const { o } of ob) { const T2 = OBIEKTY[o.t]; if (!T2.lampa) continue; plamaSwiatla(g, o, T2, noc ? 1 : .45); } g.globalCompositeOperation = 'source-over'; }
+    for (const { o, i } of ob) { if (ukryj) break; const T2 = OBIEKTY[o.t], im = IMG[T2.src]; if (!im || !im.complete || !im.naturalWidth) continue; const hpx = T2.h * pxNaMetr(o.x, o.y) * o.s / st.fW * Wd * view.z, wpx = hpx * im.naturalWidth / im.naturalHeight;
       const [bx, by] = naEkran([o.x, o.y]); if (st.porownaj && o.x < st.split) continue;
       const cg = g.createRadialGradient(bx, by, 0, bx, by, wpx * .55); cg.addColorStop(0, `rgba(0,0,0,${noc ? .25 : .38})`); cg.addColorStop(1, 'rgba(0,0,0,0)'); g.save(); g.translate(bx, by); g.scale(1, .26); g.translate(-bx, -by); g.fillStyle = cg; g.beginPath(); g.arc(bx, by, wpx * .55, 0, 7); g.fill(); g.restore();
       if (noc || wiecz) g.filter = noc ? 'brightness(.42) saturate(.7) hue-rotate(8deg)' : 'brightness(.84) sepia(.12)'; g.drawImage(im, bx - wpx / 2, by - hpx, wpx, hpx); g.filter = 'none';
       if (T2.lampa && (noc || wiecz)) { g.globalCompositeOperation = 'lighter'; const ly = by - hpx * (1 - T2.lampa.y), rr = Math.max(10, wpx * (T2.lampa.dol ? .9 : 1.6)); const hg = g.createRadialGradient(bx, ly, 0, bx, ly, rr); const a = noc ? .95 : .5;
         hg.addColorStop(0, `rgba(255,236,190,${a})`); hg.addColorStop(.25, `rgba(255,200,120,${a * .45})`); hg.addColorStop(1, 'rgba(255,170,80,0)'); g.fillStyle = hg; g.beginPath(); g.arc(bx, ly, rr, 0, 7); g.fill(); g.globalCompositeOperation = 'source-over'; }
       if (i === st.wyb && st.krok === 4) { const [hw, ht] = ramka(wpx, hpx); g.strokeStyle = '#5ad27c'; g.lineWidth = 2; g.setLineDash([6, 5]); g.strokeRect(bx - hw, by - ht, hw * 2, ht + 4); g.setLineDash([]); kolko(g, bx + hw, by - ht, 12, '#5ad27c', '⤢'); kolko(g, bx - hw, by - ht, 12, '#d64545', '✕'); } }
+    g.globalAlpha = 1;
     // porównanie: linia
     suwak.hidden = !st.porownaj; if (st.porownaj) { const [sx] = naEkran([st.split, 0]); suwak.style.left = sx + 'px'; g.fillStyle = '#fff'; g.fillRect(sx - 1.5, 0, 3, r.height); kolko(g, sx, r.height / 2, 20, '#fff', '↔', '#1b1b1a'); etykieta(g, 'Przed', 12, r.height - 46); etykieta(g, 'Po', r.width - 52, r.height - 46); }
     // perspektywa
@@ -402,13 +404,19 @@ void main(){
   /* ---------- wynik ---------- */
   function obraz(cb, max) { const s0 = { z: view.z, ox: view.ox, oy: view.oy }, por = st.porownaj, kr = st.krok, wy = st.wyb; st.porownaj = false; st.krok = 0; st.wyb = -1; dopasujBez();
     teraz(); const r = scena.getBoundingClientRect(); const sx = view.ox * D, sy = view.oy * D, sw = Wd * D, sh = Hd * D; const sc = Math.min(1, (max || 2200) / sw);
-    const W = Math.round(sw * sc), H = Math.round(sh * sc), pas = Math.round(Math.max(46, W * .045)); const c = document.createElement('canvas'); c.width = W; c.height = H + pas; const g = c.getContext('2d');
-    g.drawImage(cv, sx, sy, sw, sh, 0, 0, W, H); g.drawImage(nak, sx, sy, sw, sh, 0, 0, W, H); g.fillStyle = '#1b1b1a'; g.fillRect(0, H, W, pas);
-    g.fillStyle = '#5ad27c'; g.font = `900 ${Math.round(pas * .44)}px "Big Shoulders Display",Arial Narrow,sans-serif`; g.textBaseline = 'middle'; g.fillText('GARDENBRUK', pas * .4, H + pas / 2); const lw = g.measureText('GARDENBRUK').width;
-    g.fillStyle = '#fff'; g.font = `700 ${Math.round(pas * .28)}px Manrope,system-ui,sans-serif`; const m2 = Math.round(st.strefy.reduce((a, z) => a + poleM2(z.pts), 0)); g.fillText(`Projekt ogrodu${m2 ? ' · ok. ' + m2 + ' m²' : ''} · wizualizacja · Mikowice pod Kłodzkiem`, pas * .8 + lw, H + pas / 2);
-    Object.assign(view, s0); st.porownaj = por; st.krok = kr; st.wyb = wy; rysuj(); if (max && max < 500) cb(c.toDataURL('image/jpeg', .72)); else c.toBlob(cb, 'image/jpeg', .9); }
+    const W = Math.round(sw * sc), H = Math.round(sh * sc), waski = W < 1200, pas = waski ? Math.round(Math.max(70, W * .12)) : Math.round(Math.max(46, W * .045)); const c = document.createElement('canvas'); c.width = W; c.height = H + pas; const g = c.getContext('2d');
+    g.drawImage(cv, sx, sy, sw, sh, 0, 0, W, H); g.drawImage(nak, sx, sy, sw, sh, 0, 0, W, H); g.fillStyle = '#1b1b1a'; g.fillRect(0, H, W, pas); g.textBaseline = 'middle';
+    const m2 = Math.round(st.strefy.reduce((a, z) => a + poleM2(z.pts), 0)), opis = `Projekt ogrodu${m2 ? ' · ok. ' + m2 + ' m²' : ''} · wizualizacja`, adr = ADRES.replace(/^https?:\/\//, '').replace(/\/?#.*$/, ''), x0 = Math.round(pas * (waski ? .28 : .4));
+    const pasuj = (t, px, waga, maxW) => { let f = px; g.font = `${waga} ${f}px Manrope,system-ui,sans-serif`; while (f > 9 && g.measureText(t).width > maxW) { f--; g.font = `${waga} ${f}px Manrope,system-ui,sans-serif`; } };
+    if (waski) { const y1 = H + pas * .34, y2 = H + pas * .72; g.fillStyle = '#5ad27c'; g.font = `900 ${Math.round(pas * .3)}px "Big Shoulders Display",Arial Narrow,sans-serif`; g.fillText('GARDENBRUK', x0, y1); const lw = g.measureText('GARDENBRUK').width;
+      g.fillStyle = '#fff'; pasuj(opis, Math.round(pas * .19), 700, W - x0 * 2 - lw - pas * .2); g.fillText(opis, x0 + lw + pas * .2, y1);
+      g.fillStyle = '#b9c2b4'; const t2 = 'Mikowice pod Kłodzkiem · ' + adr; pasuj(t2, Math.round(pas * .17), 700, W - x0 * 2); g.fillText(t2, x0, y2); }
+    else { g.fillStyle = '#5ad27c'; g.font = `900 ${Math.round(pas * .44)}px "Big Shoulders Display",Arial Narrow,sans-serif`; g.fillText('GARDENBRUK', x0, H + pas / 2); const lw = g.measureText('GARDENBRUK').width;
+      g.font = `800 ${Math.round(pas * .26)}px Manrope,system-ui,sans-serif`; const aw = g.measureText(adr).width; const t1 = opis + ' · Mikowice pod Kłodzkiem'; g.fillStyle = '#fff'; pasuj(t1, Math.round(pas * .28), 700, W - x0 - lw - pas * .4 - aw - pas * .8);
+      g.fillText(t1, x0 + lw + pas * .4, H + pas / 2); g.fillStyle = '#5ad27c'; g.font = `800 ${Math.round(pas * .26)}px Manrope,system-ui,sans-serif`; g.textAlign = 'right'; g.fillText(adr, W - x0, H + pas / 2); g.textAlign = 'left'; }
+    try { g.getImageData(0, 0, 1, 1); } catch (e) { /* */ } const wroc = () => { Object.assign(view, s0); st.porownaj = por; st.krok = kr; st.wyb = wy; rysuj(); };
+    if (max && max < 500) { const d = c.toDataURL('image/jpeg', .72); wroc(); cb(d); } else c.toBlob(b => { wroc(); cb(b); }, 'image/jpeg', .9); }
   function dopasujBez() { const r = scena.getBoundingClientRect(); view.z = 1; view.ox = (r.width - Wd) / 2; view.oy = (r.height - Hd) / 2; }
-  $('#p2Zapisz').addEventListener('click', () => obraz(b => { if (!b) return; const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'GardenBruk_projekt_ogrodu.jpg'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('Obraz zapisany'); }));
   const KOLW = { grafit: 'grafit', szary: 'szary', bianco: 'bialy', piaskowy: 'piaskowy', melanz: 'melanz', granit: 'granit', lupek: 'grafit', zolty: 'piaskowy' };
   $('#p2Dodaj').addEventListener('click', () => obraz(url => { podsumowanie(); if (!window.GBdodaj) return; const t = Date.now();
     if (!st.strefy.length) { GBdodaj({ id: 'projekt-ogrodu-' + t, nazwa: 'Projekt ogrodu (zdjęcie)', ile: undefined, jedn: 'projekt', foto: url }); return; }
@@ -417,9 +425,57 @@ void main(){
       setTimeout(() => { GBdodaj({ id: `p2-${t}-${i}`, typ: 'kostka', nazwa: `${z.nazwa} z projektu: ${W}, ${K2}`, ile: m2 || undefined, jedn: 'm²', foto: 'img/tex/grafit.webp', wk: { rodzaj: z.pat === 'slabs' ? 'plyty' : z.pat === 'cobble' ? 'granit' : 'kostka', kolor: KOLW[z.pal] || 'szary', marka: 'Projekt', linia: z.nazwa } });
         if (z.obrz) GBdodaj({ id: `p2-${t}-${i}-o`, typ: 'obrzeza', nazwa: `Obrzeże ${nazwa(OBRZEZA, z.obrz).toLowerCase()} (obszar: ${z.nazwa})`, ile: Math.max(1, Math.round(obrzezeM(z))), jedn: 'mb', foto: 'img/tex/grafit.webp', wk: { rodzaj: 'obrzeza', kolor: KOLW[z.obrz] || 'grafit', marka: 'Projekt', linia: 'Obrzeże' } }); }, 260 * (i + 1)); });
     setTimeout(() => { const n = st.strefy.length; toast('Dodano do wózka: projekt i ' + n + ' ' + (n === 1 ? 'obszar' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'obszary' : 'obszarów') + ' z metrażem'); }, 260 * (st.strefy.length + 1)); }, 260));
-  $('#p2Wa').addEventListener('click', () => { podsumowanie(); const tekst = `Dzień dobry, mój projekt z planera na stronie GardenBruk: ${st.opis || ''}. Proszę o wycenę i termin pomiaru.`;
-    obraz(async b => { const plik = b && new File([b], 'GardenBruk_projekt_ogrodu.jpg', { type: 'image/jpeg' }); if (plik && navigator.canShare && navigator.canShare({ files: [plik] })) { try { await navigator.share({ files: [plik], text: tekst }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
-      window.open('https://wa.me/48500250936?text=' + encodeURIComponent(tekst + ' Zdjęcie wyślę w rozmowie.'), '_blank', 'noopener'); }); });
+  /* ---------- wysyłka: zdjęcie do Andrzeja i dla znajomych (bez serwera: zdjęcie idzie prosto z telefonu) ---------- */
+  const ADRES = location.origin + location.pathname.replace(/index\.html$/, '') + '#projektant', NR = '48500250936', IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  let wys = { tryb: '', plik: null, url: '', dane: '' };
+  const tekstA = () => `Dzień dobry, mój projekt z planera na stronie GardenBruk: ${st.opis || 'projekt ogrodu'}. Zaraz wyślę zdjęcie projektu. Proszę o wycenę i termin pomiaru.`;
+  const tekstZ = () => `Zobacz mój projekt ogrodu 😍 Zrobiony w planerze GardenBruk. Zaprojektuj swój: ${ADRES}`;
+  const mozeDzielic = f => !!(f && navigator.canShare && (() => { try { return navigator.canShare({ files: [f] }); } catch (e) { return false; } })());
+  const tekst = (id, t) => { $(id).textContent = t; };
+  // tryb: 'a' = Andrzej, 'z' = znajomi, 'p' = tylko zapisz
+  function otworzWys(tryb, btn) { podsumowanie(); if (btn) btn.disabled = true;
+    obraz(b => { if (btn) btn.disabled = false; if (!b) { toast('Nie udało się przygotować zdjęcia'); return; } if (wys.url) URL.revokeObjectURL(wys.url);
+      wys = { tryb, plik: new File([b], 'GardenBruk_projekt_ogrodu.jpg', { type: 'image/jpeg' }), url: URL.createObjectURL(b), dane: '' };
+      const fr = new FileReader(); fr.onload = () => { wys.dane = fr.result; $('#p2WysFoto').src = fr.result; }; fr.readAsDataURL(b);
+      const dz = mozeDzielic(wys.plik), A = tryb === 'a', Z = tryb === 'z', P = tryb === 'p', D = DOTYK();
+      const w = $('#p2Wys'); w.dataset.tryb = tryb; $('#p2WysFoto').src = wys.url;
+      tekst('#p2WysT', A ? 'Wyślij projekt Andrzejowi' : Z ? 'Pokaż projekt znajomym' : 'Zapisz zdjęcie projektu');
+      tekst('#p2WysOpis', A ? 'Dwa kroki, a zdjęcie Twojego projektu trafi prosto do Andrzeja:' : Z ? 'Wyślij zdjęcie razem z linkiem do planera, żeby znajomi mogli zaprojektować swój ogród.' : (D ? 'Przytrzymaj palec na zdjęciu i wybierz „Pobierz obraz” albo „Zapisz obraz”.' : 'Zdjęcie zapisze się w folderze „Pobrane”.'));
+      const gl = $('#p2WysUdost'); gl.hidden = !((Z || P) && dz); gl.textContent = Z ? 'Udostępnij zdjęcie i link' : 'Udostępnij / zapisz w aplikacji';
+      $('#p2WysKroki').hidden = P || (Z && dz);
+      tekst('#p2WysZapT', A ? 'Napisz do Andrzeja' : 'Zapisz zdjęcie'); $('#p2WysZap').classList.toggle('wa-btn', A);
+      tekst('#p2WysZapM', A ? 'Wyślij wiadomość w WhatsAppie i wróć tutaj.' : D ? 'Przytrzymaj zdjęcie powyżej i wybierz „Pobierz obraz”.' : 'Trafi do folderu „Pobrane”.');
+      tekst('#p2WysCzatT', A ? 'Wyślij mu zdjęcie projektu' : 'Wyślij link na WhatsAppie'); $('#p2WysCzat').classList.toggle('wa-btn', true);
+      tekst('#p2WysCzatM', A ? (dz ? 'Wybierz WhatsApp i czat z Andrzejem – będzie na górze listy.' : D ? 'Zapisz zdjęcie (przytrzymaj je powyżej) i dołącz je w czacie 📎.' : 'Zdjęcie zapisze się w „Pobrane” – dołącz je w czacie 📎.') : 'Wybierz znajomego i dołącz zapisane zdjęcie 📎.');
+      $('#p2WysK1').classList.remove('ok'); $('#p2WysK2').classList.remove('ok'); $('#p2WysLink').hidden = A || P; w.hidden = false;
+      if (P && !D) pobierz();
+      setTimeout(() => { const f = $(A ? '#p2WysZap' : !gl.hidden ? '#p2WysUdost' : P ? '#p2WysX' : '#p2WysZap'); f && f.focus({ preventScroll: true }); }, 30); }, 1600); }
+  function zamknijWys() { $('#p2Wys').hidden = true; }
+  function pobierz() { const a = document.createElement('a'); a.href = wys.url; a.download = 'GardenBruk_projekt_ogrodu.jpg'; document.body.appendChild(a); a.click(); a.remove(); toast('Zdjęcie zapisane w „Pobrane”'); }
+  const dziel = (dane) => navigator.share(dane).then(() => true).catch(e => (e && e.name === 'AbortError') ? false : Promise.reject(e));
+  $('#p2Wa').addEventListener('click', e => otworzWys('a', e.currentTarget));
+  $('#p2Znajomi').addEventListener('click', e => otworzWys('z', e.currentTarget));
+  $('#p2Zapisz').addEventListener('click', e => otworzWys('p', e.currentTarget));
+  $('#p2WysX').addEventListener('click', zamknijWys);
+  $('#p2Wys').addEventListener('click', e => { if (e.target === e.currentTarget) zamknijWys(); });
+  $('#p2Wys').addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); zamknijWys(); } });
+  // krok 1
+  $('#p2WysZap').addEventListener('click', () => { const A = wys.tryb === 'a';
+    if (A) { window.open('https://wa.me/' + NR + '?text=' + encodeURIComponent(tekstA()), '_blank', 'noopener'); $('#p2WysK1').classList.add('ok'); return; }
+    if (DOTYK()) { if (IOS && mozeDzielic(wys.plik)) { dziel({ files: [wys.plik] }).then(ok => ok && $('#p2WysK1').classList.add('ok')).catch(() => toast('Przytrzymaj zdjęcie i wybierz „Dodaj do Zdjęć”')); } else toast('Przytrzymaj zdjęcie i wybierz „Pobierz obraz”'); return; }
+    pobierz(); $('#p2WysK1').classList.add('ok'); });
+  // krok 2
+  $('#p2WysCzat').addEventListener('click', () => { const A = wys.tryb === 'a';
+    if (A) { if (mozeDzielic(wys.plik)) { dziel({ files: [wys.plik], text: 'Mój projekt ogrodu – GardenBruk' }).then(ok => ok && $('#p2WysK2').classList.add('ok')).catch(() => toast('Przytrzymaj zdjęcie, zapisz je i dołącz w czacie 📎')); return; }
+      if (DOTYK()) { toast('Przytrzymaj zdjęcie, zapisz je i dołącz w czacie 📎'); return; } pobierz(); window.open('https://wa.me/' + NR, '_blank', 'noopener'); return; }
+    window.open('https://wa.me/?text=' + encodeURIComponent(tekstZ()), '_blank', 'noopener'); });
+  // znajomi / zapisz: arkusz udostępniania telefonu (zdjęcie + link)
+  $('#p2WysUdost').addEventListener('click', () => { const Z = wys.tryb === 'z';
+    dziel(Z ? { files: [wys.plik], text: tekstZ(), title: 'Mój projekt ogrodu – GardenBruk' } : { files: [wys.plik] }).then(ok => { if (ok && Z) zamknijWys(); }).catch(() => { if (Z) { $('#p2WysKroki').hidden = false; $('#p2WysUdost').hidden = true; } else toast('Przytrzymaj zdjęcie i wybierz „Pobierz obraz”'); }); });
+  $('#p2WysLink').addEventListener('click', () => { (navigator.clipboard ? navigator.clipboard.writeText(ADRES) : Promise.reject()).then(() => toast('Link skopiowany')).catch(() => { prompt('Link do planera:', ADRES); }); });
+  root.addEventListener('pointerdown', () => ruszony(), true); root.addEventListener('keydown', () => ruszony(), true);
+  $('#p2OdNowa').addEventListener('click', () => { if (!st.foto) return; if (!st.strefy.length && !st.obiekty.length && st.pora === 'dzien') { toast('Tu jeszcze nic nie ma – narysuj pierwszy obszar'); krok(3); return; } zapamietaj(); st.strefy = []; st.obiekty = []; st.akt = -1; st.wyb = -1; st.pora = 'dzien'; planujKamien(true); krok(3); st.narz = 'rysuj'; panel(); rysuj(); toast('Zaczynasz od nowa. Pomyłka? „↶ Cofnij” w lewym pasku.'); });
+  $('#p2InneFoto').addEventListener('click', () => { krok(1); const pk = root.querySelector('.p2-krok[data-k="1"]'); pk && pk.scrollIntoView({ block: 'nearest' }); toast('Zrób nowe zdjęcie albo wybierz z galerii'); });
   $('#p2Nowy').addEventListener('click', () => { zapamietaj(); st.strefy = []; st.obiekty = []; st.akt = -1; st.wyb = -1; planujKamien(true); krok(3); st.narz = 'rysuj'; panel(); rysuj(); });
 
   /* ---------- zdjęcie ---------- */
@@ -429,7 +485,6 @@ void main(){
     c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); st.foto = c; st.fW = c.width; st.fH = c.height; st.zrodlo = przyk; root.style.setProperty('--p2ar', (c.width / c.height).toFixed(3)); const P2 = przyk >= 0 ? PRZYKLADY[przyk] : null;
     st.rogi = P2 ? P2.rogi.map(r => r.slice()) : [[.22, .5], [.78, .5], [.97, .96], [.03, .96]]; st.wm = P2 ? P2.w : 6; st.lm = P2 ? P2.l : 8;
     st.strefy = P2 ? P2.strefy.map(z => ({ ...z, pts: z.pts.map(q => q.slice()), obrzR: 1, obrot: 0 })) : []; st.obiekty = []; st.akt = st.strefy.length - 1; st.wyb = -1; hist.length = 0; przod.length = 0; st.pora = 'dzien'; st.porownaj = false; st.porRecznie = false; st.split = 1; $('#p2Porownaj').setAttribute('aria-pressed', 'false');
-    try { const zap = przyk >= 0 && localStorage.getItem('gb-p2-' + przyk); if (zap) Object.assign(st, JSON.parse(zap)); } catch (e) { /* */ }
     maska = document.createElement('canvas'); maska.width = Math.max(64, st.fW >> 1); maska.height = Math.max(64, st.fH >> 1); mx = maska.getContext('2d'); mx.fillStyle = '#fff'; mx.fillRect(0, 0, maska.width, maska.height);
     liczCienie(); view.fit = true; rozmiar(); if (gl) { wgraj('f', c, false); wgraj('m', maska, false); wgraj('c', cien, false); } planujKamien(true); panel(); if (window.GBprojektantStart) { const q = window.GBprojektantStart; window.GBprojektantStart = null; setTimeout(() => ustawZewn(q.pat, q.pal), 80); } $$('.p2-przyk').forEach((b, i) => b.setAttribute('aria-pressed', String(i === przyk)));
     if (przyk < 0) { krok(2); toast('Ustaw perspektywę: 4 żółte punkty na rogi terenu'); } }
@@ -448,12 +503,12 @@ void main(){
 
   /* ---------- sam się pokazuje: pierwszy raz rysuje obszar, sadzi drzewo, zapala lampy ---------- */
   let pokaz = false;
-  function ruszony() { if (!st.ruszony) { st.ruszony = true; if (pokaz) { st.pora = 'dzien'; st.porownaj = false; st.porRecznie = false; st.split = 1; panel(); rysuj(); } root.classList.remove('p2-demo'); } }
+  function ruszony() { if (!st.ruszony) { st.ruszony = true; if (pokaz) { st.pora = 'dzien'; st.porownaj = false; st.porRecznie = false; st.split = 1; st.obiekty = st.obiekty.filter(o => !o.demo); hist.length = 0; przod.length = 0; przyciski(); panel(); rysuj(); } root.classList.remove('p2-demo'); } }
   function demo() { if (pokaz || RM || st.ruszony || !st.foto || st.zrodlo !== 0) return; pokaz = true; root.classList.add('p2-demo'); const kroki = [
       () => { st.porownaj = true; st.split = 1; anim(1300, u => { st.split = 1 - .55 * u; }); },
-      () => { if (st.ruszony) return; zapamietaj(); st.obiekty.push({ t: 'klon_jesien', x: .07, y: .64, s: .8 }, { t: 'latarnia', x: .78, y: .55, s: 1 }, { t: 'slupek', x: .97, y: .99, s: 1 }); rysuj(); },
+      () => { if (st.ruszony) return; zapamietaj(); st.obiekty.push({ t: 'klon_jesien', x: .07, y: .64, s: .8, demo: 1 }, { t: 'latarnia', x: .78, y: .55, s: 1, demo: 1 }, { t: 'slupek', x: .97, y: .99, s: 1, demo: 1 }); rysuj(); },
       () => { if (st.ruszony) return; st.pora = 'wieczor'; panel(); rysuj(); }, () => { if (st.ruszony) return; st.pora = 'noc'; panel(); rysuj(); },
-      () => { if (st.ruszony) return; st.pora = 'dzien'; st.split = .5; panel(); rysuj(); root.classList.remove('p2-demo'); }];
+      () => { if (st.ruszony) return; st.pora = 'dzien'; st.split = .5; panel(); rysuj(); }, () => { if (st.ruszony) return; st.obiekty = st.obiekty.filter(o => !o.demo); st.porownaj = false; st.split = 1; hist.length = 0; przod.length = 0; przyciski(); panel(); rysuj(); root.classList.remove('p2-demo'); }];
     kroki.forEach((f, i) => setTimeout(() => { if (!st.ruszony || i === 0) f(); }, i * 1500)); }
   function anim(ms, f) { const t0 = performance.now(); (function k(n) { const u = clamp((n - t0) / ms, 0, 1); f(u < .5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2); rysuj(); if (u < 1 && !st.ruszony) requestAnimationFrame(k); })(t0); }
 
