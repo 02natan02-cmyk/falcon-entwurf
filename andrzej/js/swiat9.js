@@ -245,9 +245,12 @@ void main(){ vec3 m = mix(vec3(1.), vec3(.2, .24, .36), uNoc); vec3 add = vec3(0
 
   /* ---------- klatka ---------- */
   let front = -1, run = false, lastActive = 0, nocTrg = 0;
-  function rozmiar() { D = Math.min(devicePixelRatio || 1, 2, Math.sqrt(2.6e6 / (innerWidth * innerHeight))); cv.width = Math.round(innerWidth * D); cv.height = Math.round(innerHeight * D); cv.style.width = innerWidth + 'px'; cv.style.height = innerHeight + 'px'; }
+  // Leinwand mit Reserve für die ein-/ausfahrende Adressleiste: kein Neuanlegen beim Scrollen am Handy
+  let CW = 0, CH = 0;
+  function rozmiar() { if (innerWidth === CW && innerHeight <= CH && innerHeight > CH - 220) return; CW = innerWidth; CH = innerHeight + (MOB() ? 150 : 0);
+    D = Math.min(devicePixelRatio || 1, 2, Math.sqrt(2.6e6 / (CW * CH))); cv.width = Math.round(CW * D); cv.height = Math.round(CH * D); cv.style.width = CW + 'px'; cv.style.height = CH + 'px'; }
   function plan() { if (!run) { run = true; requestAnimationFrame(klatka); } }
-  const ust = (P, t) => { gl.uniform2f(P.u.uRes, innerWidth, innerHeight); gl.uniform1f(P.u.uScroll, scrollY); if (P.u.uStageOy) gl.uniform1f(P.u.uStageOy, ETAP ? ETAP.oy : -1e5); if (P.u.uTime) gl.uniform1f(P.u.uTime, t); if (P.u.uPersp) gl.uniform1f(P.u.uPersp, .055); };
+  const ust = (P, t) => { gl.uniform2f(P.u.uRes, CW, CH); gl.uniform1f(P.u.uScroll, scrollY); if (P.u.uStageOy) gl.uniform1f(P.u.uStageOy, ETAP ? ETAP.oy : -1e5); if (P.u.uTime) gl.uniform1f(P.u.uTime, t); if (P.u.uPersp) gl.uniform1f(P.u.uPersp, .055); };
   function klatka(now) {
     run = false; if (!G.ready) return; const t = now / 1000, y = scrollY; let aktywne = false;
     // etap: postęp przyklejonej sekcji
@@ -291,7 +294,7 @@ void main(){ vec3 m = mix(vec3(1.), vec3(.2, .24, .36), uNoc); vec3 add = vec3(0
     gl.useProgram(PO.p); ust(PO, t); gl.uniform1i(PO.u.uTO, 5); gl.uniform1f(PO.u.uAmb, .44 - noc * .18); gl.uniform1f(PO.u.uSun, sun);
     if (PZ & 8) for (const sh of [1, 0]) { gl.uniform1f(PO.u.uShadow, sh); for (const g of [OB, OS]) rysujGrupe(g, g === OS); }
     // 4) noc i światło lamp
-    if (noc > .001) { gl.blendFunc(gl.DST_COLOR, gl.ZERO); gl.useProgram(PN.p); gl.uniform2f(PN.u.uRes, innerWidth, innerHeight); gl.uniform1f(PN.u.uScroll, scrollY); gl.uniform1f(PN.u.uNoc, noc);
+    if (noc > .001) { gl.blendFunc(gl.DST_COLOR, gl.ZERO); gl.useProgram(PN.p); gl.uniform2f(PN.u.uRes, CW, CH); gl.uniform1f(PN.u.uScroll, scrollY); gl.uniform1f(PN.u.uNoc, noc);
       const L = new Float32Array(96); LAMPY.slice(0, 24).forEach((l, i) => { const on = clamp((noc - .25 - (i % 6) * .05) / .2, 0, 1); L.set([l[0], l[1], l[2], on], i * 4); });
       gl.uniform4fv(PN.u.uLamp, L); gl.uniform1i(PN.u.uNL, Math.min(24, LAMPY.length)); gl.bindVertexArray(qVao); gl.uniform1f(PN.u.uTryb, 0); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       if (LAMPY.length) { gl.blendFunc(gl.DST_COLOR, gl.ONE); gl.uniform1f(PN.u.uTryb, 1); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); gl.blendFunc(gl.ONE, gl.ONE); gl.uniform1f(PN.u.uTryb, 2); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); } }
@@ -308,10 +311,12 @@ void main(){ vec3 m = mix(vec3(1.), vec3(.2, .24, .36), uNoc); vec3 add = vec3(0
     const k = g.keys; let lo = 0, hi = g.n; while (lo < hi) { const m = (lo + hi) >> 1; if (k[m] < v - 200) lo = m + 1; else hi = m; } return lo; }
 
   /* ---------- zdarzenia ---------- */
-  addEventListener('scroll', plan, { passive: true });
+  let ostScroll = 0; addEventListener('scroll', () => { ostScroll = performance.now(); plan(); }, { passive: true });
   let rT = 0, lw = innerWidth, lh = innerHeight;
-  addEventListener('resize', () => { if (Math.abs(innerWidth - lw) < 2 && Math.abs(innerHeight - lh) < 120) { rozmiar(); plan(); return; } clearTimeout(rT); rT = setTimeout(() => { lw = innerWidth; lh = innerHeight; if (G.ready) { buduj(); plan(); } }, 200); });
-  new ResizeObserver(() => { const h = document.documentElement.scrollHeight; if (G.ready && Math.abs(h - pageH) > 60) { clearTimeout(rT); rT = setTimeout(() => { buduj(); plan(); }, 250); } }).observe(document.body);
+  // Neuaufbau nie mitten im Scrollen (Ruckler): warten, bis 600 ms Ruhe ist
+  function odloz(ms) { clearTimeout(rT); rT = setTimeout(function f() { if (performance.now() - ostScroll < 600) { rT = setTimeout(f, 250); return; } lw = innerWidth; lh = innerHeight; if (G.ready) { buduj(); plan(); } }, ms); }
+  addEventListener('resize', () => { if (Math.abs(innerWidth - lw) < 2 && Math.abs(innerHeight - lh) < 120) { rozmiar(); plan(); return; } clearTimeout(rT); odloz(200); });
+  new ResizeObserver(() => { const h = document.documentElement.scrollHeight; if (G.ready && Math.abs(h - pageH) > 60) odloz(250); }).observe(document.body);
   G.przebuduj = () => { if (G.ready) { buduj(); plan(); } };
   // Wzory: plac w świecie przekłada się na nowo – nowe kamienie spadają falą od środka
   G.ustawWzor = (id, pat, pal) => { const el = document.getElementById(id); if (!el || !G.ready) return; el.dataset.wzor = pat; if (pal) el.dataset.kolor = pal; buduj();

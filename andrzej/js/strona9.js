@@ -70,6 +70,8 @@ panel.addEventListener('input', e => { if (!e.target.closest('.licz-m2')) return
 /* ---------- wzory: plac wokół układa się na nowo ---------- */
 const OPISY = { herring: 'Jodełka: najmocniejszy układ na podjazd. Każdy wzór układamy pod Kłodzkiem.', rows: 'Cegiełka: klasyka na ścieżki i place.', basket: 'Koszyk: pary kostek na przemian. Spokojny wzór na taras.', slabs: 'Płyty na mijankę: nowocześnie, z dużych formatów.', arcs: 'Łuki segmentowe, jak na starym rynku.', cobble: 'Kostka granitowa rzędowa. Na lata, na pokolenia.' };
 let wz = 'herring', wzKol = 'grafit', wzDot = false;
+// Höhe des Beschreibungstextes fest (längster Text), sonst springt die Seite und die Steinwelt baut neu
+(function () { const e = $('#wzOpis'); if (!e) return; let bw = 0; const fix = () => { if (innerWidth === bw) return; bw = innerWidth; e.style.minHeight = ''; const t = e.textContent; let m = 0; Object.values(OPISY).forEach(x => { e.textContent = x; m = Math.max(m, e.offsetHeight); }); e.textContent = t; e.style.minHeight = m + 'px'; }; fix(); addEventListener('resize', () => { clearTimeout(fix.t); fix.t = setTimeout(fix, 300); }); })();
 function pasekKol() { const wp = $('#wzPorownaj'); if (!wp) return; const KOL = $$('[data-kol]').map(b => [b.dataset.kol, b.textContent.trim()]); wp.innerHTML = KOL.map(([k, n]) => `<button type="button" class="wz-pk${k === wzKol ? ' on' : ''}" data-pk="${k}" aria-pressed="${k === wzKol}"><img src="img/wz/wz-${wz}-${k}.webp" alt="" width="112" height="72" loading="lazy" decoding="async"><span>${n}</span></button>`).join(''); }
 function ustawWzor(p, k) { wz = p || wz; wzKol = k || wzKol;
   $$('[data-wz]').forEach(b => { const on = b.dataset.wz === wz; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });

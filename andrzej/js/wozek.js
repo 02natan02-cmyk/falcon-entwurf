@@ -327,7 +327,7 @@ ${koloWozka(74, -34, 34, 'kr')}${koloWozka(154, -34, 34, 'kr')}${koloWozka(420, 
   function celPrzycisk(b) { if (!b) return null; const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
 
   /* ---------- konfigurator w sekcji ---------- */
-  const wyb = { m: 'polbruk', p: null, o: {} };
+  const wyb = { m: 'polbruk', p: null, o: {} }, zrobione = new Set();
   const prodBox = $('#wkProd'), konf = $('#wkKonf');
   function pokazMarke(m) {
     wyb.m = m; $$('[data-wkm]').forEach(b => { const on = b.dataset.wkm === m; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; if (on) { const pn = $('#wkPanelM'); pn && pn.setAttribute('aria-labelledby', b.id); } });
@@ -343,6 +343,7 @@ ${koloWozka(74, -34, 34, 'kr')}${koloWozka(154, -34, 34, 'kr')}${koloWozka(420, 
 <div class="wk-opcje"><h3>${M.nazwa === 'Z placu' ? '' : M.nazwa + ' · '}${P.nazwa}</h3>${chips('linia', P.linie || P.typy, P.linie ? 'Linia' : 'Rodzaj')}${chips('kolor', P.kolory, 'Kolor')}${chips('grub', P.grub, 'Grubość')}
 <div class="wk-ile"><span class="opcje-t">Ilość <small>(możesz zostawić pustą, ustalicie ją razem)</small></span><button type="button" class="wk-pm" data-d="-1" aria-label="Zmniejsz ilość">−</button><input id="wkIle" type="number" inputmode="decimal" min="0" step="any" value="" placeholder="np. ${P.ile}" aria-label="Ilość w ${P.jedn}"><span class="jedn">${P.jedn}</span><button type="button" class="wk-pm" data-d="1" aria-label="Zwiększ ilość">+</button></div>
 ${P.jedn === 'm²' ? `<div class="wk-licz"><span class="opcje-t">Nie wiesz, ile to m²? Przelicz z wymiarów</span><label>dł. <input type="number" inputmode="decimal" min="0" step="any" data-l="dl" aria-label="Długość w metrach"> m</label><b>×</b><label>szer. <input type="number" inputmode="decimal" min="0" step="any" data-l="sz" aria-label="Szerokość w metrach"> m</label><label class="wk-zapas"><input type="checkbox" data-l="zapas" checked> +5% na docinki</label><output class="wk-wyn"></output></div>` : ''}
+<p class="wk-krok" data-k="4"><i>4</i><span>Załaduj na wózek<small>Andrzej przewiezie paletę na auto. Możesz dodać kilka produktów.</small></span></p>
 <button type="button" class="btn wk-zaladuj" id="wkZaladuj"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17V9h5l2-5h3v13M16 3v15M16 18h6"/><circle cx="6" cy="18" r="2"/><circle cx="12" cy="18" r="2"/></svg>Załaduj na wózek</button>
 ${M.katalog ? `<a class="katalog-link" href="${M.katalog}" target="_blank" rel="noopener">Katalog ${M.nazwa} ↗</a>` : ''}</div>`;
     podglad();
@@ -353,19 +354,32 @@ ${M.katalog ? `<a class="katalog-link" href="${M.katalog}" target="_blank" rel="
     return { id: [P.id, o.linia, o.kolor, o.grub].join('|'), typ: P.id, nazwa, ile: isFinite(ile) && ile > 0 ? ile : null, jedn: P.jedn, foto: 'img/tex/grafit.webp', wk: { rodzaj: P.rodzaj, kolor: o.kolor || 'szary', marka: M.nazwa === 'Z placu' ? 'GardenBruk' : M.nazwa, linia: P.linie ? o.linia : (o.linia || P.nazwa) } }; }
   function podglad() { const p = pozycja(), g = $('.wk-pg', konf); g.innerHTML = paleta(p, { pfx: 'wkp' }); $('#wkPodpis').textContent = p.nazwa; }
   if (prodBox) {
-    $$('[data-wkm]').forEach(b => b.addEventListener('click', () => pokazMarke(b.dataset.wkm)));
+    $$('[data-wkm]').forEach(b => b.addEventListener('click', () => { pokazMarke(b.dataset.wkm); krok(1); }));
     $('.wk-marki').addEventListener('keydown', e => { const t = $$('[data-wkm]'), i = t.findIndex(b => b.classList.contains('on')); const k = { ArrowRight: i + 1, ArrowLeft: i - 1 + t.length, Home: 0, End: t.length - 1 }[e.key]; if (k == null) return; e.preventDefault(); const n = t[k % t.length]; n.focus(); pokazMarke(n.dataset.wkm); });
-    prodBox.addEventListener('click', e => { const b = e.target.closest('[data-wkp]'); if (b) pokazProdukt(MARKI[wyb.m].produkty.find(p => p.id === b.dataset.wkp)); });
+    prodBox.addEventListener('click', e => { const b = e.target.closest('[data-wkp]'); if (b) { pokazProdukt(MARKI[wyb.m].produkty.find(p => p.id === b.dataset.wkp)); krok(2); } });
     konf.addEventListener('input', e => { if (!e.target.closest('.wk-licz')) return; const g = k => parseFloat((($(`[data-l="${k}"]`, konf) || {}).value || '').replace(',', '.')), dl = g('dl'), sz = g('sz'), z = $('[data-l="zapas"]', konf).checked, o = $('.wk-wyn', konf);
       if (dl > 0 && sz > 0) { const m = dl * sz, w = Math.round(m * (z ? 1.05 : 1) * 10) / 10; $('#wkIle').value = w; o.textContent = `${K.fmt(m)} m²${z ? ` + 5% = ${K.fmt(w)} m²` : ''}`; } else o.textContent = ''; });
+    konf.addEventListener('input', () => krok(3));
     konf.addEventListener('change', e => { if (e.target.matches('[data-l="zapas"]')) e.target.dispatchEvent(new Event('input', { bubbles: true })); });
     konf.addEventListener('click', e => {
       const c = e.target.closest('[data-wko]'); if (c) { wyb.o[c.dataset.wko] = c.dataset.v; $$(`[data-wko="${c.dataset.wko}"]`, konf).forEach(x => { const on = x === c; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on); }); podglad(); }
       const pm = e.target.closest('.wk-pm'); if (pm) { const i = $('#wkIle'), krok = wyb.p.jedn === 't' || wyb.p.jedn === 'dni' ? 1 : 5; i.value = Math.max(0, (parseFloat(i.value) || 0) + krok * pm.dataset.d); }
-      if (e.target.closest('#wkZaladuj')) { const p = pozycja(); K.dodaj(p); const b = $('#wkZaladuj'); b.classList.remove('skok'); void b.offsetWidth; b.classList.add('skok'); }
+      if (e.target.closest('#wkZaladuj')) { const p = pozycja(); K.dodaj(p); const b = $('#wkZaladuj'); b.classList.remove('skok'); void b.offsetWidth; b.classList.add('skok'); krok(4); dalej(); }
+      const dl = e.target.closest('[data-wkdalej]'); if (dl) skok(+dl.dataset.wkdalej);
+      if (e.target.closest('[data-wko],.wk-pm')) krok(3);
     });
     pokazMarke('polbruk');
+    // Kroki 1–5: co zrobione (✓), co teraz (zielone), skok do kroku z paska
+    $('#wkPostep').addEventListener('click', e => { const b = e.target.closest('[data-skok]'); if (b) skok(+b.dataset.skok); });
+    stan();
   }
+  function krok(k) { for (let i = 1; i <= k; i++) zrobione.add(i); stan(); }
+  function stan() { if (K.lista.length) zrobione.add(4); let teraz = 1; while (zrobione.has(teraz) && teraz < 5) teraz++;
+    $$('#wkPostep li').forEach(li => { const k = +li.dataset.k; li.classList.toggle('ok', zrobione.has(k)); li.classList.toggle('teraz', k === teraz); });
+    $$('#wozek .wk-krok').forEach(p => { const k = +p.dataset.k; p.classList.toggle('ok', zrobione.has(k)); p.classList.toggle('teraz', k === teraz); }); }
+  function skok(k) { const cel = $(`#wozek .wk-krok[data-k="${k}"]`) || $('#wozek'); cel.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); }
+  function dalej() { let d = $('.wk-dalej', konf); if (!d) { d = document.createElement('div'); d.className = 'wk-dalej'; d.setAttribute('role', 'status'); $('#wkZaladuj').after(d); }
+    const n = K.lista.length; d.innerHTML = `<b>✓ Załadowane! Na wózku: ${n} ${lp(n)}.</b><span>Dodaj kolejny produkt albo wyślij zamówienie.</span><div><button type="button" class="btn jasny" data-wkdalej="2">+ Kolejny produkt</button><button type="button" class="btn" data-wkdalej="5">Wyślij zamówienie ↓</button></div>`; }
 
   /* ---------- lista zamówienia w sekcji ---------- */
   const lista = $('#wkLista'); let wroc = null;
@@ -374,6 +388,7 @@ ${M.katalog ? `<a class="katalog-link" href="${M.katalog}" target="_blank" rel="
     if (!lista) return; const L = K.lista;
     lista.innerHTML = L.length ? L.map((p, i) => `<div class="wk-poz"><i style="background-image:url('${foto(p)}')"></i><div><b>${esc(p.nazwa)}</b><label><input type="number" inputmode="decimal" min="0" step="any" value="${p.ile || ''}" placeholder="?" data-i="${i}" aria-label="Ilość: ${esc(p.nazwa)}"> ${esc(p.jedn || '')}</label></div><button type="button" data-u="${i}" aria-label="Zdejmij z wózka: ${esc(p.nazwa)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>`).join('') : '<p class="wk-pusto">Wózek jest pusty. Wybierz towar i naciśnij „Załaduj na wózek”.</p>';
     const ile = $('#wkIleSzt'); if (ile) ile.textContent = L.length ? L.length + ' ' + lp(L.length) : 'pusto';
+    if (!L.length) zrobione.delete(4); typeof stan === 'function' && prodBox && stan();
     if (wroc) { const w = wroc; wroc = null; const el = w.t === 'i' ? $(`[data-i="${w.i}"]`, lista) : $(`[data-u="${Math.min(w.i, L.length - 1)}"]`, lista) || $('#wkImie'); el && el.focus({ preventScroll: true }); }
   }
   if (lista) {
@@ -388,6 +403,7 @@ ${M.katalog ? `<a class="katalog-link" href="${M.katalog}" target="_blank" rel="
   function daneZam() { const o = $('input[name="odbior"]:checked', zam); return [pole('#wkImie') && 'Imię: ' + pole('#wkImie'), pole('#wkTel') && 'Telefon: ' + pole('#wkTel'), pole('#wkMiejsce') && 'Miejscowość: ' + pole('#wkMiejsce'), o && 'Odbiór: ' + o.value, pole('#wkTermin') && 'Termin: ' + pole('#wkTermin'), pole('#wkUwagi') && 'Uwagi: ' + pole('#wkUwagi')].filter(Boolean).join('\n'); }
   function wynikWa(sc, link, otwarte) {
     sc.czeka = true;
+    zrobione.add(5); prodBox && stan();
     sc.pokaz(`<b>Zamówienie gotowe!</b><p>${otwarte ? 'WhatsApp otworzył się z gotową wiadomością. Naciśnij tam „Wyślij”, a zamówienie trafi do Andrzeja.' : 'Wiadomość jest gotowa. Otwórz WhatsApp i naciśnij „Wyślij”.'}</p><div class="wk-wb"><a class="btn wa-btn" href="${link}" target="_blank" rel="noopener">${otwarte ? 'Otwórz WhatsApp jeszcze raz' : 'Otwórz WhatsApp'}</a><button type="button" class="btn" data-wk="wyslane">Wysłane – nowy wózek</button><button type="button" class="btn jasny" data-wk="zostaw">Zostaw wózek</button></div>`);
   }
   async function wyslijWa(sc) {

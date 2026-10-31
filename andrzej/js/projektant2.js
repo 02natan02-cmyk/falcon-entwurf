@@ -8,7 +8,7 @@
   const $ = s => root.querySelector(s), $$ = s => [...root.querySelectorAll(s)];
   const RM = matchMedia('(prefers-reduced-motion: reduce)').matches, MOB = () => innerWidth < 821, DOTYK = () => MOB() || matchMedia('(pointer: coarse)').matches;
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v)), toast = m => window.GBtoast && GBtoast(m);
-  const scena = $('#p2Scena'), cv = $('#p2Gl'), nak = $('#p2Nak'), nx = nak.getContext('2d'), lupa = $('#p2Lupa'), lx = lupa.getContext('2d');
+  const scena = $('#p2Scena'), cv = $('#p2Gl'), nak = $('#p2Nak'), nx = nak.getContext('2d'), lupa = $('#p2Lupa'), lx = lupa.getContext('2d'), suwak = $('#p2Suwak');
 
   /* ---------- katalog ---------- */
   const PRZYKLADY = [
@@ -168,9 +168,9 @@ void main(){
       if (noc || wiecz) g.filter = noc ? 'brightness(.42) saturate(.7) hue-rotate(8deg)' : 'brightness(.84) sepia(.12)'; g.drawImage(im, bx - wpx / 2, by - hpx, wpx, hpx); g.filter = 'none';
       if (T2.lampa && (noc || wiecz)) { g.globalCompositeOperation = 'lighter'; const ly = by - hpx * (1 - T2.lampa.y), rr = Math.max(10, wpx * (T2.lampa.dol ? .9 : 1.6)); const hg = g.createRadialGradient(bx, ly, 0, bx, ly, rr); const a = noc ? .95 : .5;
         hg.addColorStop(0, `rgba(255,236,190,${a})`); hg.addColorStop(.25, `rgba(255,200,120,${a * .45})`); hg.addColorStop(1, 'rgba(255,170,80,0)'); g.fillStyle = hg; g.beginPath(); g.arc(bx, ly, rr, 0, 7); g.fill(); g.globalCompositeOperation = 'source-over'; }
-      if (i === st.wyb && st.krok === 4) { g.strokeStyle = '#5ad27c'; g.lineWidth = 2; g.setLineDash([6, 5]); g.strokeRect(bx - wpx / 2 - 4, by - hpx - 4, wpx + 8, hpx + 8); g.setLineDash([]); kolko(g, bx + wpx / 2 + 4, by - hpx - 4, 11, '#5ad27c', '⤢'); } }
+      if (i === st.wyb && st.krok === 4) { const [hw, ht] = ramka(wpx, hpx); g.strokeStyle = '#5ad27c'; g.lineWidth = 2; g.setLineDash([6, 5]); g.strokeRect(bx - hw, by - ht, hw * 2, ht + 4); g.setLineDash([]); kolko(g, bx + hw, by - ht, 12, '#5ad27c', '⤢'); kolko(g, bx - hw, by - ht, 12, '#d64545', '✕'); } }
     // porównanie: linia
-    if (st.porownaj) { const [sx] = naEkran([st.split, 0]); g.fillStyle = '#fff'; g.fillRect(sx - 1.5, 0, 3, r.height); kolko(g, sx, r.height / 2, 20, '#fff', '↔', '#1b1b1a'); etykieta(g, 'Przed', 12, r.height - 46); etykieta(g, 'Po', r.width - 52, r.height - 46); }
+    suwak.hidden = !st.porownaj; if (st.porownaj) { const [sx] = naEkran([st.split, 0]); suwak.style.left = sx + 'px'; g.fillStyle = '#fff'; g.fillRect(sx - 1.5, 0, 3, r.height); kolko(g, sx, r.height / 2, 20, '#fff', '↔', '#1b1b1a'); etykieta(g, 'Przed', 12, r.height - 46); etykieta(g, 'Po', r.width - 52, r.height - 46); }
     // perspektywa
     if (st.krok === 2) { const M = Hm(); g.strokeStyle = 'rgba(255,214,90,.55)'; g.lineWidth = 1.2; g.beginPath(); const nI = Math.min(40, Math.round(st.wm)), nJ = Math.min(40, Math.round(st.lm));
       for (let i = 0; i <= nI; i++) for (let j = 0; j <= 20; j++) { const [x, y] = naEkran(zast(M, i / nI, j / 20)); j ? g.lineTo(x, y) : g.moveTo(x, y); }
@@ -213,12 +213,12 @@ void main(){
   function zapiszLokalnie() { try { if (st.zrodlo >= 0) localStorage.setItem('gb-p2-' + st.zrodlo, zdjecie()); } catch (e) { /* */ } }
 
   /* ---------- interakcja na scenie ---------- */
-  const wsk = new Map(); let ciag = null, kursor = null, dotyk = false, wybPunkt = -1, pinch = null;
+  const wsk = new Map(); let dwa = null, suw = null, ciag = null, kursor = null, dotyk = false, wybPunkt = -1, pinch = null;
   const pos = e => { const r = scena.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
   const blisko = (a, b, px) => { const [ax, ay] = naEkran(a), [bx, by] = naEkran(b); return Math.hypot(ax - bx, ay - by) < px; };
   // dotyk poza pełnym ekranem: strona przewija się normalnie, a dotknięcie zdjęcia otwiera projektant na cały ekran
   let tap = null; const wLinii = () => !root.classList.contains('pelny');
-  scena.addEventListener('pointerdown', e => { if (!st.foto || e.target.closest('button')) return; if (e.pointerType === 'touch' && wLinii()) return; dotyk = e.pointerType === 'touch'; scena.setPointerCapture(e.pointerId); wsk.set(e.pointerId, pos(e)); ruszony();
+  scena.addEventListener('pointerdown', e => { if (!st.foto || e.target.closest('button')) return; if (e.pointerType === 'touch' && wLinii()) { if (st.porownaj) { suw = { id: e.pointerId, x: e.clientX, y: e.clientY, akt: !!e.target.closest('.p2-suwak') }; if (suw.akt) { scena.setPointerCapture(e.pointerId); ruszony(); } } return; } dotyk = e.pointerType === 'touch'; scena.setPointerCapture(e.pointerId); if (!dotyk) scena.focus({ preventScroll: true }); wsk.set(e.pointerId, pos(e)); ruszony();
     if (wsk.size === 2) { const [a, b] = [...wsk.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), c: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], z: view.z }; ciag = null; ukryjLupe(); return; }
     const [sx, sy] = pos(e), p = zEkranu(sx, sy), R = dotyk ? 30 : 18;
     if (st.porownaj && Math.abs(naEkran([st.split, 0])[0] - sx) < 30) { ciag = { t: 'split' }; return; }
@@ -233,12 +233,16 @@ void main(){
       ciag = { t: 'pan', s: [sx, sy], o: [view.ox, view.oy] }; return; }
     if (st.krok === 4) {
       if (st.narz === 'gumka' || st.narz === 'pedzel') { ciag = { t: 'maluj', last: null }; maluj(p); pokazLupe(sx, sy); return; }
-      const hitO = trafObiekt(sx, sy); if (hitO.i >= 0) { st.wyb = hitO.i; zapamietaj(); ciag = hitO.skala ? { t: 'skala', i: hitO.i, s0: st.obiekty[hitO.i].s, y0: sy } : { t: 'obiekt', i: hitO.i, d: [p[0] - st.obiekty[hitO.i].x, p[1] - st.obiekty[hitO.i].y] }; panel(); rysuj(); return; }
-      if (st.obiektTyp) { zapamietaj(); st.obiekty.push({ t: st.obiektTyp, x: p[0], y: p[1], s: 1 }); st.wyb = st.obiekty.length - 1; ciag = { t: 'obiekt', i: st.wyb, d: [0, 0] }; panel(); rysuj(); toast(OBIEKTY[st.obiektTyp].n + ': przeciągnij, aby przesunąć'); return; }
+      const hitO = trafObiekt(sx, sy); if (hitO.usun) { st.wyb = hitO.i; usunObiekt(); dwa = null; toast('Usunięto · ↶ przywraca'); return; }
+      if (hitO.i >= 0) { const tn = performance.now(); if (dwa && dwa.i === hitO.i && tn - dwa.t < 420) { st.wyb = hitO.i; usunObiekt(); dwa = null; toast('Usunięto · ↶ przywraca'); return; } dwa = { i: hitO.i, t: tn }; }
+      if (hitO.i >= 0) { st.wyb = hitO.i; zapamietaj(); ciag = hitO.skala ? { t: 'skala', i: hitO.i, s0: st.obiekty[hitO.i].s, y0: sy } : { t: 'obiekt', i: hitO.i, d: [p[0] - st.obiekty[hitO.i].x, p[1] - st.obiekty[hitO.i].y] }; panel(); rysuj(); return; }
+      if (st.obiektTyp) { zapamietaj(); st.obiekty.push({ t: st.obiektTyp, x: p[0], y: p[1], s: 1 }); st.wyb = st.obiekty.length - 1; ciag = { t: 'obiekt', i: st.wyb, d: [0, 0] }; panel(); rysuj(); toast(OBIEKTY[st.obiektTyp].n + ': przeciągnij, aby przesunąć · ✕ usuwa'); return; }
       st.wyb = -1; panel(); ciag = { t: 'pan', s: [sx, sy], o: [view.ox, view.oy] }; rysuj(); return; }
     ciag = { t: 'pan', s: [sx, sy], o: [view.ox, view.oy] };
   });
-  scena.addEventListener('pointermove', e => { if (!st.foto) return; if (tap && tap.id === e.pointerId) { if (Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 12) tap = null; return; } const [sx, sy] = pos(e); kursor = zEkranu(sx, sy); if (wsk.has(e.pointerId)) wsk.set(e.pointerId, [sx, sy]);
+  scena.addEventListener('pointermove', e => { if (!st.foto) return;
+    if (suw && suw.id === e.pointerId) { const dx = e.clientX - suw.x, dy = e.clientY - suw.y; if (!suw.akt && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) * 1.2) { suw.akt = true; ruszony(); }
+      if (suw.akt) { const [sx, sy] = pos(e); st.split = clamp(zEkranu(sx, sy)[0], 0, 1); rysuj(); } return; } if (tap && tap.id === e.pointerId) { if (Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 12) tap = null; return; } const [sx, sy] = pos(e); kursor = zEkranu(sx, sy); if (wsk.has(e.pointerId)) wsk.set(e.pointerId, [sx, sy]);
     if (pinch && wsk.size === 2) { const [a, b] = [...wsk.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]), c = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; const z2 = clamp(pinch.z * d / pinch.d, 1, 8);
       const [px, py] = zEkranu(pinch.c[0], pinch.c[1]); view.z = z2; view.ox = c[0] - px * Wd * z2; view.oy = c[1] - py * Hd * z2; pinch.c = c; view.fit = false; ograniczWidok(); rysuj(); return; }
     if (!ciag) { if (st.narz === 'rysuj' || st.narz === 'gumka') rysuj(); return; } const p = kursor;
@@ -252,7 +256,7 @@ void main(){
     else if (ciag.t === 'split') { st.split = clamp(p[0], 0, 1); rysuj(); }
     else if (ciag.t === 'pan' && view.z > 1) { view.ox = ciag.o[0] + sx - ciag.s[0]; view.oy = ciag.o[1] + sy - ciag.s[1]; ograniczWidok(); rysuj(); }
   });
-  function koniecCiag(e) { if (tap && tap.id === e.pointerId) { const ok = e.type === 'pointerup' && performance.now() - tap.t < 600; tap = null; if (ok && !e.target.closest('.p2-pasek,button')) { ruszony(); pelny(true); toast('Pełny ekran: rysuj palcem, a dwoma palcami przybliżaj. Przycisk ✕ wraca do strony.'); } return; } wsk.delete(e.pointerId); if (wsk.size < 2) pinch = null; if (!ciag) return; const t = ciag.t; ciag = null; ukryjLupe();
+  function koniecCiag(e) { if (suw && suw.id === e.pointerId) { suw = null; return; } if (tap && tap.id === e.pointerId) { const ok = e.type === 'pointerup' && performance.now() - tap.t < 600; tap = null; if (ok && !e.target.closest('.p2-pasek,button')) { ruszony(); pelny(true); toast('Pełny ekran: rysuj palcem, a dwoma palcami przybliżaj. Przycisk ✕ wraca do strony.'); } return; } wsk.delete(e.pointerId); if (wsk.size < 2) pinch = null; if (!ciag) return; const t = ciag.t; ciag = null; ukryjLupe();
     if (t === 'rog') { liczLref(); planujKamien(); }
     else if (t === 'pkt') { planujKamien(); liczLref(); }
     else if (t === 'lasso') { const eps = 3 / (Wd * view.z); const pts = rdp(st.rysowane, eps); st.rysowane = pts.length > 2 ? pts : null; if (st.rysowane) zamknijObszar(); else rysuj(); }
@@ -262,9 +266,12 @@ void main(){
   scena.addEventListener('pointerup', koniecCiag); scena.addEventListener('pointercancel', koniecCiag);
   scena.addEventListener('pointerleave', () => { kursor = null; rysuj(); });
   scena.addEventListener('wheel', e => { if (!st.foto) return; if (!e.ctrlKey && !root.classList.contains('pelny')) return; e.preventDefault(); const [sx, sy] = pos(e); zoomWokol(Math.exp(-e.deltaY * .0016), sx, sy); }, { passive: false });
+  // ramka zaznaczenia: przy małych obiektach (słupek) uchwyty ✕ i ⤢ nie nachodzą na siebie
+  function ramka(wpx, hpx) { return [Math.max(wpx / 2 + 4, 28), Math.max(hpx + 4, 40)]; }
   function trafObiekt(sx, sy) { for (let k = st.obiekty.length - 1; k >= 0; k--) { const o = st.obiekty[k], T2 = OBIEKTY[o.t], im = IMG[T2.src]; if (!im || !im.naturalWidth) continue;
       const hpx = T2.h * pxNaMetr(o.x, o.y) * o.s / st.fW * Wd * view.z, wpx = hpx * im.naturalWidth / im.naturalHeight, [bx, by] = naEkran([o.x, o.y]);
-      if (k === st.wyb && Math.hypot(sx - (bx + wpx / 2 + 4), sy - (by - hpx - 4)) < 18) return { i: k, skala: true };
+      const R0 = dotyk ? 22 : 15, [hw, ht] = ramka(wpx, hpx); if (k === st.wyb && Math.hypot(sx - (bx - hw), sy - (by - ht)) < R0) return { i: k, usun: true };
+      if (k === st.wyb && Math.hypot(sx - (bx + hw), sy - (by - ht)) < R0) return { i: k, skala: true };
       if (sx > bx - wpx / 2 - 6 && sx < bx + wpx / 2 + 6 && sy > by - hpx - 6 && sy < by + 10) return { i: k }; } return { i: -1 }; }
   function maluj(p) { const w = maska.width, h = maska.height, r = st.pedzel / 100 * w; const kol = st.narz === 'gumka' ? '0,0,0' : '255,255,255';
     const g = mx.createRadialGradient(p[0] * w, p[1] * h, r * .55, p[0] * w, p[1] * h, r); g.addColorStop(0, `rgba(${kol},1)`); g.addColorStop(1, `rgba(${kol},0)`); mx.fillStyle = g; mx.beginPath(); mx.arc(p[0] * w, p[1] * h, r, 0, 7); mx.fill(); maskaBrudna = true; rysuj(); }
@@ -272,6 +279,7 @@ void main(){
     st.strefy.push({ nazwa: NAZWY[n % NAZWY.length] + (n >= NAZWY.length ? ' ' + (n + 1) : ''), pts, pat: prev ? prev.pat : 'herring', pal: prev ? prev.pal : 'grafit', obrz: prev ? prev.obrz : 'bianco', obrzR: 1, obrot: 0 });
     st.akt = st.strefy.length - 1; st.narz = 'edytuj'; liczLref(); planujKamien(true); panel(); toast('Obszar gotowy. Wybierz dla niego kostkę.'); }
   document.addEventListener('keydown', e => { if (!root.contains(document.activeElement) && !root.classList.contains('pelny')) return; if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? ponow() : cofnij(); }
+    if ((e.key === 'Delete' || e.key === 'Backspace') && st.krok === 4 && st.wyb >= 0 && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) { e.preventDefault(); usunObiekt(); toast('Usunięto · ↶ przywraca'); return; }
     if (e.key === 'Escape') { if (st.rysowane) { st.rysowane = null; rysuj(); } else if (root.classList.contains('pelny')) pelny(false); }
     if ((e.key === 'Delete' || e.key === 'Backspace') && st.krok === 4 && st.wyb >= 0 && document.activeElement.tagName !== 'INPUT') { usunObiekt(); } });
 
@@ -282,8 +290,8 @@ void main(){
     scena.dataset.krok = k; panel(); podpowiedz(); rysuj();
     if (st.ruszony && k >= 2 && k <= 4 && DOTYK() && !root.classList.contains('pelny')) pelny(true); }
   function podpowiedz() { const t = { 1: 'Zrób zdjęcie albo wybierz przykład', 2: 'Przeciągnij 4 żółte punkty na rogi terenu', 3: st.narz === 'rysuj' ? (st.rysowane && st.rysowane.length > 2 ? 'Dotknij zielonego punktu, aby zamknąć obszar' : 'Dotykaj kolejnych rogów obszaru') : st.narz === 'lasso' ? 'Obrysuj obszar palcem' : 'Przeciągaj punkty · „+” dodaje punkt · dotknij obszaru, aby go wybrać',
-      4: st.narz === 'gumka' ? 'Zamaluj miejsca bez kostki (np. auto)' : st.obiektTyp ? 'Dotknij zdjęcia, aby postawić: ' + OBIEKTY[st.obiektTyp].n : 'Wybierz roślinę albo lampę i dotknij zdjęcia', 5: 'Przesuń linię: przed i po' }[st.krok]; $('#p2Wsk').textContent = t; }
-  function panel() {
+      4: st.narz === 'gumka' ? 'Zamaluj miejsca bez kostki (np. auto)' : st.wyb >= 0 && st.narz === 'obiekty' ? 'Przeciągnij, aby przesunąć · ⤢ wielkość · ✕ albo dwa stuknięcia usuwa' : st.obiektTyp ? 'Dotknij zdjęcia, aby postawić: ' + OBIEKTY[st.obiektTyp].n : 'Wybierz roślinę albo lampę i dotknij zdjęcia', 5: 'Przesuń linię: przed i po' }[st.krok]; $('#p2Wsk').textContent = t; }
+  function panel() { podpowiedz(); wymM2();
     const z = st.strefy[st.akt];
     // lista obszarów
     $('#p2Lista').innerHTML = st.strefy.map((q, i) => `<button type="button" class="p2-strefa${i === st.akt ? ' on' : ''}" data-z="${i}"><img src="img/wz/wz-${q.pat}-${q.pal}.webp" alt="" width="56" height="36"><span><b>${q.nazwa}</b><small>${nazwa(WZORY, q.pat)} · ${nazwa(KOLORY, q.pal)} · ${Math.round(poleM2(q.pts))} m²</small></span></button>`).join('') || '<p class="p2-maly">Jeszcze nie ma obszaru. Narysuj pierwszy.</p>';
@@ -307,9 +315,9 @@ void main(){
     st.opis = s.join('; ') + (ob.length ? '. Dodatki: ' + ob.join(', ') : ''); $('#p2Podsum').innerHTML = (s.length ? s.map(x => `<li>${x}</li>`).join('') : '<li>Narysuj obszar w kroku 3.</li>') + (ob.length ? `<li>${ob.join(', ')}</li>` : '');
     const m2 = st.strefy.reduce((a, z) => a + poleM2(z.pts), 0); const mb = st.strefy.reduce((a, z) => a + (z.obrz ? obrzezeM(z) : 0), 0); $('#p2Razem').textContent = m2 ? `Razem ok. ${Math.round(m2)} m²` + (mb ? ` i ok. ${Math.round(mb)} mb obrzeża` : '') + '. Zapas na docinki (ok. 5%) i dokładne ilości policzymy przy pomiarze.' : ''; }
   // przyciski panelu
-  $$('.p2-kroki [data-k]').forEach(b => b.addEventListener('click', () => krok(+b.dataset.k)));
+  $$('.p2-kroki [data-k]').forEach(b => b.addEventListener('click', () => { ruszony(); krok(+b.dataset.k); }));
   $('.p2-kroki').addEventListener('keydown', e => { const d = { ArrowRight: 1, ArrowLeft: -1 }[e.key]; if (!d) return; const k = clamp(st.krok + d, 1, 5); krok(k); $(`.p2-kroki [data-k="${k}"]`).focus(); });
-  $$('[data-dalej]').forEach(b => b.addEventListener('click', () => krok(+b.dataset.dalej)));
+  $$('[data-dalej]').forEach(b => b.addEventListener('click', () => { ruszony(); krok(+b.dataset.dalej); }));
   $$('[data-n]').forEach(b => b.addEventListener('click', () => { const n = b.dataset.n; if (n === 'caly') { zapamietaj(); st.rysowane = st.rogi.map(q => q.slice()); zamknijObszar(); return; }
     st.narz = n; if (n === 'rysuj' || n === 'lasso') { st.rysowane = null; wybPunkt = -1; } if (n === 'obiekty') st.obiektTyp = null; panel(); rysuj(); }));
   $('#p2Zamknij').addEventListener('click', zamknijObszar); $('#p2CofnijPkt').addEventListener('click', () => { if (st.rysowane) { st.rysowane.pop(); if (!st.rysowane.length) st.rysowane = null; panel(); rysuj(); } });
@@ -369,7 +377,9 @@ void main(){
   $('#p2Aranz') && $('#p2Aranz').addEventListener('click', e => { const b = e.target.closest('[data-ar]'); if (b) aranzuj(b.dataset.ar); });
   $('#p2Pedzel').addEventListener('input', e => { st.pedzel = +e.target.value; });
   $('#p2CzyscMaske').addEventListener('click', () => { mx.fillStyle = '#fff'; mx.fillRect(0, 0, maska.width, maska.height); maskaBrudna = true; rysuj(); });
-  $('#p2Wym').addEventListener('input', e => { const v = parseFloat(String(e.target.value).replace(',', '.')); if (!isFinite(v) || v < 1 || v > 80) return; if (e.target.id === 'p2W') st.wm = v; else st.lm = v; planujKamien(); rysuj(); });
+  $('#p2Wym').addEventListener('input', e => { const v = parseFloat(String(e.target.value).replace(',', '.')); if (!isFinite(v) || v < 1 || v > 80) return; if (e.target.id === 'p2W') st.wm = v; else st.lm = v; wymM2(); planujKamien(); rysuj(); });
+  // od razu podliczenie metrów z podanych wymiarów
+  function wymM2() { const e = $('#p2WymM2'); if (!e) return; const f = v => v.toLocaleString('pl-PL', { maximumFractionDigits: 1 }), a = st.wm * st.lm; e.innerHTML = `${f(st.wm)} × ${f(st.lm)} m = <b>${f(a)} m²</b> · z zapasem 5%: ${f(a * 1.05)} m²`; }
   $('#p2Wym').addEventListener('change', () => { zapamietaj(); panel(); });
   $('#p2Cofnij').addEventListener('click', cofnij); $('#p2Ponow').addEventListener('click', ponow);
   $('#p2ZoomP').addEventListener('click', () => { const r = scena.getBoundingClientRect(); zoomWokol(1.5, r.width / 2, r.height / 2); });
