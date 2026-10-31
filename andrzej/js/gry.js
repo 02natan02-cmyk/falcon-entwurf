@@ -1,3 +1,4 @@
+const lpR = n => n === 1 ? 'ruch' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'ruchy' : 'ruchów';
 /* GardenBruk – Strefa gier: zakładki, „Zgadnij wzór” (na czas) i „Memory z kostki”. „Ułóż sam” jest w gra.js. */
 (function () {
   'use strict';
@@ -23,7 +24,7 @@
   zakl.forEach(t => t.addEventListener('click', () => pokaz(t.dataset.g)));
   $('.gry-zakl').addEventListener('keydown', e => { const d = { ArrowRight: 1, ArrowLeft: -1 }[e.key]; if (!d) return; const i = zakl.findIndex(t => t.getAttribute('aria-selected') === 'true'); const n = zakl[(i + d + zakl.length) % zakl.length]; pokaz(n.dataset.g); n.focus(); });
   function rekordy() { const u = (document.getElementById('graRekord') || {}).textContent || ''; $('#rekUloz').textContent = u && u !== 'brak' ? 'Rekord: ' + u : 'Nowa gra';
-    const z = czytaj('gb-zg'); $('#rekZgad').textContent = z ? 'Rekord: ' + z + ' pkt' : 'Nowa gra'; const m = czytaj('gb-mem'); $('#rekMem').textContent = m ? 'Rekord: ' + m + ' ruchów' : 'Nowa gra'; }
+    const z = czytaj('gb-zg'); $('#rekZgad').textContent = z ? 'Rekord: ' + z + ' pkt' : 'Nowa gra'; const m = czytaj('gb-mem'); $('#rekMem').textContent = m ? 'Rekord: ' + m + ' ' + lpR(m) : 'Nowa gra'; }
   function miniatury() { /* obrazki w HTML */ }
 
   /* ---------- Zgadnij wzór ---------- */
@@ -73,19 +74,19 @@
       box.innerHTML = karty.map((k, i) => `<button type="button" class="karta" data-i="${i}" aria-label="Karta ${i + 1}, zakryta"><span class="tyl" aria-hidden="true"><b>GB</b></span><span class="przod" aria-hidden="true"><img src="${obrazy[k.id]}" alt=""><em>${WZ[PARY[k.id][0]]}<br>${NAZ[PARY[k.id][1]]}</em></span></button>`).join(''); }
     function odwroc(i, on) { const k = karty[i], b = box.children[i]; k.odkr = on; b.classList.toggle('odkr', on); b.setAttribute('aria-label', `Karta ${i + 1}, ${on ? WZ[PARY[k.id][0]] + ' ' + NAZ[PARY[k.id][1]] : 'zakryta'}`); }
     function klik(i) { if (stan !== 'gra') return; const k = karty[i]; if (k.odkr || k.para || odkryte.length >= 2) return; odwroc(i, true); odkryte.push(i);
-      if (odkryte.length === 2) { ruchy++; $('#memRuchy').textContent = ruchy + (ruchy === 1 ? ' ruch' : ruchy < 5 ? ' ruchy' : ' ruchów'); const [a, b] = odkryte;
+      if (odkryte.length === 2) { ruchy++; $('#memRuchy').textContent = ruchy + ' ' + lpR(ruchy); const [a, b] = odkryte;
         if (karty[a].id === karty[b].id) { karty[a].para = karty[b].para = true; box.children[a].classList.add('para'); box.children[b].classList.add('para'); odkryte = []; pary++; $('#memPary').textContent = `${pary} z 6 par`; if (pary === 6) setTimeout(koniec, 600); }
         else setTimeout(() => { odwroc(a, false); odwroc(b, false); odkryte = []; }, 850); } }
     function graj() { rozdaj(true); ruchy = 0; pary = 0; odkryte = []; stan = 'gra'; t0 = performance.now(); $('#memStart').hidden = true; $('#memRuchy').textContent = '0 ruchów'; $('#memPary').textContent = '0 z 6 par';
       clearInterval(zegar); zegar = setInterval(() => { $('#memCzas').textContent = ((performance.now() - t0) / 1000).toFixed(1).replace('.', ',') + ' s'; }, 100); }
     function koniec() { stan = 'koniec'; clearInterval(zegar); const s = ((performance.now() - t0) / 1000).toFixed(1).replace('.', ','); const rek = czytaj('gb-mem'), nowy = !rek || ruchy < rek; if (nowy) pisz('gb-mem', ruchy);
-      $('#memStart').hidden = false; $('#memStart').querySelector('span').innerHTML = `${nowy ? '<b>Nowy rekord!</b> ' : ''}Wszystkie pary w <b>${ruchy} ruchach</b> i ${s} s. Rekord: <b>${nowy ? ruchy : rek} ruchów</b>.`; $('#memGraj').textContent = 'Zagraj jeszcze raz'; rekordy(); }
+      $('#memStart').hidden = false; $('#memStart').querySelector('span').innerHTML = `${nowy ? '<b>Nowy rekord!</b> ' : ''}Wszystkie pary w <b>${ruchy} ruchach</b> i ${s} s. Rekord: <b>${nowy ? ruchy : rek} ${lpR(nowy ? ruchy : rek)}</b>.`; $('#memGraj').textContent = 'Zagraj jeszcze raz'; rekordy(); }
     box.addEventListener('click', e => { const b = e.target.closest('.karta'); if (b) klik(+b.dataset.i); });
     $('#memGraj').addEventListener('click', graj);
     function widac() { if (!karty.length) rozdaj(false); if (pokazano || RM || stan !== 'start') return; pokazano = true; // podgląd: dwie karty mrugną same
       setTimeout(() => { if (stan !== 'start') return; odwroc(0, true); odwroc(7, true); setTimeout(() => { if (stan !== 'start') return; odwroc(0, false); odwroc(7, false); }, 1300); }, 500); }
     new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting && !$('#gMem').hidden) widac(); }), { threshold: .4 }).observe(box);
-    return { widac, init() { const m = czytaj('gb-mem'); $('#memRekord').textContent = m ? m + ' ruchów' : 'brak'; }, test: () => ({ stan, ruchy, pary, n: karty.length }) };
+    return { widac, init() { const m = czytaj('gb-mem'); $('#memRekord').textContent = m ? m + ' ' + lpR(m) : 'brak'; }, test: () => ({ stan, ruchy, pary, n: karty.length }) };
   })();
 
   function start() { S = window.Swiat; miniatury(); rekordy(); zg.init(); mem.init(); window.GBgry = { zg: zg.test, mem: mem.test, pokaz }; }

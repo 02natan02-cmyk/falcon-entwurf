@@ -43,10 +43,12 @@
   function start() {
     if (bereit) return; bereit = true;
     if (location.hash.length > 1 || scrollY > 40) { gefahren = scrollY > ziel(); return; }
-    setTimeout(() => { if (!gefahren && scrollY < 40 && performance.now() - ostEingabe > 1800) film(); }, 2000);
+    setTimeout(() => { if (!gefahren && scrollY < 40 && performance.now() - ostEingabe > 1500) film(); }, 900);
   }
-  addEventListener('intro-koniec', start);
-  const warte = setInterval(() => { if (document.body.classList.contains('odslona')) { clearInterval(warte); setTimeout(start, 400); } }, 300);
+  // v9.6: rusza, gdy tytuł z kostek jest gotowy (tytul9.js), z zapasem awaryjnym po intro
+  const poTytule = () => setTimeout(() => { bereit = false; start(); }, 0);
+  addEventListener('tytul-gotowy', poTytule, { once: true });
+  addEventListener('intro-koniec', () => setTimeout(() => { if (!window.TytulGotowy && !bereit) start(); }, 6000), { once: true });
   // Wer selbst losscrollt: sobald das Scrollen zur Ruhe kommt (auch nach Schwung) und man zwischen Start und Punkt 2 steht, fährt die Seite weiter
   setInterval(() => {
     if (gefahren || auto || !bereit) return; const now = performance.now();

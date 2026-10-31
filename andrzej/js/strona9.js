@@ -152,7 +152,7 @@ const fiTekst = () => [`Zapytanie od firmy (${fiKto.toLowerCase()}).`, $('#fiCo'
 $('#fiWa') && $('#fiWa').addEventListener('click', () => open('https://wa.me/' + WA + '?text=' + encodeURIComponent('Dzień dobry, piszę ze strony GardenBruk.\n' + fiTekst()), '_blank', 'noopener'));
 $('#fiForm') && $('#fiForm').addEventListener('click', () => { $('#fWiad').value = fiTekst(); });
 /* ---------- gry: wyzwij znajomego ---------- */
-$('#gryWyzwij') && $('#gryWyzwij').addEventListener('click', async () => { const r = [['Ułóż sam', '#rekUloz'], ['Zgadnij wzór', '#rekZgad'], ['Memory z kostki', '#rekMem']].map(([n, s]) => { const v = ($(s) || {}).textContent || ''; return /Rekord/.test(v) ? n + ': ' + v.replace('Rekord: ', '') : null; }).filter(Boolean);
+$('#gryWyzwij') && $('#gryWyzwij').addEventListener('click', async () => { const r = [['Ułóż sam', '#rekUloz'], ['Zgadnij wzór', '#rekZgad'], ['Memory z kostki', '#rekMem'], ['Kostris', '#rekKos']].map(([n, s]) => { const v = ($(s) || {}).textContent || ''; return /Rekord/.test(v) ? n + ': ' + v.replace('Rekord: ', '') : null; }).filter(Boolean);
   const url = location.origin + location.pathname + '#gry', t = (r.length ? 'Moje rekordy w grach GardenBruk: ' + r.join(', ') + '. Pobijesz?' : 'Zagraj w gry GardenBruk na stronie i pobij moje wyniki!') + ' ' + url;
   if (navigator.share) { try { await navigator.share({ text: t }); return; } catch (e) { if (e && e.name === 'AbortError') return; } } open('https://wa.me/?text=' + encodeURIComponent(t), '_blank', 'noopener'); });
 /* ---------- kontakt: wizytówka do telefonu ---------- */

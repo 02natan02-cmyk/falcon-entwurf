@@ -16,9 +16,10 @@
 <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="fonts/big-shoulders-display-latin-900-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" as="image" href="img/real/plac-hero.webp" media="(min-width: 821px)">
-<link rel="preload" as="image" href="img/real/plac-hero-m.webp" media="(max-width: 820px)">
-<link rel="stylesheet" href="css/v6.css?v=21">
-<link rel="stylesheet" href="css/v9.css?v=21">
+<link rel="preload" as="image" href="img/real/plac-hero-m2.webp" media="(max-width: 820px)">
+<link rel="stylesheet" href="css/v6.css?v=22">
+<link rel="stylesheet" href="css/v9.css?v=22">
+<link rel="stylesheet" href="css/kostris.css?v=22">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"HomeAndConstructionBusiness","name":"Centrum Architektury Ogrodowej GardenBruk","alternateName":"GardenBruk","description":"Skład z ekspozycją: kostka brukowa, płyty tarasowe, ogrodzenia, palisady, kruszywo dekoracyjne, wypożyczalnia sprzętu. Pomiar u klienta.","address":{"@type":"PostalAddress","streetAddress":"Mikowice 16","postalCode":"57-300","addressLocality":"Kłodzko","addressCountry":"PL"},"telephone":"+48500250936","email":"biuro@gardenbruk.net","image":"https://entwurf.falcon-eye.de/andrzej/img/real/plac-hero.webp","sameAs":["https://www.facebook.com/gardenbruk.net/","https://www.instagram.com/gardenbruk/"],"areaServed":"Ziemia Kłodzka"}</script>
 </head>
 <body class="intro">
@@ -48,7 +49,7 @@
 <!-- START: plac z drona -->
 <section class="hero" id="start">
   <div class="hero-foto" id="heroFoto"><picture>
-    <source media="(max-width: 820px)" srcset="img/real/plac-hero-m.webp">
+    <source media="(max-width: 820px)" srcset="img/real/plac-hero-m2.webp" width="640" height="750">
     <img src="img/real/plac-hero.webp" width="1600" height="900" alt="Plac GardenBruk w Mikowicach z lotu ptaka: ekspozycja kostki i płyt, ogrodzenia i palety z towarem" fetchpriority="high">
   </picture></div>
   <div class="hero-cien" aria-hidden="true"></div>
@@ -82,7 +83,7 @@
 <section class="sek strefa" id="oferta" data-strefa="plac" data-wzor="slabs" data-kolor="bianco" data-obrzeze="grafit">
   <div class="wnetrze">
     <h2 class="tytul">Oferta<span>Co znajdziesz na placu.</span></h2>
-    <p class="lead">Dotknij, co Cię interesuje, i załaduj na wózek. Andrzej załaduje paletę na auto, a Ty wyślesz zamówienie WhatsAppem albo mailem.</p>
+    <p class="lead">Dotknij, co Cię interesuje, i załaduj na wózek. Andrzej załaduje paletę na auto, a Ty wyślesz zamówienie WhatsAppem albo e-mailem.</p>
     <div class="kafle" id="kafle"></div>
   </div>
 </section>
@@ -92,7 +93,6 @@
   <div class="wnetrze szeroka">
     <h2 class="tytul">Załaduj wózek<span>Zamów u Andrzeja. Prosto z placu.</span></h2>
     <p class="lead">Wybierz kostkę, płyty albo ogrodzenie od producentów <b>Polbruk</b> i <b>Joniec</b>, ustaw kolor i ilość, a potem załaduj paletę na wózek. Andrzej załaduje ją na auto, a Twoje zamówienie trafi do niego WhatsAppem albo e-mailem. Cenę, dostępność i termin ustalicie bezpośrednio.</p>
-    <div class="wk-scena wk-box" id="wkScena" role="img" aria-label="Andrzej na wózku widłowym ładuje Twoje palety na ciężarówkę GardenBruk"></div>
     <div class="wk-panel">
       <ol class="wk-postep" id="wkPostep" aria-label="Kroki zamówienia"><li data-k="1"><button type="button" data-skok="1"><i>1</i>Producent</button></li><li data-k="2"><button type="button" data-skok="2"><i>2</i>Produkt</button></li><li data-k="3"><button type="button" data-skok="3"><i>3</i>Kolor i ilość</button></li><li data-k="4"><button type="button" data-skok="4"><i>4</i>Na wózek</button></li><li data-k="5"><button type="button" data-skok="5"><i>5</i>Wyślij</button></li></ol>
       <div class="wk-wybor">
@@ -110,6 +110,7 @@
         </div>
         <p class="maly">Nazwy linii i kolorów według katalogów producentów. Nie każdy kolor i grubość występuje w każdej linii, dostępność ustalicie przy zamówieniu. Nie widzisz swojego produktu? Dopisz go w uwagach.</p>
       </div>
+      <aside class="wk-bok" aria-label="Wózek widłowy"><div class="wk-scena wk-box" id="wkScena" role="img" aria-label="Andrzej na wózku widłowym ładuje Twoje palety na ciężarówkę GardenBruk"></div></aside>
       <form class="formularz wk-zam" id="wkForm" novalidate>
         <p class="wk-krok" data-k="5"><i>5</i><span>Wyślij zamówienie do Andrzeja<small>Na wózku: <b id="wkIleSzt">pusto</b></small></span></p>
         <input type="text" name="_honey" class="ukryte" tabindex="-1" autocomplete="off" aria-label="Zostaw to pole puste">
@@ -280,12 +281,13 @@
 <!-- STREFA GIER -->
 <section class="sek strefa" id="gry" data-strefa="plac" data-wzor="basket" data-kolor="piaskowy" data-obrzeze="grafit">
   <div class="wnetrze szeroka">
-    <h2 class="tytul">Strefa gier<span>Trzy gry z kostki.</span></h2>
-    <p class="lead">Ułóż brakujący kawałek drogi, rozpoznaj wzory na czas albo znajdź pary kostek. Rekordy zapisują się na Twoim urządzeniu.</p>
+    <h2 class="tytul">Strefa gier<span>Cztery gry z kostki.</span></h2>
+    <p class="lead">Ułóż brakujący kawałek drogi, rozpoznaj wzory na czas, znajdź pary kostek albo zagraj w Kostris. Rekordy zapisują się na Twoim urządzeniu.</p>
     <div class="gry-zakl" role="tablist" aria-label="Wybierz grę">
       <button type="button" role="tab" id="tUloz" aria-controls="gUloz" aria-selected="true" data-g="uloz"><img src="img/wz/gry-rows-grafit.webp" alt="" width="88" height="64" loading="lazy" decoding="async"><b>Ułóż sam</b><small>Przeciągnij kamienie na miejsce</small><em id="rekUloz"></em></button>
-      <button type="button" role="tab" id="tZgad" aria-controls="gZgad" aria-selected="false" tabindex="-1" data-g="zgad"><img src="img/wz/gry-herring-melanz.webp" alt="" width="88" height="64" loading="lazy" decoding="async"><b>Zgadnij wzór</b><small>Osiem wzorów, mało czasu</small><em id="rekZgad"></em></button>
+      <button type="button" role="tab" id="tZgad" aria-controls="gZgad" aria-selected="false" tabindex="-1" data-g="zgad"><img src="img/wz/gry-herring-melanz.webp" alt="" width="88" height="64" loading="lazy" decoding="async"><b>Zgadnij wzór</b><small>Osiem rund, mało czasu</small><em id="rekZgad"></em></button>
       <button type="button" role="tab" id="tMem" aria-controls="gMem" aria-selected="false" tabindex="-1" data-g="mem"><img src="img/wz/gry-basket-bianco.webp" alt="" width="88" height="64" loading="lazy" decoding="async"><b>Memory z kostki</b><small>Znajdź sześć par</small><em id="rekMem"></em></button>
+      <button type="button" role="tab" id="tKos" aria-controls="gKos" aria-selected="false" tabindex="-1" data-g="kos"><canvas class="kos-ikona" width="88" height="64" aria-hidden="true"></canvas><b>Kostris</b><small>Kostka spada, Ty układasz</small><em id="rekKos"></em></button>
     </div>
     <p class="gry-wyzwij"><button type="button" class="btn jasny" id="gryWyzwij">Wyzwij znajomych</button><span>Wyślij swoje rekordy i sprawdź, kto pobije Twoje wyniki.</span></p>
     <div class="gry-pola">
@@ -306,6 +308,47 @@
         <div class="mem" id="mem" role="grid" aria-label="Memory: znajdź pary kostek"></div>
         <div class="gra-hud" aria-live="polite"><span id="memRuchy">0 ruchów</span><span id="memCzas">0,0 s</span><span id="memPary">0 z 6 par</span></div>
         <div class="gra-start" id="memStart"><button type="button" class="btn" id="memGraj">▶ Zagraj</button><span>Odkryj dwie kostki. Pasują? Zostają. Rekord: <b id="memRekord">brak</b></span></div>
+      </div>
+      <div class="gra-pole kos-pole" id="gKos" role="tabpanel" aria-labelledby="tKos" hidden>
+        <div class="kos-lewa">
+          <div class="kos-opis">
+            <h3 class="kos-tytul">Kos<span>tris</span></h3>
+            <p class="kos-motto">Układamy kostkę od lat. Twoje plany składamy tak łatwo, jak klocki w tej grze.</p>
+          </div>
+          <div class="gra-hud kos-hud"><span id="kosPoziom">Poziom 1</span><span id="kosPkt">0 pkt</span><span id="kosRzedy">0 rzędów</span><span class="kos-rek-pill">Rekord: <b id="kosRekordHud">brak</b></span></div>
+          <div class="kos-kolory"><p>Kolory w grze</p><ul id="kosKolory"></ul></div>
+        </div>
+        <div class="kos-plansza" id="kosPlansza" tabindex="-1">
+          <canvas id="kosCv" role="img" aria-label="Kostris: plansza z podsypki w obrzeżach, 10 na 18 pól. Spadające klocki z kostki brukowej układasz w pełne rzędy, pełny rząd zagęszczarka zabiera."></canvas>
+          <div class="gra-start gs-przez kos-start" id="kosStart">
+            <button type="button" class="btn" id="kosGraj">▶&#xFE0E; Zagraj</button>
+            <span class="gs-hint kos-dotyk">albo od razu stuknij planszę. Stuknięcie obraca, przesunięcie palcem w bok przesuwa, w dół zrzuca. Złota kostka daje bonus!</span>
+            <span class="gs-hint kos-mysz">albo kliknij planszę. Strzałki przesuwają i obracają, spacja zrzuca kostkę. Złota kostka daje bonus!</span>
+            <span>Rekord na tym urządzeniu: <b id="kosRekord">brak</b></span>
+          </div>
+          <div class="gra-start kos-pauza" id="kosPauza" hidden>
+            <p class="kos-ov-t">Pauza</p>
+            <span class="kos-ov-w">Plansza czeka na Ciebie. Kostka nie spadnie, dopóki nie wrócisz.</span>
+            <div class="kos-ov-btn"><button type="button" class="btn" id="kosDalej">▶&#xFE0E; Graj dalej</button><button type="button" class="btn jasny" id="kosNowa">Nowa gra</button></div>
+          </div>
+          <div class="gra-start kos-koniec" id="kosKoniec" hidden>
+            <p class="kos-ov-t" id="kosKTyt">Koniec gry</p>
+            <span class="kos-ov-w" id="kosKWynik"></span>
+            <span class="kos-ov-w" id="kosKRek"></span>
+            <div class="kos-ov-btn"><button type="button" class="btn" id="kosZnowu">Zagraj jeszcze raz</button><a class="btn jasny" href="#wozek">Zamów kostkę</a><a class="btn jasny" href="#projektant">Zaprojektuj swój podjazd</a></div>
+          </div>
+        </div>
+        <div class="kos-prawa">
+          <div class="kos-nast" aria-hidden="true"><span>Następna</span><canvas id="kosNastCv"></canvas><b id="kosNastNaz">grafit</b></div>
+        <p class="kos-klaw"><kbd>←</kbd> <kbd>→</kbd> przesuwają, <kbd>↑</kbd> obraca, <kbd>↓</kbd> przyspiesza, <kbd>spacja</kbd> zrzuca, <kbd>P</kbd> pauza.<br><b>Bonusy:</b> złota kostka w ułożonym rzędzie, kilka rzędów naraz i seria rzędów jeden po drugim.</p>
+        <div class="kos-ster" role="group" aria-label="Sterowanie kostką">
+          <button type="button" class="kos-k" data-k="lewo" aria-label="Przesuń w lewo"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="pelne" d="M16 5.5v13L6.5 12z"/></svg></button>
+          <button type="button" class="kos-k" data-k="obrot" aria-label="Obróć kostkę"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 4v6h-6"/><path d="M19.5 15a8 8 0 1 1-1.9-8.3L21 10"/></svg></button>
+          <button type="button" class="kos-k" data-k="prawo" aria-label="Przesuń w prawo"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="pelne" d="M8 5.5v13l9.5-6.5z"/></svg></button>
+          <button type="button" class="kos-k" data-k="zrzut" aria-label="Zrzuć kostkę na dół"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v12M6.5 10.5 12 16l5.5-5.5M5 20.5h14"/></svg></button>
+        </div>
+        </div>
+        <p class="ukryte" id="kosLive" role="status" aria-live="polite"></p>
       </div>
     </div>
   </div>
@@ -379,7 +422,7 @@
 <footer class="stopka" id="koniec">
   <p class="koniec-napis"><b>Droga ułożona do końca.</b> Dziękujemy za odwiedziny.</p>
   <p><b>GardenBruk</b> · Centrum Architektury Ogrodowej · Mikowice 16, 57-300 Kłodzko · <a href="tel:+48500250936">+48 500 250 936</a> · <a href="https://www.facebook.com/gardenbruk.net/" target="_blank" rel="noopener">Facebook</a> · <a href="polityka-prywatnosci.html">Polityka prywatności</a></p>
-  <p class="demo">Wersja demonstracyjna. Formularz e-mail trafia na razie do zespołu, który przygotowuje stronę.</p>
+  <p class="demo">Wersja demonstracyjna. Formularz e-mailowy trafia na razie do zespołu, który przygotowuje stronę.</p>
 </footer>
 </main>
 
@@ -405,14 +448,16 @@
 </aside>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="js/swiat2d.js?v=21"></script>
-<script src="js/swiat9.js?v=21"></script>
-<script src="js/intro9.js?v=21"></script>
-<script src="js/gra.js?v=21"></script>
-<script src="js/gry.js?v=21"></script>
-<script src="js/projektant2.js?v=21"></script>
-<script src="js/strona9.js?v=21"></script>
-<script src="js/film9.js?v=21"></script>
-<script src="js/wozek.js?v=21"></script>
+<script src="js/swiat2d.js?v=22"></script>
+<script src="js/swiat9.js?v=22"></script>
+<script src="js/intro9.js?v=22"></script>
+<script src="js/gra.js?v=22"></script>
+<script src="js/gry.js?v=22"></script>
+<script src="js/kostris.js?v=22"></script>
+<script src="js/projektant2.js?v=22"></script>
+<script src="js/strona9.js?v=22"></script>
+<script src="js/tytul9.js?v=22"></script>
+<script src="js/film9.js?v=22"></script>
+<script src="js/wozek.js?v=22"></script>
 </body>
 </html>

@@ -17,15 +17,27 @@
   const easeIO = u => u < .5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
   const easeOutB = u => { const c = 1.4; return 1 + (c + 1) * Math.pow(u - 1, 3) + c * Math.pow(u - 1, 2); };
   function cien() { const c = document.createElement('canvas'); c.width = c.height = 96; const g = c.getContext('2d'); g.shadowColor = 'rgba(0,0,0,1)'; g.shadowBlur = 18; g.fillStyle = 'rgba(0,0,0,.9)'; g.beginPath(); g.roundRect(18, 18, 60, 60, 10); g.fill(); return c; }
-  function geoCover(Z) { // jak object-fit: cover + object-position bohatera, powiększone Z-krotnie wokół środka
-    const iw = iImg.naturalWidth || 1600, ih = iImg.naturalHeight || 900, px = .5, py = MOB() ? 1 : .58;
-    const s0 = Math.max(iW / iw, iH / ih), dw0 = iw * s0, dh0 = ih * s0, dx0 = (iW - dw0) * px, dy0 = (iH - dh0) * py;
-    const dw = dw0 * Z, dh = dh0 * Z; return { s: s0 * Z, dx: iW / 2 - (iW / 2 - dx0) * Z, dy: iH / 2 - (iH / 2 - dy0) * Z, dw, dh };
+  // wygląd bohatera bez tekstu (tło, zdjęcie w swoim pudełku jak object-fit: cover, wygaszenie u dołu na telefonie) – z tego składają się kostki
+  let iComp = null;
+  function kompozyt() {
+    const c = document.createElement('canvas'); c.width = Math.ceil(iW * iD); c.height = Math.ceil(iH * iD); const x = c.getContext('2d'); x.scale(iD, iD);
+    x.fillStyle = '#1d2024'; x.fillRect(0, 0, iW, iH);
+    const box = (document.getElementById('heroFoto') || iImg).getBoundingClientRect();
+    const op = (getComputedStyle(iImg).objectPosition || '50% 50%').split(' ').map(v => parseFloat(v) / 100);
+    const px = isFinite(op[0]) ? op[0] : .5, py = isFinite(op[1]) ? op[1] : .5;
+    const iw = iImg.naturalWidth || 1600, ih = iImg.naturalHeight || 900, s = Math.max(box.width / iw, box.height / ih), dw = iw * s, dh = ih * s;
+    x.save(); x.beginPath(); x.rect(box.left, box.top, box.width, box.height); x.clip();
+    try { x.drawImage(iImg, box.left + (box.width - dw) * px, box.top + (box.height - dh) * py, dw, dh); } catch (e) {}
+    x.restore();
+    if (MOB()) { const h = box.height * .42, y0 = box.bottom - h, g = x.createLinearGradient(0, y0, 0, box.bottom);
+      g.addColorStop(0, 'rgba(29,32,36,0)'); g.addColorStop(.55, 'rgba(29,32,36,.75)'); g.addColorStop(1, '#1d2024'); x.fillStyle = g; x.fillRect(0, y0, iW, h + 1); }
+    return c;
   }
+  function geoCover(Z) { return { s: Z / iD, dx: iW / 2 * (1 - Z), dy: iH / 2 * (1 - Z), dw: iW * Z, dh: iH * Z }; }
   function kafelek(tx, ty, tw, th, g) { // kostka z kawałkiem zdjęcia: faza jak u prawdziwej kostki
     const c = document.createElement('canvas'); const W = Math.ceil(tw * iD), H = Math.ceil(th * iD); c.width = W; c.height = H; const x = c.getContext('2d');
     const sx = (tx - g.dx) / g.s, sy = (ty - g.dy) / g.s, sw = tw / g.s, sh = th / g.s;
-    x.beginPath(); x.roundRect(0, 0, W, H, Math.min(W, H) * .1); x.clip(); x.drawImage(iImg, sx, sy, sw, sh, 0, 0, W, H);
+    x.beginPath(); x.roundRect(0, 0, W, H, Math.min(W, H) * .1); x.clip(); x.drawImage(iComp, sx, sy, sw, sh, 0, 0, W, H);
     const e = Math.max(1.4, Math.min(W, H) * .14); let gr = x.createLinearGradient(0, 0, 0, e); gr.addColorStop(0, 'rgba(255,250,240,.24)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = gr; x.fillRect(0, 0, W, e);
     gr = x.createLinearGradient(0, 0, e, 0); gr.addColorStop(0, 'rgba(255,250,240,.16)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = gr; x.fillRect(0, 0, e, H);
     gr = x.createLinearGradient(0, H - e * 1.2, 0, H); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(10,8,6,.42)'); x.fillStyle = gr; x.fillRect(0, H - e * 1.2, W, e * 1.2);
@@ -35,7 +47,7 @@
   function introStart() {
     iW = innerWidth; iH = innerHeight; iD = Math.min(devicePixelRatio || 1, 2, Math.sqrt(4.5e6 / (iW * iH)));
     icv.width = Math.ceil(iW * iD); icv.height = Math.ceil(iH * iD); icv.style.width = iW + 'px'; icv.style.height = iH + 'px';
-    iImg = document.querySelector('#start img');
+    iImg = document.querySelector('#start img'); iComp = kompozyt();
     S.k = MOB() ? .27 : .34; iStones = []; S.genPattern('herring', 'grafit', -40, -40, iW + 40, iH + 40, () => true, iStones, {});
     const cx = iW / 2, cy = iH / 2; iR = Math.hypot(iW, iH) * .55;
     iStones.forEach(s => { s.d = Math.hypot(s.x - cx, s.y - cy) / iR; s.h1 = hash(s.v + 3, (s.x * 7) | 0); s.uz = false; });
@@ -93,7 +105,7 @@
         if (f > 0) rysujKostke(k.spr, x, y, w, h, rot, sc, f); }
     }
     // 3) zlewanie: całe zdjęcie na wierzch, fugi znikają, plac oddala się do skali strony
-    if (zlew > 0 && iImg) { const g = geoCover(Z); ix.setTransform(iD, 0, 0, iD, 0, 0); ix.globalAlpha = zlew; ix.drawImage(iImg, g.dx, g.dy, g.dw, g.dh); ix.globalAlpha = 1; }
+    if (zlew > 0 && iComp) { const g = geoCover(Z); ix.setTransform(iD, 0, 0, iD, 0, 0); ix.globalAlpha = zlew; ix.drawImage(iComp, g.dx, g.dy, g.dw, g.dh); ix.globalAlpha = 1; }
     ix.setTransform(1, 0, 0, 1, 0, 0);
     if (G.zamroz) return;
     if (t > T_KONIEC) { introKoniec(); return; }

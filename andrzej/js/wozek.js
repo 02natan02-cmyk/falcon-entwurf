@@ -5,6 +5,7 @@
 (function () {
   'use strict';
   const K = window.GBkosz; if (!K) return;
+  const skr = (t, n) => t.length > n ? t.slice(0, n - 1).trimEnd() + '…' : t;
   const NS = 'http://www.w3.org/2000/svg', RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const $ = (s, r) => (r || document).querySelector(s), $$ = (s, r) => [...(r || document).querySelectorAll(s)];
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v)), lerp = (a, b, t) => a + (b - a) * t;
@@ -100,14 +101,14 @@
     let h = `<g class="wk-pal" data-id="${esc(p.id)}">`;
     h += `<rect x="0" y="-14" width="120" height="4" fill="#c99d65"/><rect x="0" y="-10" width="16" height="7" fill="#a97d49"/><rect x="52" y="-10" width="16" height="7" fill="#a97d49"/><rect x="104" y="-10" width="16" height="7" fill="#a97d49"/><rect x="0" y="-3" width="120" height="3" fill="#b88b55"/><path d="M0 -12.5h120M0 -1.5h120" stroke="rgba(90,60,30,.35)" stroke-width=".8"/>`;
     if (o.rodzaj === 'worek') {
-      h += `<path d="M7 -14 L5 -76 C5 -86 13 -90 24 -90 L96 -90 C107 -90 115 -86 115 -76 L113 -14 Z" fill="url(#${pf}worek)"/><path d="M18 -90 C18 -104 30 -104 30 -90 M90 -90 C90 -104 102 -104 102 -90" fill="none" stroke="#e8e4da" stroke-width="4"/><ellipse cx="60" cy="-89" rx="44" ry="5" fill="#9b968c"/><text x="60" y="-52" text-anchor="middle" class="wk-t1" fill="#1f7a3a">KRUSZYWO</text><text x="60" y="-40" text-anchor="middle" class="wk-t2" fill="#3b3a36">${esc((o.linia || '').slice(0, 16))}</text>`;
+      h += `<path d="M7 -14 L5 -76 C5 -86 13 -90 24 -90 L96 -90 C107 -90 115 -86 115 -76 L113 -14 Z" fill="url(#${pf}worek)"/><path d="M18 -90 C18 -104 30 -104 30 -90 M90 -90 C90 -104 102 -104 102 -90" fill="none" stroke="#e8e4da" stroke-width="4"/><ellipse cx="60" cy="-89" rx="44" ry="5" fill="#9b968c"/><text x="60" y="-52" text-anchor="middle" class="wk-t1" fill="#1f7a3a">KRUSZYWO</text><text x="60" y="-40" text-anchor="middle" class="wk-t2" fill="#3b3a36">${esc(skr(o.linia || '', 16))}</text>`;
     } else if (o.rodzaj === 'maszyna') {
       h += `<rect x="16" y="-26" width="74" height="10" rx="2" fill="#2a2620"/><rect x="22" y="-60" width="56" height="34" rx="6" fill="#f2a516" stroke="#2a2620" stroke-width="2.5"/><circle cx="48" cy="-66" r="10" fill="#2a2620"/><path d="M70 -54 L108 -104 M100 -108 L116 -98" stroke="#2a2620" stroke-width="5" stroke-linecap="round" fill="none"/><text x="50" y="-38" text-anchor="middle" class="wk-t2" fill="#2a2620">GB</text>`;
     } else {
       const img = o.rodzaj === 'projekt' ? p.foto : tekstura(o.rodzaj, o.kolor);
       h += `<image href="${img}" x="2" y="-${PH}" width="116" height="${PH - 14}" preserveAspectRatio="${o.rodzaj === 'projekt' ? 'xMidYMid slice' : 'none'}"/>`;
       h += `<rect x="2" y="-${PH}" width="116" height="${PH - 14}" fill="url(#${pf}folia)"/><rect x="1" y="-${PH + 2}" width="118" height="3" fill="rgba(238,235,228,.85)"/><rect x="25" y="-${PH}" width="3" height="${PH - 14}" fill="rgba(28,42,66,.5)"/><rect x="91" y="-${PH}" width="3" height="${PH - 14}" fill="rgba(28,42,66,.5)"/>`;
-      h += `<g class="wk-etyk"><rect x="32" y="-${PH - 8}" width="60" height="23" rx="1.5" fill="#f7f4ee" stroke="rgba(0,0,0,.18)" stroke-width=".6"/><text x="36" y="-${PH - 17}" class="wk-t1" fill="#1b1b1a">${esc((o.marka || '').toUpperCase().slice(0, 12))}</text><text x="36" y="-${PH - 26}" class="wk-t2" fill="#4a463f">${esc((o.linia || '').slice(0, 15))}</text></g>`;
+      h += `<g class="wk-etyk"><rect x="32" y="-${PH - 8}" width="60" height="23" rx="1.5" fill="#f7f4ee" stroke="rgba(0,0,0,.18)" stroke-width=".6"/><text x="36" y="-${PH - 17}" class="wk-t1" fill="#1b1b1a">${esc((o.marka || '').toUpperCase().slice(0, 12))}</text><text x="36" y="-${PH - 26}" class="wk-t2" fill="#4a463f">${esc(skr(o.linia || '', 15))}</text></g>`;
     }
     return h + '<g class="wk-plus"></g></g>';
   }
@@ -442,7 +443,7 @@ ${M.katalog ? `<a class="katalog-link" href="${M.katalog}" target="_blank" rel="
     if (b.dataset.wk === 'wyslane') decyzja(sc, true); else decyzja(sc, false); fo && fo.focus({ preventScroll: true }); });
 
   /* impuls: kto dojedzie do sceny i nic nie załaduje, temu Andrzej sam macha i podpowiada */
-  if (sekBox && !RM) new IntersectionObserver((e, o) => { if (e[0].isIntersecting) { o.disconnect(); setTimeout(() => { if (!K.lista.length && !duza.zajety) { duza.mow('Wybierz coś poniżej!'); sekBox.classList.add('impuls'); setTimeout(() => sekBox.classList.remove('impuls'), 2400); } }, 3800); } }, { threshold: .5 }).observe(sekBox);
+  if (sekBox && !RM) new IntersectionObserver((e, o) => { if (e[0].isIntersecting) { o.disconnect(); setTimeout(() => { if (!K.lista.length && !duza.zajety) { duza.mow('Wybierz coś poniżej!'); sekBox.classList.add('wk-impuls'); setTimeout(() => sekBox.classList.remove('wk-impuls'), 2400); } }, 3800); } }, { threshold: .5 }).observe(sekBox);
 
   function wybierz(m, pid, preset) { if (!prodBox || !MARKI[m]) return; pokazMarke(m); const P = pid && MARKI[m].produkty.find(x => x.id === pid); if (P) pokazProdukt(P);
     Object.entries(preset || {}).forEach(([k, v]) => { const c = $(`[data-wko="${k}"][data-v="${v}"]`, konf); c && c.click(); }); }
