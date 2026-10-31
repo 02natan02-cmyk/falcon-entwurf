@@ -216,7 +216,9 @@ void main(){
   const wsk = new Map(); let ciag = null, kursor = null, dotyk = false, wybPunkt = -1, pinch = null;
   const pos = e => { const r = scena.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
   const blisko = (a, b, px) => { const [ax, ay] = naEkran(a), [bx, by] = naEkran(b); return Math.hypot(ax - bx, ay - by) < px; };
-  scena.addEventListener('pointerdown', e => { if (!st.foto) return; dotyk = e.pointerType === 'touch'; scena.setPointerCapture(e.pointerId); wsk.set(e.pointerId, pos(e)); ruszony();
+  // dotyk poza pełnym ekranem: strona przewija się normalnie, a dotknięcie zdjęcia otwiera projektant na cały ekran
+  let tap = null; const wLinii = () => !root.classList.contains('pelny');
+  scena.addEventListener('pointerdown', e => { if (!st.foto) return; if (e.pointerType === 'touch' && wLinii()) { tap = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now() }; return; } dotyk = e.pointerType === 'touch'; scena.setPointerCapture(e.pointerId); wsk.set(e.pointerId, pos(e)); ruszony();
     if (wsk.size === 2) { const [a, b] = [...wsk.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), c: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], z: view.z }; ciag = null; ukryjLupe(); return; }
     const [sx, sy] = pos(e), p = zEkranu(sx, sy), R = dotyk ? 30 : 18;
     if (st.porownaj && Math.abs(naEkran([st.split, 0])[0] - sx) < 30) { ciag = { t: 'split' }; return; }
@@ -236,7 +238,7 @@ void main(){
       st.wyb = -1; panel(); ciag = { t: 'pan', s: [sx, sy], o: [view.ox, view.oy] }; rysuj(); return; }
     ciag = { t: 'pan', s: [sx, sy], o: [view.ox, view.oy] };
   });
-  scena.addEventListener('pointermove', e => { if (!st.foto) return; const [sx, sy] = pos(e); kursor = zEkranu(sx, sy); if (wsk.has(e.pointerId)) wsk.set(e.pointerId, [sx, sy]);
+  scena.addEventListener('pointermove', e => { if (!st.foto) return; if (tap && tap.id === e.pointerId) { if (Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 12) tap = null; return; } const [sx, sy] = pos(e); kursor = zEkranu(sx, sy); if (wsk.has(e.pointerId)) wsk.set(e.pointerId, [sx, sy]);
     if (pinch && wsk.size === 2) { const [a, b] = [...wsk.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]), c = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; const z2 = clamp(pinch.z * d / pinch.d, 1, 8);
       const [px, py] = zEkranu(pinch.c[0], pinch.c[1]); view.z = z2; view.ox = c[0] - px * Wd * z2; view.oy = c[1] - py * Hd * z2; pinch.c = c; view.fit = false; ograniczWidok(); rysuj(); return; }
     if (!ciag) { if (st.narz === 'rysuj' || st.narz === 'gumka') rysuj(); return; } const p = kursor;
@@ -250,7 +252,7 @@ void main(){
     else if (ciag.t === 'split') { st.split = clamp(p[0], 0, 1); rysuj(); }
     else if (ciag.t === 'pan' && view.z > 1) { view.ox = ciag.o[0] + sx - ciag.s[0]; view.oy = ciag.o[1] + sy - ciag.s[1]; ograniczWidok(); rysuj(); }
   });
-  function koniecCiag(e) { wsk.delete(e.pointerId); if (wsk.size < 2) pinch = null; if (!ciag) return; const t = ciag.t; ciag = null; ukryjLupe();
+  function koniecCiag(e) { if (tap && tap.id === e.pointerId) { const ok = e.type === 'pointerup' && performance.now() - tap.t < 600; tap = null; if (ok && !e.target.closest('.p2-pasek,button')) { ruszony(); pelny(true); toast('Pełny ekran: rysuj palcem, a dwoma palcami przybliżaj. Przycisk ✕ wraca do strony.'); } return; } wsk.delete(e.pointerId); if (wsk.size < 2) pinch = null; if (!ciag) return; const t = ciag.t; ciag = null; ukryjLupe();
     if (t === 'rog') { liczLref(); planujKamien(); }
     else if (t === 'pkt') { planujKamien(); liczLref(); }
     else if (t === 'lasso') { const eps = 3 / (Wd * view.z); const pts = rdp(st.rysowane, eps); st.rysowane = pts.length > 2 ? pts : null; if (st.rysowane) zamknijObszar(); else rysuj(); }
@@ -259,7 +261,7 @@ void main(){
     rysuj(); }
   scena.addEventListener('pointerup', koniecCiag); scena.addEventListener('pointercancel', koniecCiag);
   scena.addEventListener('pointerleave', () => { kursor = null; rysuj(); });
-  scena.addEventListener('wheel', e => { if (!st.foto) return; if (!e.ctrlKey && !root.classList.contains('pelny') && view.z === 1 && e.deltaY > 0) return; e.preventDefault(); const [sx, sy] = pos(e); zoomWokol(Math.exp(-e.deltaY * .0016), sx, sy); }, { passive: false });
+  scena.addEventListener('wheel', e => { if (!st.foto) return; if (!e.ctrlKey && !root.classList.contains('pelny')) return; e.preventDefault(); const [sx, sy] = pos(e); zoomWokol(Math.exp(-e.deltaY * .0016), sx, sy); }, { passive: false });
   function trafObiekt(sx, sy) { for (let k = st.obiekty.length - 1; k >= 0; k--) { const o = st.obiekty[k], T2 = OBIEKTY[o.t], im = IMG[T2.src]; if (!im || !im.naturalWidth) continue;
       const hpx = T2.h * pxNaMetr(o.x, o.y) * o.s / st.fW * Wd * view.z, wpx = hpx * im.naturalWidth / im.naturalHeight, [bx, by] = naEkran([o.x, o.y]);
       if (k === st.wyb && Math.hypot(sx - (bx + wpx / 2 + 4), sy - (by - hpx - 4)) < 18) return { i: k, skala: true };
@@ -297,10 +299,12 @@ void main(){
     $('#p2Wym').querySelectorAll('input').forEach(i => { if (document.activeElement !== i) i.value = String(i.id === 'p2W' ? st.wm : st.lm).replace('.', ','); });
     podsumowanie(); przyciski(); podpowiedz();
   }
-  function podsumowanie() { const s = st.strefy.map(z => `${z.nazwa}: ${nazwa(WZORY, z.pat).toLowerCase()}, ${nazwa(KOLORY, z.pal).toLowerCase()}${z.obrz ? ', obrzeże ' + nazwa(OBRZEZA, z.obrz).toLowerCase() : ''}, ok. ${Math.max(1, Math.round(poleM2(z.pts)))} m²`);
+  function obrzezeM(z) { const br = ([x, y]) => x < .015 || x > .985 || y < .015 || y > .985; const m = z.pts.map(([x, y]) => doPlaszczyzny(x, y)); let L = 0;
+    for (let i = 0; i < m.length; i++) { const j = (i + 1) % m.length; if (br(z.pts[i]) && br(z.pts[j])) continue; L += Math.hypot(m[j][0] - m[i][0], m[j][1] - m[i][1]); } return L; }
+  function podsumowanie() { const s = st.strefy.map(z => `${z.nazwa}: ${nazwa(WZORY, z.pat).toLowerCase()}, ${nazwa(KOLORY, z.pal).toLowerCase()}${z.obrz ? ', obrzeże ' + nazwa(OBRZEZA, z.obrz).toLowerCase() + ' ok. ' + Math.max(1, Math.round(obrzezeM(z))) + ' mb' : ''}, ok. ${Math.max(1, Math.round(poleM2(z.pts)))} m²`);
     const licz = {}; st.obiekty.forEach(o => { licz[OBIEKTY[o.t].n] = (licz[OBIEKTY[o.t].n] || 0) + 1; }); const ob = Object.entries(licz).map(([n, k]) => `${n} × ${k}`);
     st.opis = s.join('; ') + (ob.length ? '. Dodatki: ' + ob.join(', ') : ''); $('#p2Podsum').innerHTML = (s.length ? s.map(x => `<li>${x}</li>`).join('') : '<li>Narysuj obszar w kroku 3.</li>') + (ob.length ? `<li>${ob.join(', ')}</li>` : '');
-    const m2 = st.strefy.reduce((a, z) => a + poleM2(z.pts), 0); $('#p2Razem').textContent = m2 ? `Razem ok. ${Math.round(m2)} m²` : ''; }
+    const m2 = st.strefy.reduce((a, z) => a + poleM2(z.pts), 0); const mb = st.strefy.reduce((a, z) => a + (z.obrz ? obrzezeM(z) : 0), 0); $('#p2Razem').textContent = m2 ? `Razem ok. ${Math.round(m2)} m²` + (mb ? ` i ok. ${Math.round(mb)} mb obrzeża` : '') + '. Zapas na docinki (ok. 5%) i dokładne ilości policzymy przy pomiarze.' : ''; }
   // przyciski panelu
   $$('.p2-kroki [data-k]').forEach(b => b.addEventListener('click', () => krok(+b.dataset.k)));
   $('.p2-kroki').addEventListener('keydown', e => { const d = { ArrowRight: 1, ArrowLeft: -1 }[e.key]; if (!d) return; const k = clamp(st.krok + d, 1, 5); krok(k); $(`.p2-kroki [data-k="${k}"]`).focus(); });
@@ -356,6 +360,11 @@ void main(){
     planujKamien(true); panel(); rysuj(); zapiszLokalnie();
     toast(nowe.length ? `Aranżacja „${A.n}” ułożona. Teraz zmieniaj wszystko po swojemu.` : `Aranżacja „${A.n}” ułożona.`);
   }
+  function ustawZewn(pat, pal) { const P = WZORY.some(w => w[0] === pat) ? pat : null, K2 = { bialy: 'bianco', jasny: 'bianco', braz: 'melanz' }[pal] || (KOLORY.some(k => k[0] === pal) ? pal : null);
+    if (!st.foto) { window.GBprojektantStart = { pat, pal }; return; }
+    zapamietaj(); ruszony(); st.strefy.forEach(z => { if (P) z.pat = P; if (K2) z.pal = K2; }); planujKamien(true); krok(3); panel(); rysuj(); zapiszLokalnie();
+    toast('Wybrano: ' + (P ? nazwa(WZORY, P).toLowerCase() : '') + (K2 ? ', ' + nazwa(KOLORY, K2).toLowerCase() : '') + '. Narysuj swój obszar albo wgraj własne zdjęcie.'); }
+  window.GBprojektant = { ustaw: ustawZewn };
   $('#p2Aranz') && $('#p2Aranz').addEventListener('click', e => { const b = e.target.closest('[data-ar]'); if (b) aranzuj(b.dataset.ar); });
   $('#p2Pedzel').addEventListener('input', e => { st.pedzel = +e.target.value; });
   $('#p2CzyscMaske').addEventListener('click', () => { mx.fillStyle = '#fff'; mx.fillRect(0, 0, maska.width, maska.height); maskaBrudna = true; rysuj(); });
@@ -381,7 +390,14 @@ void main(){
     Object.assign(view, s0); st.porownaj = por; st.krok = kr; st.wyb = wy; rysuj(); if (max && max < 500) cb(c.toDataURL('image/jpeg', .72)); else c.toBlob(cb, 'image/jpeg', .9); }
   function dopasujBez() { const r = scena.getBoundingClientRect(); view.z = 1; view.ox = (r.width - Wd) / 2; view.oy = (r.height - Hd) / 2; }
   $('#p2Zapisz').addEventListener('click', () => obraz(b => { if (!b) return; const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'GardenBruk_projekt_ogrodu.jpg'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('Obraz zapisany'); }));
-  $('#p2Dodaj').addEventListener('click', () => obraz(url => { podsumowanie(); const m2 = Math.round(st.strefy.reduce((a, z) => a + poleM2(z.pts), 0)); window.GBdodaj && GBdodaj({ id: 'projekt-ogrodu-' + Date.now(), nazwa: 'Projekt ogrodu: ' + (st.opis || 'bez obszarów'), ile: m2 || undefined, jedn: 'm²', foto: url }); }, 260));
+  const KOLW = { grafit: 'grafit', szary: 'szary', bianco: 'bialy', piaskowy: 'piaskowy', melanz: 'melanz', granit: 'granit', lupek: 'grafit', zolty: 'piaskowy' };
+  $('#p2Dodaj').addEventListener('click', () => obraz(url => { podsumowanie(); if (!window.GBdodaj) return; const t = Date.now();
+    if (!st.strefy.length) { GBdodaj({ id: 'projekt-ogrodu-' + t, nazwa: 'Projekt ogrodu (zdjęcie)', ile: undefined, jedn: 'projekt', foto: url }); return; }
+    GBdodaj({ id: 'projekt-ogrodu-' + t, nazwa: 'Projekt ogrodu: ' + (st.opis || ''), ile: undefined, jedn: 'projekt', foto: url });
+    st.strefy.forEach((z, i) => { const m2 = Math.round(poleM2(z.pts) * 2) / 2, W = nazwa(WZORY, z.pat).toLowerCase(), K2 = nazwa(KOLORY, z.pal).toLowerCase();
+      setTimeout(() => { GBdodaj({ id: `p2-${t}-${i}`, typ: 'kostka', nazwa: `${z.nazwa} z projektu: ${W}, ${K2}`, ile: m2 || undefined, jedn: 'm²', foto: 'img/tex/grafit.webp', wk: { rodzaj: z.pat === 'slabs' ? 'plyty' : z.pat === 'cobble' ? 'granit' : 'kostka', kolor: KOLW[z.pal] || 'szary', marka: 'Projekt', linia: z.nazwa } });
+        if (z.obrz) GBdodaj({ id: `p2-${t}-${i}-o`, typ: 'obrzeza', nazwa: `Obrzeże ${nazwa(OBRZEZA, z.obrz).toLowerCase()} (obszar: ${z.nazwa})`, ile: Math.max(1, Math.round(obrzezeM(z))), jedn: 'mb', foto: 'img/tex/grafit.webp', wk: { rodzaj: 'obrzeza', kolor: KOLW[z.obrz] || 'grafit', marka: 'Projekt', linia: 'Obrzeże' } }); }, 260 * (i + 1)); });
+    setTimeout(() => { const n = st.strefy.length; toast('Dodano do wózka: projekt i ' + n + ' ' + (n === 1 ? 'obszar' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'obszary' : 'obszarów') + ' z metrażem'); }, 260 * (st.strefy.length + 1)); }, 260));
   $('#p2Wa').addEventListener('click', () => { podsumowanie(); const tekst = `Dzień dobry, zrobiłem projekt na stronie GardenBruk. ${st.opis || ''}. Proszę o wycenę i termin pomiaru.`;
     obraz(async b => { const plik = b && new File([b], 'GardenBruk_projekt_ogrodu.jpg', { type: 'image/jpeg' }); if (plik && navigator.canShare && navigator.canShare({ files: [plik] })) { try { await navigator.share({ files: [plik], text: tekst }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
       window.open('https://wa.me/48500250936?text=' + encodeURIComponent(tekst + ' Zdjęcie wyślę w rozmowie.'), '_blank', 'noopener'); }); });
@@ -396,7 +412,7 @@ void main(){
     st.strefy = P2 ? P2.strefy.map(z => ({ ...z, pts: z.pts.map(q => q.slice()), obrzR: 1, obrot: 0 })) : []; st.obiekty = []; st.akt = st.strefy.length - 1; st.wyb = -1; hist.length = 0; przod.length = 0;
     try { const zap = przyk >= 0 && localStorage.getItem('gb-p2-' + przyk); if (zap) Object.assign(st, JSON.parse(zap)); } catch (e) { /* */ }
     maska = document.createElement('canvas'); maska.width = Math.max(64, st.fW >> 1); maska.height = Math.max(64, st.fH >> 1); mx = maska.getContext('2d'); mx.fillStyle = '#fff'; mx.fillRect(0, 0, maska.width, maska.height);
-    liczCienie(); view.fit = true; rozmiar(); if (gl) { wgraj('f', c, false); wgraj('m', maska, false); wgraj('c', cien, false); } planujKamien(true); panel(); $$('.p2-przyk').forEach((b, i) => b.setAttribute('aria-pressed', String(i === przyk)));
+    liczCienie(); view.fit = true; rozmiar(); if (gl) { wgraj('f', c, false); wgraj('m', maska, false); wgraj('c', cien, false); } planujKamien(true); panel(); if (window.GBprojektantStart) { const q = window.GBprojektantStart; window.GBprojektantStart = null; setTimeout(() => ustawZewn(q.pat, q.pal), 80); } $$('.p2-przyk').forEach((b, i) => b.setAttribute('aria-pressed', String(i === przyk)));
     if (przyk < 0) { krok(2); toast('Ustaw perspektywę: 4 żółte punkty na rogi terenu'); } }
   function plik(e) { const f = e.target.files && e.target.files[0]; if (!f) return; ruszony(); e.target.value = ''; const u = URL.createObjectURL(f); if (!S) { czeka = u; return; } laduj(u, -1); if (MOB()) pelny(true); }
   let czeka = null; $('#p2Aparat').addEventListener('change', plik); $('#p2Plik').addEventListener('change', plik);

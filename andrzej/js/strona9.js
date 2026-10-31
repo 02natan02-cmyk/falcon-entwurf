@@ -50,26 +50,38 @@ function otworz(t) {
   ostatni = document.activeElement; const wyb = {};
   let h = `<button type="button" class="zamknij" aria-label="Zamknij">${X}</button><div class="foto" style="background-image:url(${t.foto})"></div>${t.marka ? `<span class="marka-t">${t.marka}</span>` : ''}<h3>${t.nazwa}</h3><p>${t.opis}</p>${t.katalog ? `<a class="katalog-link" href="${t.katalog}" target="_blank" rel="noopener">Katalog producenta ↗</a>` : ''}`;
   Object.entries(t.opcje || {}).forEach(([k, arr]) => { wyb[k] = arr[0]; h += `<p class="opcje-t">${k}</p><div class="opcje" role="group" aria-label="${k}">${arr.map((v, i) => `<button type="button" class="chip${i ? '' : ' on'}" data-k="${k}" data-v="${v}" aria-pressed="${!i}">${v}</button>`).join('')}</div>`; });
+  const naZdj = { kostka: 1, plyty: 1, wzory: 1, kamien: 1 }[t.id];
   h += `<div class="ilosc"><label for="ile" class="jedn">Ilość</label><input id="ile" type="number" inputmode="decimal" min="0" step="any" placeholder="${t.jedn === 'm²' ? '60' : t.jedn === 't' ? '2' : t.jedn === 'dni' ? '2' : t.jedn === 'projekt' ? '1' : '20'}"><span class="jedn">${t.jedn}</span><button type="button" class="btn" data-dodaj>Załaduj na wózek</button></div>`;
+  if (t.jedn === 'm²') h += `<div class="licz-m2"><span>Nie wiesz, ile to m²? Wpisz wymiary:</span><label>dł. <input id="ileDl" type="number" inputmode="decimal" min="0" step="any" aria-label="Długość w metrach"> m</label><b>×</b><label>szer. <input id="ileSz" type="number" inputmode="decimal" min="0" step="any" aria-label="Szerokość w metrach"> m</label><output id="ileWyn"></output></div>`;
+  if (naZdj) h += `<button type="button" class="btn jasny pelny-w" data-zdjecie>Pokaż na moim zdjęciu</button>`;
   panel.innerHTML = h; towar.hidden = false; $('.zamknij', panel).focus({ preventScroll: true });
   panel.onclick = e => { const c = e.target.closest('[data-k]'); if (c) { wyb[c.dataset.k] = c.dataset.v; $$(`[data-k="${c.dataset.k}"]`, panel).forEach(x => { const on = x === c; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on); }); }
     if (e.target.closest('.zamknij')) zamknijTowar();
+    if (e.target.closest('[data-zdjecie]')) { const WZ = { 'Jodełka': 'herring', 'Cegiełka': 'rows', 'Koszyk': 'basket', 'Łuki': 'arcs' }, KL = { Grafit: 'grafit', Szary: 'szary', 'Melanż': 'melanz', Piaskowy: 'piaskowy', 'Brąz': 'melanz', 'Biały': 'bianco' };
+      const pat = t.id === 'plyty' ? 'slabs' : t.id === 'kamien' ? 'cobble' : WZ[wyb['Wzór']] || 'herring', pal = t.id === 'kamien' ? 'granit' : KL[wyb.Kolor] || 'grafit';
+      zamknijTowar(); if (window.GBprojektant) GBprojektant.ustaw(pat, pal); else window.GBprojektantStart = { pat, pal }; $('#projektant').scrollIntoView({ behavior: RM ? 'auto' : 'smooth' }); }
     if (e.target.closest('[data-dodaj]')) { const v = parseFloat(($('#ile', panel).value || '').replace(',', '.')); const op = Object.values(wyb).join(', ');
       dodaj({ id: t.id + '|' + op, typ: t.id, nazwa: t.nazwa + (op ? ' (' + op + ')' : ''), ile: isFinite(v) && v > 0 ? v : null, jedn: t.jedn, foto: t.foto }); zamknijTowar(); } };
 }
 towar.addEventListener('click', e => { if (e.target === towar) zamknijTowar(); });
+panel.addEventListener('input', e => { if (!e.target.closest('.licz-m2')) return; const dl = parseFloat(($('#ileDl', panel).value || '').replace(',', '.')), sz = parseFloat(($('#ileSz', panel).value || '').replace(',', '.')), o = $('#ileWyn', panel);
+  if (dl > 0 && sz > 0) { const m = dl * sz; $('#ile', panel).value = Math.round(m * 1.05 * 10) / 10; o.textContent = `= ${fmt(m)} m², z zapasem 5%: ${fmt(m * 1.05)} m²`; } else o.textContent = ''; });
 
 /* ---------- wzory: plac wokół układa się na nowo ---------- */
 const OPISY = { herring: 'Jodełka: najmocniejszy układ na podjazd. Każdy wzór układamy pod Kłodzkiem.', rows: 'Cegiełka: klasyka na ścieżki i place.', basket: 'Koszyk: pary kostek na przemian. Spokojny wzór na taras.', slabs: 'Płyty na mijankę: nowocześnie, z dużych formatów.', arcs: 'Łuki segmentowe, jak na starym rynku.', cobble: 'Kostka granitowa rzędowa. Na lata, na pokolenia.' };
 let wz = 'herring', wzKol = 'grafit', wzDot = false;
+function pasekKol() { const wp = $('#wzPorownaj'); if (!wp) return; const KOL = $$('[data-kol]').map(b => [b.dataset.kol, b.textContent.trim()]); wp.innerHTML = KOL.map(([k, n]) => `<button type="button" class="wz-pk${k === wzKol ? ' on' : ''}" data-pk="${k}" aria-pressed="${k === wzKol}"><img src="img/wz/wz-${wz}-${k}.webp" alt="" width="112" height="72" loading="lazy" decoding="async"><span>${n}</span></button>`).join(''); }
 function ustawWzor(p, k) { wz = p || wz; wzKol = k || wzKol;
   $$('[data-wz]').forEach(b => { const on = b.dataset.wz === wz; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
   $$('[data-kol]').forEach(b => { const on = b.dataset.kol === wzKol; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
   $('#wzOpis').textContent = OPISY[wz];
+  pasekKol();
   const pal = wz === 'cobble' || wz === 'arcs' ? (wzKol === 'grafit' ? 'lupek' : wzKol === 'szary' || wzKol === 'piaskowy' ? 'granit' : wzKol) : wz === 'slabs' && wzKol === 'szary' ? 'bianco' : wzKol;
   window.Scena && Scena.ustawWzor(wz, pal); }
 $$('[data-wz]').forEach(b => b.addEventListener('click', () => { wzDot = true; ustawWzor(b.dataset.wz); }));
 $$('[data-kol]').forEach(b => b.addEventListener('click', () => { wzDot = true; ustawWzor(null, b.dataset.kol); }));
+pasekKol();
+$('#wzPorownaj') && $('#wzPorownaj').addEventListener('click', e => { const b = e.target.closest('[data-pk]'); if (b) { wzDot = true; ustawWzor(null, b.dataset.pk); } });
 $('#wzDoZapytania').addEventListener('click', () => dodaj({ id: 'wzor-' + wz + '-' + wzKol, nazwa: 'Wzór: ' + $('[data-wz].on').textContent + ', ' + $('[data-kol].on').textContent.trim().toLowerCase(), ile: null, jedn: 'projekt', foto: 'img/tex/' + (wzKol === 'melanz' ? 'melanz' : wzKol === 'granit' ? 'granit' : wzKol === 'grafit' ? 'grafit' : 'jasny') + '.webp' }));
 $('#wzNaZdjeciu').addEventListener('click', () => { if (window.GBprojektant) GBprojektant.ustaw(wz, wzKol); else window.GBprojektantStart = { pat: wz, pal: wzKol }; });
 // impuls: gdy ktoś dojedzie do wzorów i nic nie klika, plac pokazuje sam jeden inny wzór
@@ -78,7 +90,9 @@ addEventListener('wzory-widac', () => { if (RM) return; setTimeout(() => { if (!
 /* ---------- galeria ---------- */
 const lb = $('#lightbox'), lbImg = $('#lbImg'); $('#lbZamknij').innerHTML = X;
 $$('.g-el').forEach(b => b.addEventListener('click', () => { lbImg.src = b.dataset.src; lbImg.alt = $('img', b).alt; lb.hidden = false; $('#lbZamknij').focus(); }));
-lb.addEventListener('click', e => { if (e.target !== lbImg) lb.hidden = true; });
+lb.addEventListener('click', e => { if (e.target !== lbImg && !e.target.closest('#lbChce')) lb.hidden = true; });
+$('#lbChce').addEventListener('click', () => { const src = lbImg.getAttribute('src'), el = $$('.g-el').find(b => b.dataset.src === src), opis = el ? ($('span', el) || {}).textContent || lbImg.alt : lbImg.alt;
+  dodaj({ id: 'podobnie-' + src, nazwa: 'Chcę podobnie jak na zdjęciu: ' + opis, ile: null, jedn: 'projekt', foto: src }); lb.hidden = true; });
 
 /* ---------- zapytanie ---------- */
 let kosz = store.get('gb-zapytanie', []).filter(p => p.foto);
@@ -118,6 +132,30 @@ form.addEventListener('submit', async e => { e.preventDefault(); info2.classList
   catch (err) { info2.classList.add('blad'); info2.innerHTML = 'Nie udało się wysłać. Napisz na <a href="' + waLink(opisF()) + '" target="_blank" rel="noopener">WhatsApp</a> albo na <a href="mailto:biuro@gardenbruk.net?subject=Zapytanie&body=' + encodeURIComponent(opisF() + '\n\n' + tekst()) + '">biuro@gardenbruk.net</a>. Twoje dane są już w wiadomości.'; }
   wys = false; b.disabled = false; });
 $('#mapaBtn').addEventListener('click', () => { $('#mapa').innerHTML = '<iframe title="Mapa dojazdu: Mikowice 16, Kłodzko" loading="lazy" src="https://www.openstreetmap.org/export/embed.html?bbox=16.60%2C50.40%2C16.72%2C50.47&layer=mapnik&marker=50.435%2C16.66"></iframe>'; });
+/* ---------- start: co planujesz? ---------- */
+const PLAN = { podjazd: ['polbruk', 'pb-kostka', { grub: '8 cm' }], sciezka: ['polbruk', 'pb-kostka', { grub: '6 cm' }], taras: ['polbruk', 'pb-plyty', { linia: 'Tarasowe' }], ogrodzenie: ['joniec', 'jn-gorc', {}] };
+$$('[data-plan]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.plan; if (k === 'projekt') { $('#projektant').scrollIntoView({ behavior: RM ? 'auto' : 'smooth' }); return; }
+  const [m, pid, o] = PLAN[k]; window.GBwozek && GBwozek.wybierz(m, pid, o); $('#wozek').scrollIntoView({ behavior: RM ? 'auto' : 'smooth' }); }));
+/* ---------- producenci: od razu do zamówienia ---------- */
+$$('[data-zamow]').forEach(b => b.addEventListener('click', () => { window.GBwozek && GBwozek.wybierz(b.dataset.zamow); $('#wozek').scrollIntoView({ behavior: RM ? 'auto' : 'smooth' }); }));
+/* ---------- jak pracujemy: prośba o pomiar ---------- */
+const pm = { dzien: new Set(), pora: new Set() };
+$$('[data-pm]').forEach(b => b.addEventListener('click', () => { const g = pm[b.dataset.pm], v = b.dataset.v; g.has(v) ? g.delete(v) : g.add(v); const on = g.has(v); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); }));
+$('#pmWa') && $('#pmWa').addEventListener('click', () => { const t = ['Dzień dobry, proszę o umówienie pomiaru.', pm.dzien.size ? 'Pasują mi dni: ' + [...pm.dzien].join(', ').replace(/\.?$/, '.') : '', pm.pora.size ? 'Pora: ' + [...pm.pora].join(' albo ') + '.' : '', $('#pmMiejsce').value ? 'Miejscowość: ' + $('#pmMiejsce').value + '.' : '', $('#pmCo').value ? 'Do zmierzenia: ' + $('#pmCo').value + '.' : ''].filter(Boolean).join('\n');
+  open('https://wa.me/' + WA + '?text=' + encodeURIComponent(t), '_blank', 'noopener'); });
+/* ---------- dla firm: zapytanie w trzech polach ---------- */
+let fiKto = 'Deweloper';
+$$('[data-fi]').forEach(b => b.addEventListener('click', () => { fiKto = b.dataset.fi; $$('[data-fi]').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on); }); }));
+const fiTekst = () => [`Zapytanie od firmy (${fiKto.toLowerCase()}).`, $('#fiCo').value && 'Inwestycja: ' + $('#fiCo').value + '.', $('#fiIle').value && 'Ilość: ' + $('#fiIle').value + '.', $('#fiKiedy').value && 'Termin: ' + $('#fiKiedy').value + '.'].filter(Boolean).join(' ');
+$('#fiWa') && $('#fiWa').addEventListener('click', () => open('https://wa.me/' + WA + '?text=' + encodeURIComponent('Dzień dobry, piszę ze strony GardenBruk.\n' + fiTekst()), '_blank', 'noopener'));
+$('#fiForm') && $('#fiForm').addEventListener('click', () => { $('#fWiad').value = fiTekst(); });
+/* ---------- gry: wyzwij znajomego ---------- */
+$('#gryWyzwij') && $('#gryWyzwij').addEventListener('click', async () => { const r = [['Ułóż sam', '#rekUloz'], ['Zgadnij wzór', '#rekZgad'], ['Memory z kostki', '#rekMem']].map(([n, s]) => { const v = ($(s) || {}).textContent || ''; return /Rekord/.test(v) ? n + ': ' + v.replace('Rekord: ', '') : null; }).filter(Boolean);
+  const url = location.origin + location.pathname + '#gry', t = (r.length ? 'Moje rekordy w grach GardenBruk: ' + r.join(', ') + '. Pobijesz?' : 'Zagraj w gry GardenBruk na stronie i pobij moje wyniki!') + ' ' + url;
+  if (navigator.share) { try { await navigator.share({ text: t }); return; } catch (e) { if (e && e.name === 'AbortError') return; } } open('https://wa.me/?text=' + encodeURIComponent(t), '_blank', 'noopener'); });
+/* ---------- kontakt: wizytówka do telefonu ---------- */
+const vcf = ['BEGIN:VCARD', 'VERSION:3.0', 'N:;Andrzej;;;', 'FN:Andrzej · GardenBruk', 'ORG:GardenBruk – Centrum Architektury Ogrodowej', 'TEL;TYPE=CELL:+48500250936', 'EMAIL:biuro@gardenbruk.net', 'ADR;TYPE=WORK:;;Mikowice 16;Kłodzko;;57-300;Polska', 'URL:https://www.facebook.com/gardenbruk.net/', 'END:VCARD'].join('\r\n');
+$('#ktVcf') && ($('#ktVcf').href = 'data:text/vcard;charset=utf-8,' + encodeURIComponent(vcf));
 window.GBkosz = { get lista() { return kosz; }, dodaj, odswiez: () => odswiez(), tekst, waLink, fmt, usun(i) { kosz.splice(i, 1); zapisz(); }, ustawIle(i, v) { if (kosz[i]) { kosz[i].ile = v; zapisz(); } }, wyczysc() { kosz = []; zapisz(); }, przywroc(a) { kosz = (a || []).map(p => ({ ...p })); zapisz(); } };
 odswiez();
 window.__gb = { get scena() { return window.Scena; } };

@@ -139,7 +139,7 @@
 <g class="wf-k">
 <path d="M44 -126 L60 -322" stroke="#26251f" stroke-width="10" stroke-linecap="round"/>
 <path d="M58 -126 C52 -166 58 -200 76 -212 L88 -206 C78 -186 78 -154 82 -126 Z" fill="#1d1d1c"/>
-<g class="wf-a" clip-path="url(#PFka)"><image href="img/andrzej-wozek.webp" x="70" y="-262" width="108" height="147" preserveAspectRatio="xMidYMid slice"/></g>
+<g class="wf-a" clip-path="url(#PFka)"><image href="img/andrzej-wozek.webp" x="70" y="-262" width="108" height="147" preserveAspectRatio="xMidYMid slice" transform="translate(248 0) scale(-1 1)"/></g>
 <path d="M10 -36 C2 -40 0 -64 2 -94 C4 -118 16 -132 38 -134 L150 -134 C162 -134 168 -128 170 -116 L176 -94 L248 -94 L250 -30 Z" fill="url(#PFzolty)"/>
 <path d="M16 -126 L152 -126" stroke="rgba(255,255,255,.45)" stroke-width="3" stroke-linecap="round"/>
 <path d="M104 -120 l-6 16 M114 -120 l-6 16 M124 -120 l-6 16 M134 -120 l-6 16" stroke="rgba(60,40,0,.4)" stroke-width="3" stroke-linecap="round"/>
@@ -342,6 +342,7 @@ ${koloWozka(74, -34, 34, 'kr')}${koloWozka(154, -34, 34, 'kr')}${koloWozka(420, 
     konf.innerHTML = `<div class="wk-podglad"><svg viewBox="-14 -112 148 118" aria-hidden="true"><defs><linearGradient id="wkpfolia" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".32" stop-color="#fff" stop-opacity=".3"/><stop offset=".42" stop-color="#fff" stop-opacity=".04"/><stop offset=".7" stop-color="#fff" stop-opacity=".16"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient><linearGradient id="wkpworek" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#cfcabe"/><stop offset=".45" stop-color="#f6f3ec"/><stop offset="1" stop-color="#c6c1b5"/></linearGradient><radialGradient id="wkpcien"><stop offset="0" stop-color="#000" stop-opacity=".35"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient></defs><ellipse cx="60" cy="1" rx="70" ry="5" fill="url(#wkpcien)"/><g class="wk-pg"></g></svg><small id="wkPodpis"></small></div>
 <div class="wk-opcje"><h3>${M.nazwa === 'Z placu' ? '' : M.nazwa + ' · '}${P.nazwa}</h3>${chips('linia', P.linie || P.typy, P.linie ? 'Linia' : 'Rodzaj')}${chips('kolor', P.kolory, 'Kolor')}${chips('grub', P.grub, 'Grubość')}
 <div class="wk-ile"><span class="opcje-t">Ilość <small>(możesz zostawić pustą, ustalicie ją razem)</small></span><button type="button" class="wk-pm" data-d="-1" aria-label="Zmniejsz ilość">−</button><input id="wkIle" type="number" inputmode="decimal" min="0" step="any" value="" placeholder="np. ${P.ile}" aria-label="Ilość w ${P.jedn}"><span class="jedn">${P.jedn}</span><button type="button" class="wk-pm" data-d="1" aria-label="Zwiększ ilość">+</button></div>
+${P.jedn === 'm²' ? `<div class="wk-licz"><span class="opcje-t">Nie wiesz, ile to m²? Przelicz z wymiarów</span><label>dł. <input type="number" inputmode="decimal" min="0" step="any" data-l="dl" aria-label="Długość w metrach"> m</label><b>×</b><label>szer. <input type="number" inputmode="decimal" min="0" step="any" data-l="sz" aria-label="Szerokość w metrach"> m</label><label class="wk-zapas"><input type="checkbox" data-l="zapas" checked> +5% na docinki</label><output class="wk-wyn"></output></div>` : ''}
 <button type="button" class="btn wk-zaladuj" id="wkZaladuj"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17V9h5l2-5h3v13M16 3v15M16 18h6"/><circle cx="6" cy="18" r="2"/><circle cx="12" cy="18" r="2"/></svg>Załaduj na wózek</button>
 ${M.katalog ? `<a class="katalog-link" href="${M.katalog}" target="_blank" rel="noopener">Katalog ${M.nazwa} ↗</a>` : ''}</div>`;
     podglad();
@@ -355,6 +356,9 @@ ${M.katalog ? `<a class="katalog-link" href="${M.katalog}" target="_blank" rel="
     $$('[data-wkm]').forEach(b => b.addEventListener('click', () => pokazMarke(b.dataset.wkm)));
     $('.wk-marki').addEventListener('keydown', e => { const t = $$('[data-wkm]'), i = t.findIndex(b => b.classList.contains('on')); const k = { ArrowRight: i + 1, ArrowLeft: i - 1 + t.length, Home: 0, End: t.length - 1 }[e.key]; if (k == null) return; e.preventDefault(); const n = t[k % t.length]; n.focus(); pokazMarke(n.dataset.wkm); });
     prodBox.addEventListener('click', e => { const b = e.target.closest('[data-wkp]'); if (b) pokazProdukt(MARKI[wyb.m].produkty.find(p => p.id === b.dataset.wkp)); });
+    konf.addEventListener('input', e => { if (!e.target.closest('.wk-licz')) return; const g = k => parseFloat((($(`[data-l="${k}"]`, konf) || {}).value || '').replace(',', '.')), dl = g('dl'), sz = g('sz'), z = $('[data-l="zapas"]', konf).checked, o = $('.wk-wyn', konf);
+      if (dl > 0 && sz > 0) { const m = dl * sz, w = Math.round(m * (z ? 1.05 : 1) * 10) / 10; $('#wkIle').value = w; o.textContent = `${K.fmt(m)} m²${z ? ` + 5% = ${K.fmt(w)} m²` : ''}`; } else o.textContent = ''; });
+    konf.addEventListener('change', e => { if (e.target.matches('[data-l="zapas"]')) e.target.dispatchEvent(new Event('input', { bubbles: true })); });
     konf.addEventListener('click', e => {
       const c = e.target.closest('[data-wko]'); if (c) { wyb.o[c.dataset.wko] = c.dataset.v; $$(`[data-wko="${c.dataset.wko}"]`, konf).forEach(x => { const on = x === c; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on); }); podglad(); }
       const pm = e.target.closest('.wk-pm'); if (pm) { const i = $('#wkIle'), krok = wyb.p.jedn === 't' || wyb.p.jedn === 'dni' ? 1 : 5; i.value = Math.max(0, (parseFloat(i.value) || 0) + krok * pm.dataset.d); }
@@ -424,6 +428,8 @@ ${M.katalog ? `<a class="katalog-link" href="${M.katalog}" target="_blank" rel="
   /* impuls: kto dojedzie do sceny i nic nie załaduje, temu Andrzej sam macha i podpowiada */
   if (sekBox && !RM) new IntersectionObserver((e, o) => { if (e[0].isIntersecting) { o.disconnect(); setTimeout(() => { if (!K.lista.length && !duza.zajety) { duza.mow('Wybierz coś poniżej!'); sekBox.classList.add('impuls'); setTimeout(() => sekBox.classList.remove('impuls'), 2400); } }, 3800); } }, { threshold: .5 }).observe(sekBox);
 
-  window.GBwozek = { dodano, odswiez: () => { synchWszystko(); odswiezListe(); }, foto, tekstura, sceny };
+  function wybierz(m, pid, preset) { if (!prodBox || !MARKI[m]) return; pokazMarke(m); const P = pid && MARKI[m].produkty.find(x => x.id === pid); if (P) pokazProdukt(P);
+    Object.entries(preset || {}).forEach(([k, v]) => { const c = $(`[data-wko="${k}"][data-v="${v}"]`, konf); c && c.click(); }); }
+  window.GBwozek = { wybierz, dodano, odswiez: () => { synchWszystko(); odswiezListe(); }, foto, tekstura, sceny };
   synchWszystko(); odswiezListe(); K.odswiez && K.odswiez();
 })();

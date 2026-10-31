@@ -241,3 +241,39 @@ html.p2-pelny,html.p2-pelny body{overflow:hidden}
 .koszyk .wk-poza{margin:0 20px 8px;padding:12px 14px}.koszyk .wk-poza b{font-size:22px}.koszyk .wk-poza p{font-size:14px;margin:6px 0 10px}.koszyk .wk-poza .wk-wb .btn{flex:1 1 auto;font-size:14px;padding:0 12px}
 .wk-panel :is(button,input,textarea,a,select){scroll-margin-top:calc(var(--pasek) + min(46vh,500px) + 34px);scroll-margin-bottom:24px}
 @media (max-width:820px){.wk-panel :is(button,input,textarea,a,select){scroll-margin-top:calc(var(--pasek) + min(230px,30vh) + 24px);scroll-margin-bottom:96px}.koszyk .wk-poza{margin:0 12px 8px}}
+/* Projektant: am Handy/Tablet scrollt die Seite über dem Foto, Bearbeiten im Vollbild */
+@media (pointer:coarse){.p2:not(.pelny) .p2-scena{touch-action:pan-y;cursor:pointer}}
+.p2-dotknij{display:none}
+@media (pointer:coarse){.p2:not(.pelny) .p2-dotknij{display:flex;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:4;align-items:center;gap:8px;padding:12px 18px;border:0;border-radius:999px;background:rgba(20,20,20,.78);color:#fff;font:800 15px/1.2 var(--f-t);box-shadow:0 10px 30px rgba(0,0,0,.4);pointer-events:none;white-space:nowrap}
+  .p2:not(.pelny).p2-demo .p2-dotknij{display:none}}
+@media (max-width:820px){.p2:not(.pelny) .p2-scena{position:relative;top:auto;z-index:auto}}
+/* ---------- v9.1: je Abschnitt ein Mehrwert ---------- */
+.plan{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:16px}
+.plan span{width:100%;font:800 13px/1 var(--f-t);letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.82)}
+.plan button{min-height:44px;padding:0 16px;border-radius:999px;border:0;cursor:pointer;font:800 15px/1 var(--f-t);color:#fff;background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.45);transition:background .2s}
+.plan button:hover{background:rgba(255,255,255,.26)}
+.etap-twarz{display:block;width:92px;height:92px;margin:0 0 12px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 3px #d9ad55,0 10px 24px rgba(0,0,0,.4)}
+.etap-cta{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.etap-cta .btn{min-height:48px}
+.lb-chce{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);z-index:3;background:#f2a516;color:#1d150a}
+.lb-chce svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.opinie-g{margin:6px 0 14px;font-size:14px;color:var(--tekst2)}.opinie-g a{display:inline-flex;align-items:center;min-height:44px;margin-right:6px;font-weight:800;color:var(--ziel);text-decoration:underline;text-underline-offset:3px}
+.katalogi-zam{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 6px}
+.pomiar,.firma{margin-top:20px;max-width:720px}
+.pomiar h3{font:900 32px/1 var(--f-d);text-transform:uppercase;margin:0}.pomiar-l{margin:0;color:var(--tekst2);font-size:15px}
+.pomiar .opcje-t,.firma .opcje-t{font:800 13px/1 var(--f-t);margin:6px 0 0;color:var(--tekst2)}
+.pomiar .opcje,.firma .opcje{display:flex;flex-wrap:wrap;gap:6px}.pomiar .chip,.firma .chip{min-height:44px}
+.pomiar .btn,.firma .btn{justify-self:start}
+.strefa.ciemna .firma{color:var(--tekst)}
+.wz-porownaj{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:2px 0 14px}
+.wz-pk{display:grid;gap:4px;padding:0;border:0;background:none;cursor:pointer;text-align:center;font:700 12.5px/1.1 var(--f-t);color:var(--tekst)}
+.wz-pk img{width:100%;height:auto;aspect-ratio:112/72;object-fit:cover;border-radius:7px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.2);transition:transform .2s}
+.wz-pk:hover img{transform:translateY(-2px)}.wz-pk.on img{outline:3px solid var(--ziel);outline-offset:2px}
+.licz-m2,.wk-licz{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:6px 0 14px;font-size:14px;color:var(--tekst2)}
+.licz-m2 span{width:100%;font-weight:700}.wk-licz .opcje-t{width:100%;margin:0}
+.licz-m2 input,.wk-licz input[type=number]{width:78px;height:44px;border-radius:10px;border:1px solid rgba(27,27,26,.25);background:#fff;text-align:center;font:700 16px var(--f-t);color:var(--tekst)}
+.licz-m2 output,.wk-licz output{width:100%;font-weight:800;color:var(--tekst)}
+.wk-zapas{display:inline-flex;align-items:center;gap:6px;min-height:44px}.wk-zapas input{width:20px;height:20px;accent-color:var(--ziel)}
+.btn.pelny-w{width:100%;margin-top:4px}
+.gry-wyzwij{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:12px 0 4px;font-size:14px;color:var(--tekst2)}
+@media (max-width:820px){.plan button{font-size:14px;padding:0 13px}.wz-porownaj{gap:5px}.wz-pk{font-size:11px}.pomiar h3{font-size:26px}}
+.strefa.ciemna .firma{text-align:left}

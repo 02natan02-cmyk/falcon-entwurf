@@ -29,7 +29,7 @@ ${PROJ}
 uniform float uTime, uShadow; uniform vec4 uHole[24]; uniform vec4 uClip[16];
 out vec2 vL; out vec2 vH; out vec3 vCol; out vec2 vUv; out float vA, vZ, vRot, vShape, vKind, vMel; out vec2 vW; out vec4 vClip;
 void main(){
-  float t = uTime - aT; float p = clamp(t / .62, 0., 1.); float e = 1. - pow(1. - p, 3.);
+  float p = aT < 0. ? 1. - clamp((uTime + aT) / .5, 0., 1.) : clamp((uTime - aT) / .62, 0., 1.); float e = 1. - pow(1. - p, 3.);
   float z = (1. - e) * 1.9 + sin(clamp((p - .78) / .22, 0., 1.) * 3.14159) * .05;
   float lift = 0.; vec2 drift = vec2(0.);
   int hi = int(aD.y);
@@ -103,7 +103,7 @@ void main(){
 precision highp float; layout(location=0) in vec2 aC; layout(location=1) in vec4 aA; layout(location=2) in vec4 aB; layout(location=5) in float aT;
 ${PROJ}
 uniform float uTime, uShadow; out vec2 vUv; out float vA;
-void main(){ float p = clamp((uTime - aT) / .9, 0., 1.); float e = p < 1. ? 1. - pow(1. - p, 3.) * cos(p * 9.) : 1.; float sc = mix(.2, 1., clamp(e, 0., 1.15));
+void main(){ float p = aT < 0. ? 1. - clamp((uTime + aT) / .45, 0., 1.) : clamp((uTime - aT) / .9, 0., 1.); float e = p < 1. ? 1. - pow(1. - p, 3.) * cos(p * 9.) : 1.; float sc = mix(.2, 1., clamp(e, 0., 1.15));
   float h = aB.y; vec2 hf = vec2(aA.z * .5) * sc; vec2 w = aA.xy + aC * hf; float r = aA.w; mat2 R = mat2(cos(r), sin(r), -sin(r), cos(r)); w = aA.xy + R * (aC * hf);
   vec2 sp = uShadow > .5 ? proj(w + vec2(.9, 1.3) * h * 26., 0., aB.w) : proj(w, h, aB.w);
   gl_Position = clip(sp); vec2 t = aC * .5 + .5; float idx = aB.x; vUv = vec2((mod(idx, 4.) + t.x) / 4., (floor(idx / 4.) + t.y) / 2.); vA = smoothstep(0., .25, p); }`;
@@ -150,8 +150,13 @@ void main(){ vec3 m = mix(vec3(1.), vec3(.2, .24, .36), uNoc); vec3 add = vec3(0
     gl.bindVertexArray(null); }
   function wyzwol(g, ileKlucz, t) { // wszystkie kamienie z kluczem < ileKlucz dostają czas startu (tylko nowe – rosnąco)
     if (!g.n) return false; let i = g.ptr; if (i >= g.n || g.keys[i] > ileKlucz) return false; const s = i;
-    while (i < g.n && g.keys[i] <= ileKlucz) { g.trig[i] = t < 0 ? t : t + (g.stride === 16 ? g.data[i * 16 + 8] * .22 : hash(i, 3) * .25) * (RM ? 0 : 1); i++; }
+    const K1 = g.stride === 16 ? .62 : .9, K0 = g.stride === 16 ? .5 : .45;
+    while (i < g.n && g.keys[i] <= ileKlucz) { const o = g.trig[i]; if (t >= 0 && o < 0) { const pd = 1 - clamp((t + o) / K0, 0, 1); g.trig[i] = t - pd * K1; } else g.trig[i] = t < 0 ? t : t + (g.stride === 16 ? g.data[i * 16 + 8] * .22 : hash(i, 3) * .25) * (RM ? 0 : 1); i++; }
     g.ptr = i; gl.bindBuffer(gl.ARRAY_BUFFER, g.tb); gl.bufferSubData(gl.ARRAY_BUFFER, s * 4, g.trig.subarray(s, i)); return true; }
+  function cofnij(g, ileKlucz, t) { // przewijanie w górę: kamienie ponad czołem odlatują (najdalsze pierwsze), płynnie z bieżącego stanu
+    if (!g.n || g.ptr <= 0 || g.keys[g.ptr - 1] <= ileKlucz) return false; const e = g.ptr; let i = g.ptr; const K1 = g.stride === 16 ? .62 : .9, K0 = g.stride === 16 ? .5 : .45;
+    while (i > 0 && g.keys[i - 1] > ileKlucz) { i--; const o = g.trig[i]; let st0 = t + (RM ? 0 : hash(i, 7) * .12); if (o >= 0 && o < 1e8) { const pl = clamp((t - o) / K1, 0, 1); if (pl < 1) st0 = t - (1 - pl) * K0; } g.trig[i] = RM ? -(t - 1) : -st0; }
+    g.ptr = i; gl.bindBuffer(gl.ARRAY_BUFFER, g.tb); gl.bufferSubData(gl.ARRAY_BUFFER, i * 4, g.trig.subarray(i, e)); return true; }
   const KW = grupa(16), KS = grupa(16), OB = grupa(8), OS = grupa(8); // kamienie świat/etap, obiekty świat/etap
   const rowK = (s, d, o) => { const c = hex(s.col); d.set([s.x, s.y, s.w, s.h, s.rot || 0, (s.kind || 0) + (s.clip || 0) * 2, s.tx || 0, s.ty || 0, s.jit || 0, s.hole == null ? -1 : s.hole, s.shape || 0, s.mel || 0, c[0], c[1], c[2], s.grp || 0], o); };
   const rowO = (s, d, o) => d.set([s.x, s.y, s.size, s.rot || 0, s.idx, s.h, 0, s.grp || 0], o);
@@ -247,12 +252,13 @@ void main(){ vec3 m = mix(vec3(1.), vec3(.2, .24, .36), uNoc); vec3 add = vec3(0
     run = false; if (!G.ready) return; const t = now / 1000, y = scrollY; let aktywne = false;
     // etap: postęp przyklejonej sekcji
     if (ETAP) { const r = ETAP.el.getBoundingClientRect(); ETAP.oy = ETAP.inner.getBoundingClientRect().top; const p = clamp(-r.top / Math.max(1, r.height - vh), 0, 1); ETAP.p = p;
-      const fz = p < .02 ? -1 : p < .16 ? 0 : p < .32 ? 1 : p < .46 ? 2 : p < .86 ? 3 : 4; if (fz > ETAP.faza) { for (let f = ETAP.faza + 1; f <= fz; f++) ETAP.t[f] = t; ETAP.faza = fz; if (fz >= 1) REG[ETAP.reg][6] = ETAP.t[1]; }
-      const kl = ETAP.faza >= 2 ? (ETAP.faza >= 3 ? Math.min(.87, .46 + (p - .46) / .4 * .4 + .02) : p + .01) : -1; ETAP.klucz = Math.max(ETAP.klucz || 0, kl); if (wyzwol(KS, kl, t)) aktywne = true;
-      if (OB && wyzwol(OS, p + .02, t)) aktywne = true;
+      const fz = p < .02 ? -1 : p < .16 ? 0 : p < .32 ? 1 : p < .46 ? 2 : p < .86 ? 3 : 4; if (fz > ETAP.faza) { for (let f = ETAP.faza + 1; f <= fz; f++) ETAP.t[f] = t; ETAP.faza = fz; if (fz >= 1) REG[ETAP.reg][6] = ETAP.t[1]; } else if (fz < ETAP.faza) { ETAP.faza = fz; if (fz < 1) REG[ETAP.reg][6] = 1e9; if (fz < 0) ETAP.t[0] = 1e9; aktywne = true; }
+      const kl = ETAP.faza >= 2 ? (ETAP.faza >= 3 ? Math.min(.87, .46 + (p - .46) / .4 * .4 + .02) : p + .01) : -1; ETAP.klucz = kl; if (wyzwol(KS, kl, t)) aktywne = true; if (cofnij(KS, kl, t)) aktywne = true;
+      if (OB && wyzwol(OS, p + .02, t)) aktywne = true; if (cofnij(OS, p + .02, t)) aktywne = true;
       KADRY.forEach(k => k.el.classList.toggle('on', p >= k.od && p < k.do)); document.documentElement.style.setProperty('--etap', p.toFixed(3)); }
     // czoło budowy: 85 % wysokości ekranu (widać, jak kamienie lądują)
     const f = y + vh * .86; if (f > front) { front = f; if (wyzwol(KW, f, t)) aktywne = true; if (wyzwol(OB, f, t)) aktywne = true; }
+    else if (f < front - 36) { front = f; if (cofnij(KW, f, t)) aktywne = true; if (cofnij(OB, f, t)) aktywne = true; }
     // dziury: kamienie podnoszą się, gdy element wjeżdża w ekran; element pojawia się w zwolnionym miejscu
     DZIURY.forEach(d => { if (d.t > 1e8 && d.y - y < vh * .74) { d.t = t + .85; d.el.classList.add('wyrasta'); aktywne = true; } });
     // noc na końcu strony: ostatnie dwa ekrany
@@ -310,7 +316,7 @@ void main(){ vec3 m = mix(vec3(1.), vec3(.2, .24, .36), uNoc); vec3 add = vec3(0
   // Wzory: plac w świecie przekłada się na nowo – nowe kamienie spadają falą od środka
   G.ustawWzor = (id, pat, pal) => { const el = document.getElementById(id); if (!el || !G.ready) return; el.dataset.wzor = pat; if (pal) el.dataset.kolor = pal; buduj();
     const z = STREFY[id]; if (!z) return; const t = performance.now() / 1000, cx = (z.x0 + z.x1) / 2, cy = Math.min(z.y1, Math.max(z.y0, scrollY + innerHeight / 2)), R = Math.hypot(z.x1 - z.x0, z.y1 - z.y0) * .5;
-    for (let i = 0; i < KW.n; i++) if (KW.zone[i] === z.si && KW.trig[i] < 1e8) KW.trig[i] = t + Math.hypot(KW.xs[i] - cx, KW.ys[i] - cy) / R * 1.1 + hash(i, 5) * .12;
+    for (let i = 0; i < KW.n; i++) if (KW.zone[i] === z.si && KW.trig[i] >= 0 && KW.trig[i] < 1e8) KW.trig[i] = t + Math.hypot(KW.xs[i] - cx, KW.ys[i] - cy) / R * 1.1 + hash(i, 5) * .12;
     gl.bindBuffer(gl.ARRAY_BUFFER, KW.tb); gl.bufferSubData(gl.ARRAY_BUFFER, 0, KW.trig); lastActive = t + 2; plan(); };
   G.info = () => ({ ...G.n, nl: LAMPY.length, l0: LAMPY[0], pageH, front, etap: ETAP && ETAP.p, faza: ETAP && ETAP.faza, D, K });
   G.klatka = () => klatka(performance.now());
