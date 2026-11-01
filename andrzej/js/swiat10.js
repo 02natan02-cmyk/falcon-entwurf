@@ -1,7 +1,7 @@
-/* GardenBruk v12 – tło strony.
+/* GardenBruk v13 – tło strony.
    Każda sekcja ma własny plac z kostki w zwykłych płótnach (po 1024 px) wewnątrz sekcji – przewija się razem ze stroną, nic nie skacze.
    Kamienie układają się, gdy linia budowy (78 % ekranu na telefonie, 88 % na PC) je mija: spadają raz i zostają (nigdy nie wracają). Tylko kawałek, w którym coś
-   właśnie spada, malowany jest co klatkę; potem zamarza. Historia i przerywniki „Koło” mają własne przyklejone sceny.
+   właśnie spada, malowany jest co klatkę; potem zamarza. Historia ma własną przyklejoną scenę; „Koło” to zwykły zamknięty plac, który układa się sam od środka.
    Wszystko maluje jedno płótno WebGL; po utracie kontekstu (np. przełączenie aplikacji na telefonie) odbudowuje się samo. */
 (function () {
   'use strict';
@@ -162,7 +162,7 @@ void main(){ float x = vP.x / uRes.x; float b = smoothstep(0., .3, x) * smoothst
     const R = new Float32Array(160), RB = new Float32Array(160), H = new Float32Array(96).fill(0), L = new Float32Array(96);
     for (let i = 0; i < 24; i++) H[i * 4] = 1e9;
     function rysujGrupe(g, y0, y1) { if (!g || !g.n) return; let a = 0, b = g.n;
-      if (y1 != null) { const k = g.keys; let lo = 0, hi = g.n; while (lo < hi) { const m = (lo + hi) >> 1; if (k[m] < y0 - 420) lo = m + 1; else hi = m; } a = lo; lo = a; hi = g.n; while (lo < hi) { const m = (lo + hi) >> 1; if (k[m] < y1 + 420) lo = m + 1; else hi = m; } b = lo; if (b <= a) return; }
+      if (y1 != null && !g.nocul) { const k = g.keys; let lo = 0, hi = g.n; while (lo < hi) { const m = (lo + hi) >> 1; if (k[m] < y0 - 420) lo = m + 1; else hi = m; } a = lo; lo = a; hi = g.n; while (lo < hi) { const m = (lo + hi) >> 1; if (k[m] < y1 + 420) lo = m + 1; else hi = m; } b = lo; if (b <= a) return; }
       gl.bindVertexArray(g.vao); const st = g.stride * 4; const locs = g.stride === 16 ? [[1, 0], [2, 16], [3, 32], [4, 48]] : [[1, 0], [2, 16]];
       gl.bindBuffer(gl.ARRAY_BUFFER, g.buf); for (const [l, o] of locs) gl.vertexAttribPointer(l, 4, gl.FLOAT, false, st, a * st + o);
       gl.bindBuffer(gl.ARRAY_BUFFER, g.tb); gl.vertexAttribPointer(5, 1, gl.FLOAT, false, 4, a * 4);
@@ -233,9 +233,10 @@ void main(){ float x = vP.x / uRes.x; float b = smoothstep(0., .3, x) * smoothst
     const ty = G + 50 * K, by = h - G - 50 * K;
     const kraw = [...wzdluz([[x0, ty], [x1, ty]], ob), ...wzdluz([[x0 + 50 * K, G + 100 * K], [x0 + 50 * K, h - G - 100 * K]], ob), ...wzdluz([[x1 - 50 * K, G + 100 * K], [x1 - 50 * K, h - G - 100 * K]], ob), ...wzdluz([[x0, by], [x1, by]], ob)];
     kraw.forEach(s => { s.key = s.y - 60; s.jit = hash(s.x | 0, 2); });
-    const pole = wzor(pat, pal, [ix0 - 60, iy0 - 60, ix1 + 60, iy1 + 60], (x, y) => x > ix0 - 70 * K && x < ix1 + 70 * K && y > iy0 - 70 * K && y < iy1 + 70 * K);
+    const kolo = pat === 'kolo', pole = kolo ? [] : wzor(pat, pal, [ix0 - 60, iy0 - 60, ix1 + 60, iy1 + 60], (x, y) => x > ix0 - 70 * K && x < ix1 + 70 * K && y > iy0 - 70 * K && y < iy1 + 70 * K);
     pole.forEach(s => { s.clip = 1; s.key = s.y + hash(s.x | 0, s.y | 0) * 50; s.jit = hash(s.y | 0, s.x | 0); });
     const kw = kraw.concat(pole); kw.sort((a, b) => a.key - b.key);
+    const kr = kolo ? planKola(el, (x0 + x1) / 2, h / 2, [ix0, iy0, ix1, iy1]) : null;
     const ow = [], lampy = [];
     if (!MOB()) { for (let i = 0, yy = 240; yy < h - 120 || i === 0; i++, yy += 520) { const hz = hash(idx * 13 + i, 7), hz2 = hash(idx * 7 + i, 11);
         ow.push({ x: marg * .5 + (hz - .5) * marg * .3, y: yy, size: marg * (hz > .5 ? 2.6 : 1.4), idx: hz > .7 ? 2 : hz > .35 ? 0 : 4, h: hz > .35 ? 4 : 1.2 });
@@ -245,8 +246,19 @@ void main(){ float x = vP.x / uRes.x; float b = smoothstep(0., .3, x) * smoothst
     ow.forEach(o => { o.key = o.y - 160; }); ow.sort((a, b) => a.key - b.key);
     // noc: data-noc="0>1" – od dnia u góry do nocy po ok. 600 px (bez twardej granicy między sekcjami)
     const nd = (el.dataset.noc || '0>0').split('>').map(Number), r1 = Math.min(650, h * .45), a = dimNoc(nd[0]), b = dimNoc(nd[1]);
-    return { reg, clip, kw, ow, lampy, noc: [nd[0], nd[1], 0, r1], dim: [a[0], a[1], b[0], b[1], 0, r1] };
+    return { reg, clip, kw, kr, ow, lampy, noc: [nd[0], nd[1], 0, r1], dim: [a[0], a[1], b[0], b[1], 0, r1] };
   }
+  // „Koło”: pierścienie z kostki wokół znaku GardenBruk w zamkniętym placu; klucz 0…1 = kolejność układania (od środka na zewnątrz)
+  function planKola(el, cx, cy, [ix0, iy0, ix1, iy1]) {
+    const kk = MOB() ? .24 : .32, J = 4 * kk, step = 100 * kk + J, znak = el.querySelector('.kolo-znak');
+    const rz = (znak ? znak.offsetWidth / 2 : 60) + 12, rmax = Math.hypot(Math.max(cx - ix0, ix1 - cx), Math.max(cy - iy0, iy1 - cy)) + step, N = Math.max(4, Math.ceil((rmax - rz) / step));
+    const kol = (el.dataset.kolory || 'grafit,bianco,piaskowy').split(','), kind = +(el.dataset.granit || 0), list = [];
+    for (let i = 0; i < N; i++) { const r = rz + (i + .5) * step, n = Math.max(8, Math.round(2 * Math.PI * r / (step * 1.45))), da = 2 * Math.PI / n, a0 = i * .37;
+      const pal = i === 0 || i % 5 === 3 ? kol[1] : i >= N - 2 ? kol[2] : kol[0], P = PAL[pal] || PAL.grafit, sz = 2 * Math.PI * r / n - J;
+      for (let k = 0; k < n; k++) { const a = a0 + k * da, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+        if (x < ix0 - step || x > ix1 + step || y < iy0 - step || y > iy1 + step) continue;
+        list.push({ x, y, w: sz, h: step - J, rot: a + Math.PI / 2, col: P[(hash(i * 131 + k, 7) * P.length) | 0], shape: kind ? 2 : 0, kind, clip: 1, tx: hash(i, k) * 900, ty: hash(k, i) * 900, jit: hash(k, i * 3), key: (i + k / n) / N }); } }
+    return list.sort((a, b) => a.key - b.key); }
 
   /* ---------- jedno płótno WebGL (R0) maluje wszystko: kawałki sekcji, Historię i przerywniki ----------
      Obraz trafia do zwykłych płócien na stronie (bitmaprenderer bez kopiowania, inaczej drawImage). */
@@ -267,11 +279,11 @@ void main(){ float x = vP.x / uRes.x; float b = smoothstep(0., .3, x) * smoothst
   /* ---------- kawałki tła w sekcjach (po HC px, przewijają się ze stroną) ---------- */
   const IOS = new IntersectionObserver(es => es.forEach(e => { e.target._s.widac = e.isIntersecting; if (e.isIntersecting) budz(); }), { rootMargin: '100% 0px 100% 0px' });
   // blisko ekranu (1,5 ekranu): malować; daleko (2,5 ekranu): zwolnić pamięć
-  const IO1 = new IntersectionObserver(es => es.forEach(e => { const c = e.target._k; c.blisko = e.isIntersecting; if (c.blisko && (c.brudny || !c.gotowy)) { KOL.add(c); budz(); } }), { rootMargin: '150% 0px 150% 0px' });
-  const IO2 = new IntersectionObserver(es => es.forEach(e => { const c = e.target._k; if (e.isIntersecting || !c.gotowy) return; wyczysc(c); c.gotowy = false; }), { rootMargin: '250% 0px 250% 0px' });
+  const IO1 = new IntersectionObserver(es => es.forEach(e => { const c = e.target._k; c.blisko = e.isIntersecting; if (c.blisko && (c.brudny || !c.gotowy)) { KOL.add(c); budz(); } }), { rootMargin: '200% 0px 200% 0px' });
+  const IO2 = new IntersectionObserver(es => es.forEach(e => { const c = e.target._k; if (e.isIntersecting || !c.gotowy) return; wyczysc(c); c.gotowy = false; }), { rootMargin: '350% 0px 350% 0px' });
   function przygotujSekcje(el, idx) {
     const box = document.createElement('div'); box.className = 'tlo-sek'; box.setAttribute('aria-hidden', 'true'); el.prepend(box);
-    const s = { el, box, idx, w: 0, h: 0, top: 0, plan: null, kw: null, ow: null, kaw: [], lf: null, widac: false };
+    const s = { el, box, idx, w: 0, h: 0, top: 0, plan: null, kw: null, ow: null, kaw: [], lf: null, widac: false, kr: null, kl: -1, kt0: null, znak: el.querySelector('.kolo-znak'), napis: el.querySelector('.kolo-napis') };
     new ResizeObserver(() => { clearTimeout(s.rT); s.rT = setTimeout(() => zmierz(s), 160); }).observe(el);
     el._s = s; IOS.observe(el); SEK.push(s); return s; }
   function zmierz(s, wymus) {
@@ -279,30 +291,49 @@ void main(){ float x = vP.x / uRes.x; float b = smoothstep(0., .3, x) * smoothst
     const w = document.documentElement.clientWidth, h = Math.ceil(s.el.offsetHeight); if (!wymus && w === s.w && Math.abs(h - s.h) < 2) return;
     s.w = w; s.h = h; s.plan = planSekcji(s.el, w, h, s.idx); s.top = Math.round(s.el.getBoundingClientRect().top + scrollY);
     R0.usun(s.kw); R0.usun(s.ow); s.kw = R0.grupa(s.plan.kw, 16, rowK, 1e9); s.ow = R0.grupa(s.plan.ow, 8, rowO, 1e9);
+    R0.usun(s.kr); s.kr = s.plan.kr ? R0.grupa(s.plan.kr, 16, rowK, 1e9) : null; if (s.kr) { s.kr.nocul = true; if (s.kl > 0 || s.klf != null) polozKolo(s, s.kl, s.klf == null ? -1e9 : s.klf, teraz() - 10); }
     // to, co już było ułożone, leży od razu – bez ponownej animacji
     if (s.lf != null) { const t0 = teraz() - 10; R0.wyzwol(s.kw, s.lf, t0, 0); R0.wyzwol(s.ow, s.lf, t0, 0); }
     const n = Math.max(1, Math.ceil(h / HC));
     while (s.kaw.length > n) { const c = s.kaw.pop(); IO1.unobserve(c.cv); IO2.unobserve(c.cv); c.cv.remove(); KOL.delete(c); }
     for (let i = 0; i < n; i++) { let c = s.kaw[i];
       if (!c) { const cv = document.createElement('canvas'); cv.width = 1; cv.height = 1; s.box.appendChild(cv);
-        c = { s, i, cv, ctx: null, gotowy: false, blisko: false, brudny: true, anim: 0 }; cv._k = c; s.kaw.push(c); IO1.observe(cv); IO2.observe(cv); }
+        c = { s, i, cv, ctx: null, gotowy: false, blisko: false, brudny: true, anim: 0, malT: 0 }; cv._k = c; s.kaw.push(c); IO1.observe(cv); IO2.observe(cv); }
       c.y = i * HC; c.cv.style.top = c.y + 'px'; c.cv.style.height = HC + 'px'; c.brudny = true; if (c.blisko) KOL.add(c); }
     budz(); }
   // czoło budowy: linia na 78 % (telefon, nad dolnym paskiem) albo 88 % (PC) wysokości ekranu – co ją minie, to się układa (nigdy z powrotem)
   function czolo(t) {
-    const vh = innerHeight, FR = MOB() ? .78 : .88;
+    const vh = innerHeight, FR = MOB() ? .78 : .88; let dalej = false;
     for (const s of SEK) { if (!s.widac || !s.kw) continue;
-      const lf = vh * FR - s.el.getBoundingClientRect().top;
-      if (s.lf == null) { s.lf = lf; if (lf > 0) { const t0 = t - 10; R0.wyzwol(s.kw, lf, t0, 0); R0.wyzwol(s.ow, lf, t0, 0); } continue; }
-      if (lf <= s.lf + .5) continue; s.lf = lf;
-      let a = s.kw.ptr; if (R0.wyzwol(s.kw, lf, t, .22)) oznacz(s, s.kw.keys[a], s.kw.keys[s.kw.ptr - 1], t + .8);
-      a = s.ow.ptr; if (R0.wyzwol(s.ow, lf, t, .15)) oznacz(s, s.ow.keys[a] + 160, s.ow.keys[s.ow.ptr - 1] + 160, t + .95); } }
+      const r = s.el.getBoundingClientRect(), lf = vh * FR - r.top;
+      if (s.lf == null) { s.lf = lf; if (lf > 0) { const t0 = t - 10; R0.wyzwol(s.kw, lf, t0, 0); R0.wyzwol(s.ow, lf, t0, 0); } }
+      else if (lf > s.lf + .5) { s.lf = lf;
+        let a = s.kw.ptr; if (R0.wyzwol(s.kw, lf, t, .22)) oznacz(s, s.kw.keys[a], s.kw.keys[s.kw.ptr - 1], t + .8);
+        a = s.ow.ptr; if (R0.wyzwol(s.ow, lf, t, .15)) oznacz(s, s.ow.keys[a] + 160, s.ow.keys[s.ow.ptr - 1] + 160, t + .95); }
+      if (s.kr && kolo(s, t, r, lf)) dalej = true; }
+    return dalej; }
+  // Koło: kamienie nad linią budowy spadają jak wszędzie; gdy linia dochodzi do środka, pojawia się znak, a reszta koła układa się sama od środka na zewnątrz (ok. 1,4 s).
+  // Strona niczego nie przytrzymuje. Raz ułożone zostaje.
+  function kolo(s, t, r, lf) {
+    if (s.kl >= 1.05) return false; const vh = innerHeight;
+    if (s.kt0 == null && s.kl < 0 && r.bottom < vh * .35) { s.kt0 = t - 10; s.kl = 1.1; polozKolo(s, 1.1, 1e9, t - 10); oznacz(s, -1e9, 1e9, t + .2); znakKola(s); return false; }
+    if (s.klf == null) { s.klf = lf; if (lf > 0 && polozKolo(s, -1, lf, t - 10)) oznacz(s, -1e9, 1e9, t + .2); }   // pierwsze spojrzenie: co już minięte, leży od razu
+    if (s.kt0 == null && r.top + s.h * .5 < vh * (MOB() ? .78 : .84)) s.kt0 = t;
+    const kl = s.kt0 != null ? Math.min(1.1, (t - s.kt0) / 1.4) : -1;
+    if (kl > s.kl || lf > s.klf + .5) { s.kl = Math.max(s.kl, kl); s.klf = Math.max(s.klf, lf); if (polozKolo(s, s.kl, s.klf, RM ? t - 10 : t)) oznacz(s, -1e9, 1e9, t + .8); znakKola(s); }
+    return s.kt0 != null && s.kl < 1.05; }
+  // kładzie kamienie koła, których kolej już minęła (klucz ≤ kl) albo które linia budowy już minęła (y ≤ lf)
+  function polozKolo(s, kl, lf, t) { const g = s.kr, L = s.plan && s.plan.kr; if (!g || !L) return false; let jest = false;
+    for (let i = 0; i < g.n; i++) if (g.trig[i] > 1e8 && (g.keys[i] <= kl || L[i].y <= lf)) { g.trig[i] = t + hash(i, 3) * (t > teraz() - 5 ? .1 : 0); jest = true; }
+    if (jest) R0.wgrajTrig(g); return jest; }
+  function znakKola(s) { if (s.znak && s.kt0 != null) s.znak.classList.add('on'); if (s.napis && s.kl > .45) s.napis.classList.add('on'); }
   function oznacz(s, a, b, az) { for (const c of s.kaw) if (c.y < b + 420 && c.y + HC > a - 420) c.anim = Math.max(c.anim, az); }
   function budz() { if (!raf && G.ready) raf = requestAnimationFrame(klatka); }
   function klatka(now) {
-    raf = 0; if (!zywy()) return; const t = now / 1000; czolo(t); let dalej = false, ile = 0;
-    // kawałki, w których właśnie spadają kamienie: co klatkę
-    for (const s of SEK) { if (!s.widac) continue; for (const c of s.kaw) if (c.anim > t) { dalej = true; if (c.blisko) { maluj(c, t); ile++; KOL.delete(c); } } }
+    raf = 0; if (!zywy()) return; const t = now / 1000; let dalej = czolo(t), ile = 0;
+    // kawałki, w których spadają kamienie: co klatkę, aż do jednej klatki PO wylądowaniu wszystkich (malT ≥ anim) – nigdy nie zamarza obraz w locie.
+    // Kawałek daleko od ekranu dostaje znak „brudny” i maluje się od nowa, gdy wróci.
+    for (const s of SEK) for (const c of s.kaw) if (c.anim > c.malT) { if (c.blisko) { dalej = true; maluj(c, t); ile++; KOL.delete(c); } else c.brudny = true; }
     // reszta: jeden kawałek na klatkę, najpierw najbliższy ekranu
     if (KOL.size) { dalej = true; if (ile < 2) { const c = najblizszy(); if (c) { KOL.delete(c); maluj(c, t); } } }
     if (dalej || now - ostScroll < 300) raf = requestAnimationFrame(klatka); }
@@ -311,9 +342,9 @@ void main(){ float x = vP.x / uRes.x; float b = smoothstep(0., .3, x) * smoothst
     return best; }
   function maluj(c, t) {
     const s = c.s; if (!s.plan) return; const t1 = performance.now(), top = c.cv.getBoundingClientRect().top;
-    rysujDo(c, { w: s.w, h: HC, scroll: c.y, texOff: s.top, stageOy: -1e5, t, reg: s.plan.reg, clip: s.plan.clip, kamienie: [s.kw], obiekty: [s.ow], lampy: s.plan.lampy, noc: s.plan.noc, vig: 0,
+    rysujDo(c, { w: s.w, h: HC, scroll: c.y, texOff: s.top, stageOy: -1e5, t, reg: s.plan.reg, clip: s.plan.clip, kamienie: s.kr ? [s.kw, s.kr] : [s.kw], obiekty: [s.ow], lampy: s.plan.lampy, noc: s.plan.noc, vig: 0,
       persp: .055, perspO: 0, c: [s.w / 2, innerHeight / 2 - top], cul: true, dim: s.plan.dim }, s.w);
-    c.gotowy = true; c.brudny = false; const d = performance.now() - t1; STAT.n++; STAT.ms += d; STAT.max = Math.max(STAT.max, d); }
+    c.gotowy = true; c.brudny = false; c.malT = t; const d = performance.now() - t1; STAT.n++; STAT.ms += d; STAT.max = Math.max(STAT.max, d); }
 
   /* ---------- Historia: przyklejony etap, buduje się tylko do przodu ---------- */
   let E = null;
@@ -325,12 +356,12 @@ void main(){ float x = vP.x / uRes.x; float b = smoothstep(0., .3, x) * smoothst
     addEventListener('scroll', () => { if (E.widac) { postep(); petla(); } }, { passive: true }); }
   function planEtapu() {
     const w = E.inner.clientWidth, h = E.inner.clientHeight; if (!w || !h || !zywy()) return; E.w = w; E.h = h;
-    const marg = MOB() ? 14 : Math.max(60, w * .07), x0 = marg + (MOB() ? 0 : w * .06), x1 = w - x0, y0 = h * .16, y1 = h + 40;
+    const marg = MOB() ? 14 : Math.max(60, w * .07), x0 = marg + (MOB() ? 0 : w * .06), x1 = w - x0, y0 = h * .16, y1 = h - (MOB() ? 18 : 30) - 14;
     E.x0 = x0; E.x1 = x1; E.y0 = y0; E.y1 = y1;
-    E.reg = [[w / 2, h / 2, w + 400, h + 400, 0, 1, -1e9, 1], [(x0 + x1) / 2, (y0 + y1) / 2, x1 - x0 + 40, y1 - y0 + 40, 10, 3, -1e9, 1], [(x0 + x1) / 2, (y0 + y1) / 2, x1 - x0 + 30, y1 - y0 + 30, 8, 2, 1e9, 1]];
-    E.clip = new Float32Array(64); const ix0 = x0 + 52 * K, iy0 = y0 + 52 * K, ix1 = x1 - 52 * K; E.clip.set([ix0, iy0, ix1, 1e6], 15 * 4);
-    const ks = wzdluz([[x0, y1], [x0, y0], [x1, y0], [x1, y1]], 'bianco', { L: 200, W: 100 }); ks.forEach((s, i) => { s.key = .32 + .12 * i / ks.length; s.grp = 1; s.jit = 0; });
-    const pole = wzor('herring', 'grafit', [ix0 - 60, iy0 - 60, ix1 + 60, y1], (x, y) => x > ix0 - 70 * K && x < ix1 + 70 * K && y > iy0 - 70 * K && y < y1 + 30), cx = (x0 + x1) / 2;
+    E.reg = [[w / 2, h / 2, w + 400, h + 400, 0, 1, -1e9, 0], [(x0 + x1) / 2, (y0 + y1) / 2, x1 - x0 + 40, y1 - y0 + 40, 10, 3, -1e9, 1], [(x0 + x1) / 2, (y0 + y1) / 2, x1 - x0 + 30, y1 - y0 + 30, 8, 2, 1e9, 1]];
+    E.clip = new Float32Array(64); const ix0 = x0 + 52 * K, iy0 = y0 + 52 * K, ix1 = x1 - 52 * K; E.clip.set([ix0, iy0, ix1, y1 - 52 * K], 15 * 4);
+    const ks = wzdluz([[x0, y1], [x0, y0], [x1, y0], [x1, y1], [x0, y1]], 'bianco', { L: 200, W: 100 }); ks.forEach((s, i) => { s.key = .32 + .12 * i / ks.length; s.grp = 1; s.jit = 0; });
+    const pole = wzor('herring', 'grafit', [ix0 - 60, iy0 - 60, ix1 + 60, y1 + 60], (x, y) => x > ix0 - 70 * K && x < ix1 + 70 * K && y > iy0 - 70 * K && y < y1 + 18 * K), cx = (x0 + x1) / 2;
     pole.forEach(s => { s.clip = 15; const dd = (s.y - y0) / (y1 - y0) * .8 + Math.abs(s.x - cx) / (x1 - x0) * .4; s.key = .46 + .38 * clamp(dd, 0, 1) + hash(s.x | 0, s.y | 0) * .02; s.grp = 1; s.jit = hash(s.y | 0, s.x | 0); });
     ks.push(...pole); ks.sort((a, b) => a.key - b.key);
     const os = [];
@@ -340,7 +371,9 @@ void main(){ float x = vP.x / uRes.x; float b = smoothstep(0., .3, x) * smoothst
     R0.usun(E.ks); R0.usun(E.os); E.ks = R0.grupa(ks, 16, rowK, 1e9); E.os = R0.grupa(os, 8, rowO, 1e9);
     // to, co już zbudowane, zostaje (bez animacji)
     const t0 = teraz() - 10; if (E.klucz > 0) R0.wyzwol(E.ks, E.klucz, t0); if (E.pOb > 0) R0.wyzwol(E.os, E.pOb, t0); if (E.faza >= 1) E.reg[2][6] = E.t[1];
-    E.ok = true; E.aktywny = teraz(); }
+    E.texOff = trawaEtapu(); E.ok = true; E.aktywny = teraz(); }
+  // trawa sceny leży w rastrze strony w chwili, gdy scena odjeżdża w górę – wtedy styka się z trawą Oferty bez szwu
+  const trawaEtapu = () => { const r = E.el.getBoundingClientRect(); return Math.round(r.top + scrollY + r.height - E.h); };
   function postep() {
     if (!E || !E.ok || !zywy()) return; const r = E.el.getBoundingClientRect(), vh = innerHeight, p = clamp(-r.top / Math.max(1, r.height - vh), 0, 1); E.p = p;
     E.kadry.forEach(k => k.el.classList.toggle('on', p >= k.od && p < k.do)); document.documentElement.style.setProperty('--etap', p.toFixed(3));
@@ -354,51 +387,11 @@ void main(){ float x = vP.x / uRes.x; float b = smoothstep(0., .3, x) * smoothst
   function petla() { if (!E || !E.ok || eRaf) return; eRaf = requestAnimationFrame(klatkaEtapu); }
   function klatkaEtapu(now) {
     eRaf = 0; if (!E.widac || !zywy()) return; const t = now / 1000;
-    if (E.inner.clientWidth !== E.w || Math.abs(E.inner.clientHeight - E.h) > 120) planEtapu();
+    if (E.inner.clientWidth !== E.w || Math.abs(E.inner.clientHeight - E.h) > 2) planEtapu(); else E.texOff = trawaEtapu();
     const szb = [E.t[0] || 1e9, 1.6, E.faza >= 0 && E.faza < 3 ? 1 : E.faza >= 3 ? Math.max(0, 1 - (t - (E.t[3] || t)) / 1.2) : 0];
-    rysujDo(E, { w: E.w, h: E.h, scroll: 0, stageOy: 0, t, reg: E.reg, clip: E.clip, kamienie: [E.ks], obiekty: [E.os], lampy: [], noc: 0, vig: 1, persp: .055,
+    rysujDo(E, { w: E.w, h: E.h, scroll: 0, stageOy: 0, t, reg: E.reg, clip: E.clip, kamienie: [E.ks], obiekty: [E.os], lampy: [], noc: 0, vig: 0, texOff: E.texOff, dim: [.36, .17, .36, .17, 0, 1], persp: .055,
       sz: [(E.x0 + E.x1) / 2, (E.y0 + E.y1) / 2, E.x1 - E.x0, E.y1 - E.y0], szb }, E.w);
     if (t - E.aktywny < 1.6 || szb[2] > 0 && szb[2] < 1) eRaf = requestAnimationFrame(klatkaEtapu); }
-
-  /* ---------- Przerywnik „Koło”: strona na chwilę staje, kamienie układają się w koło wokół znaku GardenBruk ---------- */
-  const KOLA = [];
-  function przygotujKolo(el) {
-    const inner = el.querySelector('.kolo-wnetrze'); if (!inner) return;
-    const Q = { el, inner, cv: scena(inner, 'kolo-scena'), ctx: null, ok: false, widac: false, kl: -1, t0: 0, aktywny: 0, raf: 0, w: 0, h: 0, znak: inner.querySelector('.kolo-znak'), napis: inner.querySelector('.kolo-napis') };
-    new IntersectionObserver(es => { Q.widac = es[0].isIntersecting; if (Q.widac) { if (!Q.ok && zywy()) planKola(Q); ruchKola(Q); } }, { rootMargin: '120% 0px 120% 0px' }).observe(el);
-    addEventListener('scroll', () => { if (Q.widac && Q.ok) ruchKola(Q); }, { passive: true });
-    KOLA.push(Q); }
-  function planKola(Q) {
-    const w = Q.inner.clientWidth, h = Q.inner.clientHeight; if (!w || !h || !zywy()) return; Q.w = w; Q.h = h;
-    const cx = w / 2, cy = h / 2, kk = MOB() ? .24 : .32, J = 4 * kk, step = 100 * kk + J;
-    const rz = (Q.znak ? Q.znak.offsetWidth / 2 : 60) + 12, rmax = Math.hypot(w, h) / 2 * .93, N = Math.max(4, Math.ceil((rmax - rz) / step));
-    const kol = (Q.el.dataset.kolory || 'grafit,bianco,piaskowy').split(','), kind = +(Q.el.dataset.granit || 0), list = [];
-    for (let i = 0; i < N; i++) { const r = rz + (i + .5) * step, n = Math.max(8, Math.round(2 * Math.PI * r / (step * 1.45))), da = 2 * Math.PI / n, a0 = i * .37;
-      const pal = i === 0 || i % 5 === 3 ? kol[1] : i >= N - 2 ? kol[2] : kol[0], P = PAL[pal] || PAL.grafit, sz = 2 * Math.PI * r / n - J;
-      for (let k = 0; k < n; k++) { const a = a0 + k * da, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
-        if (x < -step || x > w + step || y < -step || y > h + step) continue;
-        list.push({ x, y, w: sz, h: step - J, rot: a + Math.PI / 2, col: P[(hash(i * 131 + k, 7) * P.length) | 0], shape: kind ? 2 : 0, kind, tx: hash(i, k) * 900, ty: hash(k, i) * 900, jit: hash(k, i * 3), grp: 1, key: (i + k / n) / N }); } }
-    list.sort((a, b) => a.key - b.key);
-    R0.usun(Q.ks); Q.ks = R0.grupa(list, 16, rowK, 1e9);
-    if (Q.kl > 0) R0.wyzwol(Q.ks, Q.kl, teraz() - 10, 0);
-    Q.reg = [[w / 2, h / 2, w + 400, h + 400, 0, 1, -1e9, 1], [cx, cy, 2 * rmax, 2 * rmax, rmax, 0, -1e9, 1]]; Q.clip = new Float32Array(64);
-    // trawa w tle sekcji leży w tym samym rastrze co trawa na placach (bez szwu)
-    const top = Math.round(Q.el.getBoundingClientRect().top + scrollY); Q.el.style.setProperty('--trawa-y', (-(top % 360)) + 'px');
-    Q.ok = true; Q.aktywny = teraz(); }
-  function krokKola(Q, t) {
-    const r = Q.el.getBoundingClientRect(), vh = innerHeight, p = clamp(-r.top / Math.max(1, r.height - vh), 0, 1);
-    if (!Q.t0 && r.top < vh * .7) Q.t0 = t;   // zaczyna się układać, gdy koło wjeżdża na ekran
-    // koło układa się samo w ok. 2 s, przewijanie może je przyspieszyć; raz ułożone zostaje
-    const kl = Math.min(1.2, Math.max(Q.kl, p * 1.3, Q.t0 ? (t - Q.t0) / 2 : -1));
-    if (kl > Q.kl) { Q.kl = kl; if (R0.wyzwol(Q.ks, kl, RM ? t - 10 : t, .1)) Q.aktywny = t; }
-    if (Q.kl > .03 && Q.znak) Q.znak.classList.add('on'); if (Q.kl > .7 && Q.napis) Q.napis.classList.add('on'); }
-  function ruchKola(Q) { if (Q.ok && !Q.raf) Q.raf = requestAnimationFrame(n => klatkaKola(Q, n)); }
-  function klatkaKola(Q, now) {
-    Q.raf = 0; if (!Q.widac || !Q.ok || !zywy()) return; const t = now / 1000;
-    if (Q.inner.clientWidth !== Q.w || Math.abs(Q.inner.clientHeight - Q.h) > 120) planKola(Q);
-    krokKola(Q, t);
-    rysujDo(Q, { w: Q.w, h: Q.h, scroll: 0, stageOy: 0, t, reg: Q.reg, clip: Q.clip, kamienie: [Q.ks], obiekty: [], lampy: [], noc: 0, vig: 1, persp: .055 }, Q.w);
-    if ((Q.t0 && Q.kl < 1.2) || t - Q.aktywny < .8) Q.raf = requestAnimationFrame(n => klatkaKola(Q, n)); }
 
   /* ---------- „wyrasta”: kafle i płyty pojawiają się, gdy wjeżdżają w ekran ---------- */
   function wyrastanie() { const els = document.querySelectorAll('[data-dziura], .kafel'); if (RM) { els.forEach(e => e.classList.add('wyrasta')); return; }
@@ -423,9 +416,8 @@ void main(){ float x = vP.x / uRes.x; float b = smoothstep(0., .3, x) * smoothst
   // po powrocie do karty albo po odbudowie: wszystko, co jest blisko, maluje się od nowa
   function odswiez(nowe) {
     if (!zywy()) return;
-    SEK.forEach(s => { if (nowe) { s.kw = s.ow = null; zmierz(s, true); } else s.kaw.forEach(c => { c.brudny = true; if (c.blisko) KOL.add(c); }); });
+    SEK.forEach(s => { if (nowe) { s.kw = s.ow = s.kr = null; zmierz(s, true); } else s.kaw.forEach(c => { c.brudny = true; if (c.blisko) KOL.add(c); }); });
     if (E) { if (nowe || !E.ok) { E.ks = E.os = null; planEtapu(); } E.aktywny = teraz(); petla(); }
-    KOLA.forEach(Q => { if (nowe && Q.ok) { Q.ks = null; planKola(Q); } Q.aktywny = teraz(); ruchKola(Q); });
     budz(); }
 
   /* ---------- start ---------- */
@@ -435,14 +427,13 @@ void main(){ float x = vP.x / uRes.x; float b = smoothstep(0., .3, x) * smoothst
     G.ok = true; wyrastanie(); skala();
     const sekcje = [...document.querySelectorAll('[data-strefa="plac"]')].map(przygotujSekcje);
     const et = document.querySelector('[data-strefa="etap"]'); if (et) przygotujEtap(et);
-    document.querySelectorAll('[data-strefa="kolo"]').forEach(przygotujKolo);
     addEventListener('scroll', () => { ostScroll = performance.now(); budz(); }, { passive: true });
-    R0.gotowe.then(() => { G.ready = true; sekcje.forEach(s => zmierz(s, true)); if (E) { planEtapu(); postep(); petla(); } KOLA.forEach(Q => { if (Q.widac) { planKola(Q); ruchKola(Q); } }); budz(); dispatchEvent(new Event('swiat9')); });
+    R0.gotowe.then(() => { G.ready = true; sekcje.forEach(s => zmierz(s, true)); if (E) { planEtapu(); postep(); petla(); } budz(); dispatchEvent(new Event('swiat9')); });
     let ukryta = 0;
     document.addEventListener('visibilitychange', () => { if (document.visibilityState !== 'visible') { ukryta = performance.now(); return; }
       setTimeout(() => { if (!R0 || R0.zgubiony()) { if (!G.lT) odbuduj(true); } else if (performance.now() - ukryta > 800) odswiez(false); }, 250); });
     let lw = innerWidth;
-    addEventListener('resize', () => { if (Math.abs(innerWidth - lw) < 2) return; lw = innerWidth; clearTimeout(G.rT); G.rT = setTimeout(() => { skala(); SEK.forEach(s => zmierz(s, true)); if (E && E.ok) { planEtapu(); petla(); } KOLA.forEach(Q => { if (Q.ok) { planKola(Q); ruchKola(Q); } }); }, 220); });
+    addEventListener('resize', () => { if (Math.abs(innerWidth - lw) < 2) return; lw = innerWidth; clearTimeout(G.rT); G.rT = setTimeout(() => { skala(); SEK.forEach(s => zmierz(s, true)); if (E && E.ok) { planEtapu(); petla(); } }, 220); });
   }
   // Wzory: nowy wzór kładzie się falą od środka ekranu (stary znika, nowe kamienie spadają)
   G.ustawWzor = (id, pat, pal) => { const s = SEK.find(q => q.el.id === id); if (!s || !zywy() || !s.plan) return; s.el.dataset.wzor = pat; if (pal) s.el.dataset.kolor = pal;
@@ -452,8 +443,8 @@ void main(){ float x = vP.x / uRes.x; float b = smoothstep(0., .3, x) * smoothst
     g.ptr = n; R0.wgrajTrig(g); R0.wyzwol(s.ow, lf, t - 10, 0);
     s.kaw.forEach(c => { c.anim = t + 1.8; }); budz(); };
   G.przebuduj = () => { SEK.forEach(s => zmierz(s, true)); };
-  G.test = { zgub: () => { const x = R0 && R0.gl.getExtension('WEBGL_lose_context'); x && x.loseContext(); return !!x; }, wroc: () => { const x = R0 && R0.gl.getExtension('WEBGL_lose_context'); x && x.restoreContext(); } };
+  G.test = { odswiez: () => odswiez(false), zgub: () => { const x = R0 && R0.gl.getExtension('WEBGL_lose_context'); x && x.loseContext(); return !!x; }, wroc: () => { const x = R0 && R0.gl.getExtension('WEBGL_lose_context'); x && x.restoreContext(); } };
   G.info = () => ({ tryb: TRYB, gotowy: G.ready, zgubiony: R0 ? R0.zgubiony() : null, HC, stat: { n: STAT.n, sr: +(STAT.ms / Math.max(1, STAT.n)).toFixed(2), max: +STAT.max.toFixed(1) }, sekcje: SEK.length, kawalki: SEK.reduce((a, s) => a + s.kaw.length, 0), gotowe: SEK.reduce((a, s) => a + s.kaw.filter(c => c.gotowy).length, 0),
-    kolejka: KOL.size, anim: SEK.reduce((a, s) => a + s.kaw.filter(c => c.anim > teraz()).length, 0), ulozone: SEK.map(s => s.kw ? s.kw.ptr + '/' + s.kw.n : '-').join(' '), Dc, K, etap: E && { p: E.p, faza: E.faza }, kola: KOLA.map(Q => +Q.kl.toFixed(2)) });
+    kolejka: KOL.size, anim: SEK.reduce((a, s) => a + s.kaw.filter(c => c.anim > teraz()).length, 0), ulozone: SEK.map(s => s.kw ? s.kw.ptr + '/' + s.kw.n : '-').join(' '), Dc, K, etap: E && { p: E.p, faza: E.faza }, kola: SEK.filter(s => s.kr).map(s => +s.kl.toFixed(2)) });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

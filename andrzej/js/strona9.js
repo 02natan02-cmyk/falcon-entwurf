@@ -87,7 +87,7 @@ $('#wzPorownaj') && $('#wzPorownaj').addEventListener('click', e => { const b = 
 $('#wzDoZapytania').addEventListener('click', () => dodaj({ id: 'wzor-' + wz + '-' + wzKol, nazwa: 'Wzór: ' + $('[data-wz].on').textContent + ', ' + $('[data-kol].on').textContent.trim().toLowerCase(), ile: null, jedn: 'projekt', foto: 'img/tex/' + (wzKol === 'melanz' ? 'melanz' : wzKol === 'granit' ? 'granit' : wzKol === 'grafit' ? 'grafit' : 'jasny') + '.webp' }));
 $('#wzNaZdjeciu').addEventListener('click', () => { if (window.GBprojektant) GBprojektant.ustaw(wz, wzKol); else window.GBprojektantStart = { pat: wz, pal: wzKol }; });
 // impuls: gdy ktoś dojedzie do wzorów i nic nie klika, plac pokazuje sam jeden inny wzór
-addEventListener('wzory-widac', () => { if (RM) return; setTimeout(() => { if (!wzDot) ustawWzor('basket', 'melanz'); }, 3600); }, { once: true });
+// v13: Wzory nie zmieniają się już same (wcześniej po 3,6 s kostka z grafitu nagle robiła się brązowa) – wzór zmienia tylko klient przyciskiem
 
 /* ---------- galeria ---------- */
 const lb = $('#lightbox'), lbImg = $('#lbImg'); $('#lbZamknij').innerHTML = X;
