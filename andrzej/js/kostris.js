@@ -199,7 +199,8 @@
     const pw = pole.clientWidth; if (!pw || !gotowe) return false;
     const st = getComputedStyle(pole), pad = parseFloat(st.paddingLeft) || 0, padV = (parseFloat(st.paddingTop) || 0) + (parseFloat(st.paddingBottom) || 0), gap = parseFloat(st.columnGap) || 0, rgap = parseFloat(st.rowGap) || 0;
     const waski = WASKI.matches, wew = pw - pad * 2;
-    const vh = innerHeight, dostH = vh - pasekH() - (waski ? 14 : 24) - padV;
+    // w oknie gry (telefon) liczy się prawdziwa wysokość okna – pasek przeglądarki może się pojawić już po otwarciu
+    const vh = innerHeight, okno = pole.classList.contains('okno'), dostH = okno ? pole.clientHeight - padV - 4 : vh - pasekH() - (waski ? 14 : 24) - padV;
     let maxW, maxH;
     if (waski) { const hud = $('.kos-hud'), na = $('.kos-nast'), ster = $('.kos-ster'); const g1 = Math.max(hud ? hud.offsetHeight : 0, na ? na.offsetHeight : 0);
       maxW = wew; maxH = dostH - g1 - (ster ? ster.offsetHeight : 0) - rgap * 2; }
@@ -620,7 +621,9 @@
   let ostW = 0, ostH = 0;
   new ResizeObserver(() => { const w = pole.clientWidth; if (!w || !gotowe) return; if (Math.abs(w - ostW) < 1 && W) return; ostW = w;
     const by = W; if (uklad()) { if (!by && stan === 'start') pokaz(); rysuj(); } }).observe(pole);
-  addEventListener('resize', () => { if (!gotowe || !pole.clientWidth) return; if (Math.abs(innerHeight - ostH) < 100 && Math.abs(pole.clientWidth - ostW) < 1) return; ostH = innerHeight; if (uklad()) rysuj(); });
+  addEventListener('resize', () => { if (!gotowe || !pole.clientWidth) return; if (!pole.classList.contains('okno') && Math.abs(innerHeight - ostH) < 100 && Math.abs(pole.clientWidth - ostW) < 1) return; ostH = innerHeight; if (uklad()) rysuj(); });
+  // okno gry zmienia rozmiar (np. pasek przeglądarki u dołu): plansza od razu dopasowuje się tak, żeby przyciski zawsze były widoczne
+  if (window.ResizeObserver) { let oh = 0; new ResizeObserver(() => { if (!gotowe || !pole.classList.contains('okno')) return; const h = pole.clientHeight; if (Math.abs(h - oh) < 1) return; oh = h; if (uklad()) rysuj(); }).observe(pole); }
   ostH = innerHeight;
   rekordy();
 
