@@ -2,6 +2,7 @@
 (function () {
   const pola = document.querySelector('.gry-pola'); if (!pola) return;
   const MOBI = () => innerWidth < 821 || matchMedia('(pointer: coarse)').matches;
+  const znak = () => document.documentElement.classList.toggle('gry-mobi', MOBI()); znak(); addEventListener('resize', znak);
   const NAZWY = { gUloz: 'Ułóż sam', gZgad: 'Co Andrzej układa?', gMem: 'Memory z kostki', gKos: 'Kostris' };
   const bar = document.createElement('div'); bar.className = 'gry-okno-pasek'; bar.hidden = true;
   bar.innerHTML = '<b id="gryOknoT">Gra</b><button type="button" id="gryOknoX">✕ Wyjdź z gry</button>';
@@ -24,14 +25,7 @@
   x.addEventListener('click', () => zamknij(false));
   addEventListener('popstate', () => { if (akt) zamknij(true); });
   addEventListener('keydown', e => { if (e.key === 'Escape' && akt) zamknij(false); });
-  // pierwsze dotknięcie gry: przyciski działają od razu (np. „Zagraj”), plansza najpierw otwiera okno
-  pola.addEventListener('pointerdown', e => {
-    if (akt || !MOBI()) return; const pole = e.target.closest('.gra-pole'); if (!pole) return;
-    if (e.target.closest('a')) return;
-    if (e.target.closest('button')) return; // przycisk: okno otwiera się przy kliknięciu, gra startuje od razu
-    e.preventDefault(); e.stopPropagation(); otworz(pole);
-  }, true);
+  // v12: na telefonie gra otwiera się tylko przyciskiem („▶ Zagraj”); plansza na stronie nie reaguje na dotyk, więc strona zawsze się przewija
   pola.addEventListener('click', e => { if (akt || !MOBI()) return; const pole = e.target.closest('.gra-pole'); if (pole && e.target.closest('button')) otworz(pole); }, true);
-  pola.addEventListener('touchstart', e => { if (!akt && MOBI() && e.target.closest('.gra-pole') && !e.target.closest('button,a')) { e.stopPropagation(); } }, { capture: true, passive: true });
   window.GBoknoGry = { otworz: id => otworz(document.getElementById(id)), zamknij: () => zamknij(false), stan: () => (akt ? akt.id : '') };
 })();

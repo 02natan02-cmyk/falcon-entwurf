@@ -2,13 +2,17 @@
 :root{--brzeg:0px}
 html,body{background:#2b2620}
 /* v10: tło = plac z kostki w każdej sekcji, namalowany raz i przewijany razem ze stroną (bez pracy przy przewijaniu) */
-html:not(.bez-gl) body{background:linear-gradient(rgba(16,13,9,.18),rgba(16,13,9,.18)),url(../img/hd/trawa.webp) 0 0/360px #3f4a26}
+html:not(.bez-gl) body{background:linear-gradient(90deg,rgba(16,13,9,.17),rgba(16,13,9,.36) 30%,rgba(16,13,9,.36) 70%,rgba(16,13,9,.17)),url(../img/hd/trawa.webp) 0 0/360px rgb(245,255,235);background-blend-mode:normal,multiply}
 html.bez-gl body{background:var(--tlo)}
 [data-strefa="plac"]{position:relative;isolation:isolate}
 .tlo-sek{position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:#6f6450}
-.tlo-sek canvas{position:absolute;left:0;top:0;width:100%;height:1024px;display:block}
-html.bez-gl .tlo-sek,html.bez-gl .etap-tlo{display:none}
-.etap-tlo{position:absolute;inset:0;width:100%;height:100%;z-index:-1;display:block;pointer-events:none}
+.tlo-sek canvas{position:absolute;left:0;top:0;width:100%;display:block}
+html.bez-gl .tlo-sek,html.bez-gl .etap-scena,html.bez-gl .kolo-scena{display:none}
+/* Bühnen von Historia und Koło: Bild oben im Rahmen, Ränder laufen weich in den Rasen aus */
+.etap-scena,.kolo-scena{position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.etap-scena canvas,.kolo-scena canvas{position:absolute;left:0;top:0;width:100%;display:block}
+.etap-scena{-webkit-mask-image:linear-gradient(#000 90%,transparent);mask-image:linear-gradient(#000 90%,transparent)}
+.kolo-scena{-webkit-mask-image:linear-gradient(transparent,#000 10%,#000 90%,transparent);mask-image:linear-gradient(transparent,#000 10%,#000 90%,transparent)}
 main{margin:0;background:none!important;position:relative;z-index:1}
 .brzeg{display:none}
 .wnetrze{max-width:1320px}
@@ -597,9 +601,8 @@ html.gra-okno .gs-trzyma{display:none!important}
 .sek.strefa:not(.ciemna) .lead{text-shadow:none!important}
 .strefa .kroki span,.strefa .a-tekst small,.strefa .p-tekst small,.strefa .kt-dane small{color:#3d3831}
 /* v11 Przerywnik „Koło”: strona na chwilę staje, kamienie układają się w koło wokół znaku GardenBruk */
-.przerywnik{position:relative;height:170vh;height:170svh;background:#3a4423 url(../img/hd/trawa.webp) 0 0/360px}
+.przerywnik{position:relative;height:170vh;height:170svh;background:linear-gradient(90deg,rgba(16,13,9,.17),rgba(16,13,9,.36) 30%,rgba(16,13,9,.36) 70%,rgba(16,13,9,.17)),url(../img/hd/trawa.webp) 0 var(--trawa-y,0)/360px rgb(245,255,235);background-blend-mode:normal,multiply}
 .kolo-wnetrze{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;display:grid;place-items:center;isolation:isolate}
-.kolo-tlo{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:-1;pointer-events:none}
 .kolo-znak{width:clamp(104px,24vmin,220px);aspect-ratio:1;border-radius:50%;display:grid;place-content:center;justify-items:center;gap:4px;background:#1c1d20 url(../img/hd/tablica.webp) center/260px;
   box-shadow:0 0 0 5px #d9d5cc,0 0 0 9px #2b2c30,0 28px 50px -12px rgba(0,0,0,.8);opacity:0;transform:scale(.3) translateY(-40px) rotate(-25deg);transition:transform .9s cubic-bezier(.2,1.5,.35,1),opacity .35s}
 .kolo-znak.on{opacity:1;transform:none}
@@ -616,3 +619,6 @@ html.bez-gl .kolo-wnetrze,.przerywnik.bez-kola .kolo-wnetrze{position:relative;h
 .pasek.staly{background:#f2eee6;box-shadow:0 1px 0 var(--linia),0 6px 18px -10px rgba(0,0,0,.35)}
 /* v11 Startbild: Foto bleibt in seinem Rahmen (vorher schob die Parallaxe am Handy einen Streifen unter den Verlauf) */
 .hero-foto{overflow:hidden}
+/* v12 Spiele am Handy/Tablet: das Feld auf der Seite reagiert nicht auf Berührung (Seite scrollt immer), nur die Knöpfe öffnen das Spiel im eigenen Fenster */
+html.gry-mobi .gra-pole:not(.okno){pointer-events:none}
+html.gry-mobi .gra-pole:not(.okno) :is(button,a,[role="button"]){pointer-events:auto}
