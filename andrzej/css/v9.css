@@ -622,3 +622,6 @@ html.bez-gl .kolo-napis,.przerywnik.bez-kola .kolo-napis{position:relative;left:
 /* v12 Spiele am Handy/Tablet: das Feld auf der Seite reagiert nicht auf Berührung (Seite scrollt immer), nur die Knöpfe öffnen das Spiel im eigenen Fenster */
 html.gry-mobi .gra-pole:not(.okno){pointer-events:none}
 html.gry-mobi .gra-pole:not(.okno) :is(button,a,[role="button"]){pointer-events:auto}
+/* v31 Okna na całym ekranie (gra, pełny planer, wysyłka projektu): każda sekcja z placem ma własny kontekst warstw (isolation),
+   więc okno w środku leżało POD następnymi sekcjami („Jak pracujemy” nad Kostrisem). Sekcja z otwartym oknem wychodzi teraz na wierzch. */
+html.gra-okno #gry,html.p2-pelny #projektant,#projektant:has(#p2Wys:not([hidden])),[data-strefa="plac"]:has(.gra-pole.okno){z-index:90}
