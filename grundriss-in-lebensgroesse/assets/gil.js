@@ -19,8 +19,8 @@
     function curtainOpen(fast) {
       if (opened || !cur) return; opened = true;
       cur.classList.add('open'); document.documentElement.classList.remove('c-lock');
-      setTimeout(function () { cur.classList.add('gone'); }, fast ? 300 : 2600);
-      setTimeout(showPoint, fast ? 200 : 1500);
+      setTimeout(function () { cur.classList.add('gone'); }, fast ? 300 : 1700);
+      setTimeout(showPoint, fast ? 200 : 900);
     }
     if (cur) {
       if (/[?&]nointro/.test(Q)) { cur.classList.add('gone'); opened = true; setTimeout(showPoint, 300); }
@@ -28,7 +28,7 @@
         document.documentElement.classList.add('c-lock');
         cur.querySelector('[data-curtain-go]').addEventListener('click', function () { curtainOpen(); });
         cur.querySelector('[data-curtain-skip]').addEventListener('click', function () { curtainOpen(true); });
-        setTimeout(function () { curtainOpen(); }, 5200);
+        setTimeout(function () { curtainOpen(); }, 3000);
       }
     }
     // Großer Punkt „3D-Küchenplaner für zu Hause“ – auf jedem Gerät: Menü auf, Punkt auf, Zeiger hin
