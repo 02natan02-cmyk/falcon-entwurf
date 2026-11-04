@@ -19,7 +19,7 @@
 
   /* ---------- smooth scroll ---------- */
   let lenis = null;
-  if (hasG && window.Lenis && !reduce) { lenis = new Lenis({ lerp: .1 }); lenis.on('scroll', ScrollTrigger.update); gsap.ticker.add(t => lenis.raf(t * 1000)); gsap.ticker.lagSmoothing(0); }
+  if (hasG && window.Lenis && !reduce) { lenis = new Lenis({ lerp: .1 }); window.feLenis = lenis; lenis.on('scroll', ScrollTrigger.update); gsap.ticker.add(t => lenis.raf(t * 1000)); gsap.ticker.lagSmoothing(0); }
 
   /* ---------- header: hell/dunkel je nach Abschnitt ---------- */
   const hdr = $('.hdr'), bar = $('.progress i'), dock = $('.dock'); let lastY = 0;
@@ -35,7 +35,9 @@
   };
   addEventListener('scroll', onScroll, { passive: true }); onScroll();
   const burger = $('.burger');
-  burger.addEventListener('click', () => { const o = root.classList.toggle('menu-open'); burger.setAttribute('aria-expanded', o); $('.mnav').setAttribute('aria-hidden', !o); lenis && (o ? lenis.stop() : lenis.start()); });
+  const setMenu = o => { root.classList.toggle('menu-open', o); burger.setAttribute('aria-expanded', o); burger.setAttribute('aria-label', o ? 'Menü schließen' : 'Menü öffnen'); $('.mnav').setAttribute('aria-hidden', !o); lenis && (o ? lenis.stop() : lenis.start()); };
+  burger.addEventListener('click', () => setMenu(!root.classList.contains('menu-open')));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && root.classList.contains('menu-open')) { setMenu(false); burger.focus(); } });
   $$('.mnav a').forEach(a => a.addEventListener('click', () => { root.classList.remove('menu-open'); lenis && lenis.start(); }));
 
   /* ---------- Öffnungszeiten Mo–Fr 08:00–16:30 ---------- */
@@ -75,7 +77,7 @@
      INTRO: Seifenblasen – die große platzt, das Logo steht scharf da
      ===================================================================== */
   const intro = $('.intro');
-  const heroIn = () => { if (!hasG || reduce || !$('.hero-c')) return; gsap.from('.hero-c > *', { y: 46, opacity: 0, duration: 1.2, ease: 'power3.out', stagger: .09 }); gsap.from('.hud > span', { opacity: 0, duration: 1, delay: .4, stagger: .1 }); };
+  const heroIn = () => { if (!hasG || reduce || !$('.hero-c')) return; gsap.from('.hero-c > *', { y: 46, opacity: .01, duration: 1.2, ease: 'power3.out', stagger: .09 }); gsap.from('.hud > span', { opacity: 0, duration: 1, delay: .4, stagger: .1 }); };
   if (intro) {
     /* Seifenblasen-Intro kommt bei jedem Öffnen der Startseite (auch beim Neuladen) – nur nicht, wenn man innerhalb der Seite zurück auf Start klickt. ?intro erzwingt, ?nointro überspringt. */
     const force = /[?&]intro\b/.test(location.search), skip = /[?&]nointro/.test(location.search);
@@ -84,7 +86,7 @@
     const show = hasG && !skip && (force || (!reduce && (!inside || navType === 'reload')));
     if (!show) { intro.classList.add('gone'); heroIn(); }
     else {
-      intro.classList.remove('gone'); lenis && lenis.stop(); root.style.overflow = 'hidden';
+      intro.classList.remove('gone'); intro.removeAttribute('aria-hidden'); intro.setAttribute('role', 'dialog'); intro.setAttribute('aria-label', 'Intro'); lenis && lenis.stop(); root.style.overflow = 'hidden';
       const cv = $('.ib', intro), ctx = cv.getContext('2d'), mark = $('.intro-mark', intro);
       let W, H, dpr = DPR(); const fit = () => { dpr = DPR(); W = cv.width = innerWidth * dpr; H = cv.height = innerHeight * dpr; }; fit(); addEventListener('resize', fit);
       const S = () => Math.min(W, H);
@@ -131,8 +133,8 @@
       };
       gsap.to(mark, { opacity: .28, duration: 1.2, delay: .3 });
       intro.addEventListener('pointerdown', e => { const x = e.clientX * dpr, y = e.clientY * dpr; for (const b of bubbles) { if (!b.dead && Math.hypot(b.x - x, b.y - y) < b.r) { pop(b); if (b.big && !mainPopped) { mainPopped = true; reveal(); } else if (!b.big) setTimeout(() => { Object.assign(b, mk(false)); b.dead = false; }, 900); break; } } });
-      let fin = false; const done = () => { if (fin) return; fin = true; gsap.to(intro, { yPercent: -100, duration: .9, ease: 'power3.inOut', onComplete: () => { run = false; intro.classList.add('gone'); } }); root.style.overflow = ''; lenis && lenis.start(); setTimeout(heroIn, 250); };
-      setTimeout(done, 4300); setTimeout(() => { if (!fin) { fin = true; run = false; intro.classList.add('gone'); root.style.overflow = ''; lenis && lenis.start(); } }, 8000);
+      let fin = false; const done = () => { if (fin) return; fin = true; gsap.to(intro, { yPercent: -100, duration: .9, ease: 'power3.inOut', onComplete: () => { run = false; intro.classList.add('gone'); intro.setAttribute('aria-hidden', 'true'); } }); root.style.overflow = ''; lenis && lenis.start(); setTimeout(heroIn, 250); };
+      setTimeout(done, 4300); setTimeout(() => { if (!fin) { fin = true; run = false; intro.classList.add('gone'); intro.setAttribute('aria-hidden', 'true'); root.style.overflow = ''; lenis && lenis.start(); } }, 8000);
       $('.intro-skip').addEventListener('click', e => { e.stopPropagation(); if (!mainPopped) { mainPopped = true; pop(main); reveal(); } setTimeout(done, 350); });
     }
   } else heroIn();
@@ -504,8 +506,8 @@
     const mods = $('[data-mods]'), tv = $('[data-tk-veh]'), tl = $('[data-tk-list]'), no = $('[data-tk-no]'), tk = $('.ticket');
     let v = 'Kleinwagen';
     const roof = $('[data-m^="Dach"]', mods);
-    let prev = []; const render = () => { tv.textContent = v; const on = $$('button.on', mods).map(b => b.textContent); tl.innerHTML = on.length ? on.map(m => `<li${prev.length && !prev.includes(m) ? ' class="new"' : ''}>${m}</li>`).join('') : '<li style="opacity:.5">Noch nichts gewählt</li>'; if (prev.length || on.length) { tk.classList.remove('bump'); void tk.offsetWidth; tk.classList.add('bump'); } prev = on.length ? on : ['—']; no.textContent = 'Nr. ' + (1000 + (v.length * 37 + on.join('').length * 13) % 9000); tk.classList.remove('stamped'); void tk.offsetWidth; if (on.length >= 2) tk.classList.add('stamped'); };
-    const twa = $('[data-tk-wa]'); const setWa = () => { const txt = `Hallo Z&H, hier meine Anfrage von der Website:\nFahrzeug: ${v}\nLeistungen: ${$$('button.on', mods).map(b => b.textContent).join(', ') || '—'}\nWann hätten Sie Zeit? Fotos schicke ich gern mit.`; twa.href = 'https://wa.me/4917624401827?text=' + encodeURIComponent(txt); };
+    let prev = []; const render = () => { tv.textContent = v; const on = $$('button.on', mods).map(b => b.textContent); tl.innerHTML = on.length ? on.map(m => `<li${prev.length && !prev.includes(m) ? ' class="new"' : ''}>${m}</li>`).join('') : '<li style="opacity:.5">Noch nichts gewählt</li>'; if (prev.length || on.length) { tk.classList.remove('bump'); void tk.offsetWidth; tk.classList.add('bump'); } prev = on.length ? on : ['—']; no.textContent = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }); tk.classList.remove('stamped'); void tk.offsetWidth; if (on.length >= 2) tk.classList.add('stamped'); };
+    const twa = $('[data-tk-wa]'); const setWa = () => { const txt = `Hallo Z&H, hier meine Anfrage von der Website:\nFahrzeug: ${v}\nLeistungen: ${$$('button.on', mods).map(b => b.textContent).join(', ') || 'bitte beraten Sie mich'}\nWann hätten Sie Zeit? Fotos schicke ich gern mit.`; twa.href = 'https://wa.me/4917624401827?text=' + encodeURIComponent(txt); };
     const pick = b => { $$('button', veh).forEach(x => x.classList.toggle('on', x === b)); v = b.dataset.v; const wm = /Wohn/.test(v); roof.style.display = wm ? '' : 'none'; if (!wm) roof.classList.remove('on'); render(); setWa(); };
     const tog = b => { b.classList.toggle('on'); render(); setWa(); };
     $$('button', veh).forEach(b => b.addEventListener('click', () => pick(b)));

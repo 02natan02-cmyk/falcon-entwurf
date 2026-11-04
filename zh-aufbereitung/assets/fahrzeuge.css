@@ -435,3 +435,10 @@ html.fz-lock,html.fz-lock body{overflow:hidden}
 .fz-stats a{color:inherit;text-decoration:none;transition:color .25s}
 .fz-stats a b{color:#f5b301}
 @media (hover:hover){.fz-stats a:hover{color:#fff}}
+
+/* Abnahme 04.11. */
+.fz-tag{font-size:11.5px}
+@media (max-width:900px){.fz-hud{font-size:11.5px}}
+.fz-mon-hint{min-height:44px;display:flex;align-items:center}
+input[type=range]{min-height:44px}
+.fz-stats a{display:inline-flex;align-items:center;min-height:44px}

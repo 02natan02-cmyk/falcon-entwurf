@@ -297,10 +297,10 @@
     S('prep').innerHTML = d.prep.map((p, i) => `<li><a href="leistungen.html#${d.prepLinks[i]}">${esc(p)}</a></li>`).join(''); S('prepw').hidden = !d.prep.length;
     S('txt').textContent = d.text; S('txt').hidden = !d.text;
     const name = `${d.make} ${d.model}`;
-    S('cta').innerHTML = `<a class="btn btn-wa wide" href="${WA(`Hallo Z&H, ich interessiere mich für den ${name} (Nr. ${d.id}, ${eur(d.price)}). Ist er noch zu haben?`)}" target="_blank" rel="noopener">${ICON_WA}Per WhatsApp anfragen</a>`
+    S('cta').innerHTML = `<a class="btn btn-wa wide" href="${WA(`Hallo Z&H, ich interessiere mich für den ${name} (Nummer ${d.id}, ${eur(d.price)}). Ist er noch zu haben?`)}" target="_blank" rel="noopener">${ICON_WA}Per WhatsApp anfragen</a>`
       + `<a class="btn btn-aqua" href="${TEL}">Anrufen</a>`
-      + `<a class="btn btn-line" href="${WA(`Hallo Z&H, ich würde den ${name} (Nr. ${d.id}) gern Probe fahren. Wann passt es Ihnen?`)}" target="_blank" rel="noopener">Probefahrt</a>`
-      + `<a class="fzs-trade" href="${WA(`Hallo Z&H, ich interessiere mich für den ${name} (Nr. ${d.id}) und möchte mein jetziges Auto in Zahlung geben.\nMarke und Modell: \nBaujahr: \nKilometer: `)}" target="_blank" rel="noopener">Eigenes Auto in Zahlung geben <span aria-hidden="true">→</span></a>`;
+      + `<a class="btn btn-line" href="${WA(`Hallo Z&H, ich würde den ${name} (Nummer ${d.id}) gern Probe fahren. Wann passt es Ihnen?`)}" target="_blank" rel="noopener">Probefahrt</a>`
+      + `<a class="fzs-trade" href="${WA(`Hallo Z&H, ich interessiere mich für den ${name} (Nummer ${d.id}) und möchte mein jetziges Auto in Zahlung geben.\nMarke und Modell: \nBaujahr: \nKilometer: `)}" target="_blank" rel="noopener">Eigenes Auto in Zahlung geben <span aria-hidden="true">→</span></a>`;
     odo(S('odo'), d.km);
     box.scrollTop = 0;
   };
@@ -382,7 +382,7 @@
     const update = () => {
       sumCar.textContent = val('Fahrzeug') || 'Ihr Auto';
       const ez = val('Erstzulassung'), km = val('Kilometerstand'), pr = val('Preisvorstellung');
-      const meta = [ez && (/^\d{4}$/.test(ez) ? 'EZ ' + ez : 'EZ vor 1990'), km && km + ' km', val('Kraftstoff'), val('Getriebe'), val('Zustand'),
+      const meta = [ez && (/^\d{4}$/.test(ez) ? 'Erstzulassung ' + ez : 'Erstzulassung vor 1990'), km && km + ' km', val('Kraftstoff'), val('Getriebe'), val('Zustand'),
         photos.length && (photos.length === 1 ? '1 Foto' : photos.length + ' Fotos'), pr && 'Wunschpreis ' + pr + ' €'].filter(Boolean);
       sumMeta.textContent = meta.length ? meta.join(' · ') : 'Ihre Angaben erscheinen hier.';
       const ok = REQ.filter(n => { const e = sell.elements[n]; return e && String(e.value).trim() && e.checkValidity(); }).length, left = REQ.length - ok;
@@ -467,7 +467,7 @@
       if (photos.some(p => !p.file)) { e.preventDefault(); note('Einen Moment – die Fotos werden noch verkleinert …'); setTimeout(() => sell.requestSubmit ? sell.requestSubmit() : sell.submit(), 700); return; }
       sell.elements._next.value = location.href.split('#')[0].split('?')[0] + '?gesendet=ankauf#fz-sell';
       const ez = val('Erstzulassung');
-      sell.elements._subject.value = 'Ankauf-Anfrage: ' + val('Fahrzeug') + (ez ? ' (EZ ' + ez + ')' : '');
+      sell.elements._subject.value = 'Ankauf-Anfrage: ' + val('Fahrzeug') + (ez ? ' (Erstzulassung ' + ez + ')' : '');
       sendBtn.disabled = true; sendBtn.textContent = 'Wird gesendet …';
     });
     addEventListener('pageshow', () => { sendBtn.disabled = false; sendBtn.textContent = SEND; });
@@ -481,7 +481,9 @@
     });
 
     // Danke-Ansicht nach dem Senden
-    const showDone = () => { sell.classList.add('sent'); done.hidden = false; setTimeout(() => { try { done.focus({ preventScroll: true }); } catch (e) {} }, 900); };
+    const showDone = () => { sell.classList.add('sent'); done.hidden = false; setTimeout(() => { try { done.focus({ preventScroll: true }); } catch (e) {} }, 900);
+      // 04.11.: danach freiwillig kurz nach der Seite fragen (fe-feedback.js, höchstens einmal je Besuch)
+      setTimeout(() => { if (window.FEFeedback) window.FEFeedback.invite({ topic: 'Fahrzeug-Seite', art: 'die' }); }, 2600); };
     if (/[?&]gesendet=ankauf\b/.test(location.search)) showDone();
     $('[data-sell-again]', sell).addEventListener('click', () => {
       sell.reset(); photos.forEach(p => p.url && URL.revokeObjectURL(p.url)); photos = [];

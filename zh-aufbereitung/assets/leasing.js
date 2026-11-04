@@ -47,7 +47,7 @@
   const ease = k => k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
   const pls = $$('[data-pl]'), plSum = $('[data-pl-sum]'), plAll = $('[data-pl-all]');
   const plCount = () => { const n = pls.filter(p => p.classList.contains('done')).length;
-    if (plSum) { plSum.textContent = n === pls.length ? 'Beide Folien ab. So geht er zurück.' : `${n} von ${pls.length} Folien ab`; plSum.classList.toggle('ok', n === pls.length); }
+    if (plSum) { plSum.textContent = n === pls.length ? 'Beide Folien ab. So geht das Auto zurück an den Leasinggeber.' : `${n} von ${pls.length} Folien ab`; plSum.classList.toggle('ok', n === pls.length); }
     if (plAll) plAll.textContent = n === pls.length ? 'Folie wieder drauf' : 'Beide Folien abziehen'; };
   let slot = 0; const nextSlot = () => { const n = performance.now(), t = Math.max(n + 500, slot + 900); slot = t; return t - n; };
   const REST = .045;
@@ -132,7 +132,7 @@
       let dt = '', txt = 'Rückgabetermin noch offen';
       if (date.value) { const [y, m, d] = date.value.split('-').map(Number), t = new Date(y, m - 1, d), diff = Math.round((t - today) / 864e5);
         dt = `${String(d).padStart(2, '0')}.${String(m).padStart(2, '0')}.${y}`;
-        txt = diff > 1 ? `Rückgabe am ${dt} · noch ${diff} Tage` : diff === 1 ? `Rückgabe morgen, ${dt}` : diff === 0 ? `Rückgabe heute, ${dt}` : `Rückgabe am ${dt}`; }
+        txt = diff > 1 ? `Rückgabe am ${dt} · noch ${diff} Tage` : diff === 1 ? `Rückgabe morgen, ${dt}` : diff === 0 ? `Rückgabe heute, ${dt}` : `Dieses Datum liegt in der Vergangenheit. Bitte den kommenden Rückgabetermin wählen.`; if (diff < 0) dt = ''; }
       days.textContent = txt;
       const msg = ['Hallo Z&H, mein Leasingauto geht bald zurück.', cv && `Fahrzeug: ${cv}`, dt && `Rückgabe am: ${dt}`, sel.length && `Bitte vorher: ${sel.map(c => c.dataset.l).join(', ')}`, 'Fotos schicke ich gleich mit.'].filter(Boolean).join('\n');
       wa.href = 'https://wa.me/4917624401827?text=' + encodeURIComponent(msg);
@@ -162,7 +162,7 @@
   $$('[data-flg]').forEach(g => { const fls = $$('[data-fl]', g); let user = false;
     fls.forEach(b => b.addEventListener('click', e => { if (e.isTrusted) user = true; b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true'); }));
     const all = g.parentElement.querySelector('[data-fl-all]');
-    if (all) all.addEventListener('click', () => { user = true; const on = fls.some(b => b.getAttribute('aria-pressed') !== 'true'); fls.forEach((b, i) => setTimeout(() => b.setAttribute('aria-pressed', on ? 'true' : 'false'), i * 160)); });
+    if (all) all.addEventListener('click', () => { user = true; const on = fls.some(b => b.getAttribute('aria-pressed') !== 'true'); fls.forEach((b, i) => setTimeout(() => b.setAttribute('aria-pressed', on ? 'true' : 'false'), i * 160)); all.textContent = on ? 'Alle zurückdrehen' : 'Alle umdrehen'; });
     onView(g, () => { if (reduce) return; setTimeout(() => { if (user) return; fls[0].setAttribute('aria-pressed', 'true'); setTimeout(() => { if (!user) fls[0].setAttribute('aria-pressed', 'false'); }, 1700); }, 500); }, .3);
   });
 })();

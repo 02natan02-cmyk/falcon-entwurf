@@ -976,3 +976,21 @@ p,li,figcaption,dd,blockquote{text-wrap:pretty}
 @media (max-width:374px){.dock{grid-template-columns:46px minmax(0,1fr) minmax(0,1.1fr)}.dock a{font-size:12.5px;gap:5px;padding:0 8px}.dock a:first-child{background:rgba(255,255,255,.17)}}
 .ftr-brand .logo-full{transform:translateX(-2.9%)}   /* Logo-Schwung bündig mit dem Textrand */
 .cta .h2{font-size:clamp(34px,3.9vw,56px)}
+
+/* 04.11.: Behörden-Kachel mit echtem Foto, Blaulicht darüber */
+.w.police.ph{background:#0c1d3a}
+.w.police.ph .pol-art i{mix-blend-mode:screen;filter:blur(34px)}
+
+/* Abnahme 04.11.: Lesbarkeit, Tippflächen, 320 px */
+.brand{min-height:44px;display:inline-flex;align-items:center}
+.intro-skip{min-height:44px;padding:12px 18px;font-size:14px}
+.skip{min-height:44px;display:inline-flex;align-items:center}
+.hav-l{display:inline-block;padding:6px 0}
+.sym{font-size:11px}
+.pl-year button small{font-size:11px}
+@media (max-width:900px){.wd small,.hero-cue span,.hero .kick,.hav-k{font-size:11.5px}}
+@media (max-width:380px){.sh-dots{display:none}.sh-ctl{justify-content:space-between}}
+.w::after{background:linear-gradient(180deg,transparent 28%,rgba(0,0,0,.55) 55%,rgba(0,0,0,.9))}
+.w>div:last-child p{text-shadow:0 1px 8px rgba(0,0,0,.7)}
+@media (max-width:360px){.hero .h1{font-size:clamp(26px,8.6vw,34px)}}
+@media (max-width:700px){.sv{scroll-margin-top:162px}}
