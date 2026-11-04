@@ -1,0 +1,2 @@
+# Quellen Grundriss in Lebensgröße (Florian-Chat)
+Bauen: Repos kuechenstudio-quellen nach /home/claude/kuechenstudio-quellen, diesen Ordner nach /home/claude/gil kopieren, `python3 build.py` → /home/claude/falcon-entwurf/grundriss-in-lebensgroesse/. Film: rec.sh (fe-mitschnitt), film/cards.py + cards.js, film/compose.py. Natans Fallback-Regel 04.11.: Quellen hier, solange es kein Repo gil-quellen gibt.

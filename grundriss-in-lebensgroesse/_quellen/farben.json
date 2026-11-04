@@ -1,0 +1,36 @@
+{
+"_hinweis":"Hex-Werte sind Schaetzungen (Hersteller veroeffentlicht keine RAL/NCS-Zuordnung je Front im abrufbaren Text). Namen sind echt.",
+"ballerina":[
+["Schneeweiß","#F4F4F1","https://www.ballerina.de/kuechenideen/gestaltung/kuechenfronten"],
+["Premiumweiß","#EDEBE6","https://www.ballerina.de/kuechenideen/gestaltung/kuechenfronten"],
+["Achatweiß","#DAD7CF","https://www.ballerina.de/kuechenideen/gestaltung/kuechenfronten"],
+["Macaron","#E4D5C6","https://www.ballerina.de/kuechenideen/gestaltung/kuechenfronten"],
+["Light Pepper","#B9B2A8","https://www.ballerina.de/kuechenideen/gestaltung/kuechenfronten"],
+["Art Pepper","#8F8981","https://www.ballerina.de/kuechenideen/gestaltung/kuechenfronten"],
+["Light Nude","#D6BFAE","https://www.ballerina.de/kuechenideen/gestaltung/kuechenfronten"],
+["Fango","#7D7164","https://www.ballerina.de/kuechenideen/gestaltung/kuechenfronten"],
+["Lichtgrau","#C8CACB","https://www.ballerina.de/kuechenideen/gestaltung/kuechenfronten"],
+["Graphitschwarz","#2E3033","https://www.ballerina.de/kuechenideen/gestaltung/kuechenfronten"],
+["Schwarz","#1A1A1B","https://www.ballerina.de/kuechenideen/gestaltung/kuechenfronten"],
+["Sealbrown","#5A4A41","https://www.ballerina.de/kuechenideen/gestaltung/kuechenfronten"],
+["Urban Moss","#6F7561","https://www.ballerina.de/kuechenideen/gestaltung/kuechenfronten"],
+["Navyblue","#2B3A4E","https://www.ballerina.de/warum-ballerina/farbsysteme/colornetwork"],
+["Night Green","#2F3F38","https://www.ballerina.de/warum-ballerina/farbsysteme/colornetwork"],
+["Savonagrün","#7E8F7A","https://www.ballerina.de/warum-ballerina/farbsysteme/colornetwork"]
+],
+"nobilia":[
+["Alpinweiß","#F2F1EC","https://www.nobilia.de/fileadmin/assets/downloads/Gestaltungsuebersicht_nobilia_DE_FR_NL_web.pdf"],
+["Weiß","#F6F6F4","https://www.nobilia.de/fileadmin/assets/downloads/Gestaltungsuebersicht_nobilia_DE_FR_NL_web.pdf"],
+["Magnolia","#E8E0D0","https://www.nobilia.de/fileadmin/assets/downloads/Gestaltungsuebersicht_nobilia_DE_FR_NL_web.pdf"],
+["Sand","#CDBBA3","https://www.nobilia.de/fileadmin/assets/downloads/Gestaltungsuebersicht_nobilia_DE_FR_NL_web.pdf"],
+["Seidengrau","#C3C4C2","https://www.nobilia.de/fileadmin/assets/downloads/Gestaltungsuebersicht_nobilia_DE_FR_NL_web.pdf"],
+["Steingrau","#8E9092","https://www.nobilia.de/fileadmin/assets/downloads/Gestaltungsuebersicht_nobilia_DE_FR_NL_web.pdf"],
+["Taupegrau","#8B8279","https://www.nobilia.de/fileadmin/assets/downloads/Gestaltungsuebersicht_nobilia_DE_FR_NL_web.pdf"],
+["Schiefergrau","#55595C","https://www.nobilia.de/fileadmin/assets/downloads/Gestaltungsuebersicht_nobilia_DE_FR_NL_web.pdf"],
+["Grafitschwarz","#2B2D2F","https://www.nobilia.de/fileadmin/assets/downloads/Gestaltungsuebersicht_nobilia_DE_FR_NL_web.pdf"],
+["Schwarz","#1C1C1D","https://www.nobilia.de/fileadmin/assets/downloads/Gestaltungsuebersicht_nobilia_DE_FR_NL_web.pdf"],
+["Fjordblau","#3F5668","https://www.nobilia.de/fileadmin/assets/downloads/Gestaltungsuebersicht_nobilia_DE_FR_NL_web.pdf"],
+["Mineralgrün","#6C7F72","https://www.nobilia.de/fileadmin/assets/downloads/Gestaltungsuebersicht_nobilia_DE_FR_NL_web.pdf"],
+["Rostrot","#8C4A3A","https://www.nobilia.de/fileadmin/assets/downloads/Gestaltungsuebersicht_nobilia_DE_FR_NL_web.pdf"],
+["Olive","#6B6B45","https://www.nobilia.de/fileadmin/assets/downloads/Gestaltungsuebersicht_nobilia_DE_FR_NL_web.pdf"]
+]}
