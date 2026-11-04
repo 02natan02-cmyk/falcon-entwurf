@@ -148,7 +148,7 @@ BRANDS = f'''<section class="gil-brands" aria-labelledby="gb-h"><div class="cont
 
 kpm = kp_markup.planner(KPC).replace('href="index.html#arbeitshoehe"', 'href="#arbeitshoehe"')
 FILM = '''<div class="film" data-film hidden><div class="film-in"><video data-film-v playsinline preload="none"></video>
-<button type="button" class="film-play" data-film-play aria-label="Film abspielen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg><span>Film ansehen · 90 Sekunden</span></button>
+<button type="button" class="film-play" data-film-play aria-label="Film abspielen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg><span>Film ansehen · 2 Minuten, mit Ton</span></button>
 <button type="button" class="film-skip" data-film-skip>Direkt zum Planer →</button></div>
 <div class="film-end" data-film-end hidden><p class="kpl-k">Jetzt Sie</p><p class="film-h">Probieren Sie es selbst aus.</p><button type="button" class="btn btn--orange" data-film-close>Küchenplaner öffnen <span class="arr">→</span></button></div></div>
 <div class="logo-tip" data-logo-tip hidden><b>Ihr Logo auf der Rückwand</b><span>Ein Klick – und Ihr Studio ist in jeder Küche. Kunden laden genauso ihr eigenes Foto hoch.</span><div class="ctas"><button type="button" class="btn btn--orange sm" data-logo-on>Logo als Rückwand zeigen</button><button type="button" class="btn btn-line sm" data-logo-x>Später</button></div></div>'''
