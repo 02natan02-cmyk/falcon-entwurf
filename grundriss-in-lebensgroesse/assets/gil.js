@@ -10,7 +10,7 @@
   addEventListener('scroll', onScroll, { passive: true }); onScroll();
   document.querySelectorAll('[data-gb]').forEach(function (b) { b.addEventListener('click', function (e) { e.preventDefault(); scrollTo({ top: 0, behavior: 'smooth' }); }); });
 
-  if (page === 'index') index(); else if (page === 'planer') planer();
+  if (page === 'index') { index(); vorhangFilm(); } else if (page === 'planer') planer();
 
   function index() {
     var cur = document.querySelector('[data-curtain]'), pop = document.querySelector('[data-kpl-pop]'), go = document.querySelector('[data-kpl-go]'), item = document.querySelector('[data-kpl]');
@@ -65,7 +65,34 @@
     addEventListener('pointerdown', hideCursor);
   }
 
+
+  // Klick auf „Küche selbst planen“: Vorhang zu über der Seite → Film mit Ton → Vorhang zu → Planer (Vorhang geht dort auf)
+  function vorhangFilm() {
+    var vh = document.querySelector('[data-vh]'), go = document.querySelector('[data-kpl-go]');
+    if (!vh || !go) return;
+    var v = vh.querySelector('video'), pb = vh.querySelector('[data-vh-play]'), left = false;
+    function toPlaner() { if (left) return; left = true; vh.classList.add('shut'); try { v.pause(); } catch (e) { } setTimeout(function () { location.href = 'planer.html?vorhang=1'; }, 1150); }
+    function playNow() { var p = v.play(); if (p && p.catch) p.catch(function () { pb.hidden = false; }); }
+    pb.addEventListener('click', function () { pb.hidden = true; v.muted = false; playNow(); });
+    v.addEventListener('ended', toPlaner);
+    vh.querySelector('[data-vh-skip]').addEventListener('click', toPlaner);
+    go.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (!v.src) v.src = 'media/film.mp4';
+      v.muted = false;
+      // Abspielen im Klick freischalten (iPhone), dann sofort anhalten bis der Vorhang offen ist
+      var u = v.play(); if (u && u.then) u.then(function () { v.pause(); v.currentTime = 0; }).catch(function () { });
+      var g = document.querySelector('[data-guide]'); if (g) g.classList.remove('on');
+      vh.hidden = false; void vh.offsetWidth; vh.classList.add('shut');
+      setTimeout(function () { setOpen(false); vh.classList.add('film'); v.currentTime = 0; playNow(); vh.classList.remove('shut'); }, 1250);
+    });
+    // Film schon vorladen, sobald der große Punkt steht
+    setTimeout(function () { if (!v.src) { v.preload = 'auto'; v.src = 'media/film.mp4'; } }, 6000);
+  }
+
   function planer() {
+    var arr = document.querySelector('[data-vh-arrive]');
+    if (arr && /[?&]vorhang=1/.test(Q)) { arr.hidden = false; setTimeout(function () { arr.classList.add('open'); }, 350); setTimeout(function () { arr.hidden = true; }, 1600); history.replaceState(null, '', location.pathname); }
     var film = document.querySelector('[data-film]'), v = film && film.querySelector('video');
     var lt = document.querySelector('[data-logo-tip]');
     var noLT = false;

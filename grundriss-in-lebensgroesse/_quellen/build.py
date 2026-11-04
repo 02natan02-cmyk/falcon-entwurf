@@ -124,6 +124,7 @@ INDEX = head('Grundriss in Lebensgröße Saarlouis – Küchenstudio & Events', 
 </main>
 <div class="guide" data-guide aria-hidden="true"><svg class="g-cur" viewBox="0 0 32 32"><path d="M6 3l19 11.5-8.2 1.6 4.9 9.4-3.6 1.9-4.9-9.4L6 23.6z" fill="#fff" stroke="#020202" stroke-width="1.6" stroke-linejoin="round"/></svg><span class="g-ring"></span>
 <div class="g-tip"><b>Neu: Ihre Küche online planen</b><span>Raum, Form, Schränke, Farben – live in 3D. Hier klicken.</span></div></div>
+<div class="vh" data-vh hidden><div class="vh-film"><video data-vh-v playsinline preload="none" poster="media/film-poster.jpg"></video></div><div class="vh-l"></div><div class="vh-r"></div><button type="button" class="vh-skip" data-vh-skip>Direkt zum Planer →</button><button type="button" class="vh-play" data-vh-play hidden>▶ Mit Ton abspielen</button></div>
 {FOOTER}
 <script src="assets/gil.js?v={V}"></script>
 </body></html>'''
@@ -154,7 +155,7 @@ FILM = '''<div class="film" data-film hidden><div class="film-in"><video data-fi
 <div class="logo-tip" data-logo-tip hidden><b>Ihr Logo auf der Rückwand</b><span>Ein Klick – und Ihr Studio ist in jeder Küche. Kunden laden genauso ihr eigenes Foto hoch.</span><div class="ctas"><button type="button" class="btn btn--orange sm" data-logo-on>Logo als Rückwand zeigen</button><button type="button" class="btn btn-line sm" data-logo-x>Später</button></div></div>'''
 PLANER = (head('Küchenplaner | Grundriss in Lebensgröße Saarlouis', 'Küche online in 3D planen – Raum, Form, Schränke, Farben – und mit Maßen und Plänen an das Küchenstudio in Saarlouis schicken.', 'planer',
            f'\n<link rel="stylesheet" href="assets/kp.css?v={V}">\n<link rel="stylesheet" href="assets/gil-kp.css?v={V}">')
-          + header('planer') + FILM + kpm + kp_markup.ki_section(KPC, page='planer') + kp_markup.hoehe_section(KPC) + BRANDS + FOOTER
+          + header('planer') + '<div class="vh vh-arrive" data-vh-arrive hidden><div class="vh-l"></div><div class="vh-r"></div></div>' + FILM + kpm + kp_markup.ki_section(KPC, page='planer') + kp_markup.hoehe_section(KPC) + BRANDS + FOOTER
           + f'\n<script src="assets/gil-pre.js?v={V}"></script>\n<script src="assets/ki.js?v={V}"></script>\n<script src="assets/kp.js?v={V}"></script>\n<script src="assets/gil.js?v={V}"></script>\n')
 sys.path.insert(0, '/home/claude/kuechenstudio-quellen/tools'); import kpaddons
 PLANER += kpaddons.tags(V, {'mail': FORM_MAIL, 'site': STUDIO, 'accent': ORANGE, 'bottom-m': 24}) + '</body></html>'
