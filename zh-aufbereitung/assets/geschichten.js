@@ -113,7 +113,7 @@
 
   /* ---------- 4K-Element: Scrollen = Kamera fährt an den Lack, Politur, Keramik (04.11.2026) ---------- */
   $$('.hdl').forEach(sec => {
-    const cv = $('.hdl-cv', sec), ctx = cv.getContext('2d'), N = 121, poster = $('.hdl-poster', sec);
+    const cv = $('.hdl-cv', sec), ctx = cv.getContext('2d'), N = +sec.dataset.n || 121, poster = $('.hdl-poster', sec);
     const portrait = () => innerHeight > innerWidth * 1.05;
     let dir = portrait() ? 'm' : 'd';
     const src = i => `seq/hd/${dir}/h${String(i + 1).padStart(3, '0')}.webp`;
@@ -131,10 +131,10 @@
       const nd = portrait() ? 'm' : 'd'; if (nd !== dir) { dir = nd; poster.src = src(0); if (started) { frames = new Array(N); oi = 0; load(cur); pump(); } } draw(cur, true); };
     addEventListener('resize', size); size();
     const hcs = $$('.hc', sec), steps = $$('.hdl-steps li', sec), bar = $('.hdl-bar i', sec);
-    const vis = [[0, .3], [.36, .66], [.72, 1.02]];
+    const vis = JSON.parse(sec.dataset.vis || '[[0,.3],[.36,.66],[.72,1.02]]'), stAt = JSON.parse(sec.dataset.steps || '[0,.34,.7]');
     const phase = p => {
       hcs.forEach((f, i) => { const [a, b] = vis[i]; const o = p < a - .04 || p > b + .04 ? 0 : Math.min(1, (p - a + .04) / .05, (b + .04 - p) / .05); const v = i === 0 && p < .03 ? 1 : Math.max(0, o); f.style.opacity = v; f.style.transform = `translateY(${(1 - v) * 30}px)`; f.style.visibility = v > .02 ? 'visible' : 'hidden'; });
-      const st = p < .34 ? 0 : p < .7 ? 1 : 2; steps.forEach((l, i) => l.classList.toggle('on', i === st)); bar.style.transform = `scaleX(${p})`;
+      let st = 0; stAt.forEach((a, i) => { if (p >= a) st = i; }); steps.forEach((l, i) => l.classList.toggle('on', i === st)); bar.style.transform = `scaleX(${p})`;
       if (p > .02) sec.classList.add('moved');
     };
     let tgt = 0, fpos = 0, raf = 0;
@@ -161,6 +161,6 @@
     });
     // Selbst-Impuls: kommt der Abschnitt ins Bild und niemand scrollt, zeigt der Lack kurz, was passiert (ein paar Bilder vor und zurück)
     let nudged = false;
-    onView(sec, () => { if (reduce || nudged) return; nudged = true; setTimeout(() => { if (prog() > .02 || flying) return; let k = 0; const fw = () => { if (prog() > .02 || flying) return; k++; tgt = Math.min(14, k); if (!raf) raf = requestAnimationFrame(tick); if (k < 14) setTimeout(fw, 70); else setTimeout(() => { if (prog() <= .02 && !flying) { tgt = 0; if (!raf) raf = requestAnimationFrame(tick); } }, 900); }; fw(); }, 900); }, .5);
+    onView(sec, () => { if (reduce || nudged) return; nudged = true; setTimeout(() => { if (prog() > .02 || flying) return; let k = 0; const fw = () => { if (prog() > .02 || flying) return; k++; tgt = Math.min(+sec.dataset.nudge || 14, k); if (!raf) raf = requestAnimationFrame(tick); if (k < (+sec.dataset.nudge || 14)) setTimeout(fw, 70); else setTimeout(() => { if (prog() <= .02 && !flying) { tgt = 0; if (!raf) raf = requestAnimationFrame(tick); } }, 900); }; fw(); }, 900); }, .5);
   });
 })();

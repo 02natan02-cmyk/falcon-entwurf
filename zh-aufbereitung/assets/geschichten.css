@@ -132,7 +132,7 @@
 .hc{grid-area:1/1;max-width:640px;opacity:0;transform:translateY(30px);pointer-events:auto}
 .hc .h2{text-shadow:0 2px 30px rgba(0,0,0,.5)}
 .hc .lead{color:rgba(255,255,255,.86);text-shadow:0 1px 14px rgba(0,0,0,.6)}
-.hc a{color:var(--aqua);font-weight:700;text-underline-offset:3px}
+.hc .lead a{color:var(--aqua);font-weight:700;text-underline-offset:3px}
 .hdl-steps{position:absolute;left:var(--gut);right:var(--gut);bottom:clamp(34px,6vh,60px);z-index:2;display:flex;gap:clamp(16px,4vw,48px);margin:0;padding:0 0 14px;list-style:none;font:700 12.5px var(--body);letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.45)}
 .hdl-steps li{transition:color .3s}
 .hdl-steps li.on{color:#fff}
@@ -164,4 +164,13 @@
   .hdl-play{bottom:130px}
   .hdl-copy{padding-bottom:194px}
   .hdl-hint{top:30%}
+}
+/* 4K-Element mit fünf Stufen (Waschen bis Übergabe) */
+.hdl{height:540vh}
+.hc .ctas{margin-top:18px;display:flex;flex-wrap:wrap;gap:10px}
+@media (max-width:700px){
+  .hdl{height:470vh}
+  .hdl-steps{gap:10px;align-items:center}
+  .hdl-steps li:not(.on){font-size:0;letter-spacing:0}
+  .hdl-steps li:not(.on)::after{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.35)}
 }
