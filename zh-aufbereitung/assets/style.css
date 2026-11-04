@@ -994,3 +994,17 @@ p,li,figcaption,dd,blockquote{text-wrap:pretty}
 .w>div:last-child p{text-shadow:0 1px 8px rgba(0,0,0,.7)}
 @media (max-width:360px){.hero .h1{font-size:clamp(26px,8.6vw,34px)}}
 @media (max-width:700px){.sv{scroll-margin-top:162px}}
+/* Stationen 04.11.: echte Bilder statt Zeichnung */
+.stage.polish>img,.stage.cer>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;-webkit-user-drag:none;user-select:none}
+.stage.polish .wi-cv,.stage.polish .wi-fx{position:absolute;inset:0;width:100%;height:100%}
+.stage.polish.touched .stage-hint,.stage.polish.wi-done .stage-hint{opacity:0}
+.stage.polish .stage-hint,.stage.cer .stage-hint{z-index:6;pointer-events:none}
+.stage .sym{z-index:6}
+.stage.cer{touch-action:pan-y;cursor:ew-resize}
+.stage.cer .cer-m{clip-path:inset(0 0 0 50%)}
+.cer-line{position:absolute;top:0;bottom:0;left:50%;z-index:4;width:0;pointer-events:none}
+.cer-line::before{content:"";position:absolute;top:0;bottom:0;left:-1px;width:2px;background:rgba(255,255,255,.9);box-shadow:0 0 14px rgba(63,224,229,.8)}
+.cer-line i{position:absolute;left:-22px;top:50%;width:44px;height:44px;margin-top:-22px;border-radius:50%;background:rgba(6,9,10,.6);box-shadow:0 0 0 2px #fff;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.cer-line i::before,.cer-line i::after{content:"";position:absolute;top:50%;margin-top:-6px;border:6px solid transparent}
+.cer-line i::before{left:7px;border-right-color:#fff}.cer-line i::after{right:7px;border-left-color:#fff}
+.stage.cer .rl{z-index:5}

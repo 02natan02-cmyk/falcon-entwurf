@@ -42,38 +42,27 @@
       let t = 600; for (let i = 1; i <= n; i++) { tms.push(setTimeout(() => { if (!user) set(i); }, t)); t += i === n ? 0 : 520; } }); }, .3);
   });
 
-  /* ---------- Vorher/Nachher: einschäumen, Bild wechselt unter dem Schaum, Abzieher zieht ab ---------- */
+  /* ---------- Vorher/Nachher: mit dem Finger drüberwischen – Schaumblasen waschen das Vorher-Bild weg (04.11.2026) ---------- */
   $$('[data-vn]').forEach(m => {
-    const P = JSON.parse(m.dataset.pairs), w = m.closest('.sv-mw'), iv = $('.vn-i.v', m), inn = $('.vn-i.n', m), foam = $('.vn-foam', m), sq = $('.vn-sq', m), tag = $('[data-vn-tag]', m);
-    const q = $('[data-vn-q]', w), an = $('[data-vn-a]', w), sws = $$('[data-vn-s]', w), ps = $$('[data-vn-p]', w);
-    let cur = 0, state = 'v', target = 'v', busy = false, user = false, queued = null, tms = [], seq = 0;
+    const P = JSON.parse(m.dataset.pairs), w = m.closest('.sv-mw'), iv = $('.vn-i.v', m), inn = $('.vn-i.n', m), tag = $('[data-vn-tag]', m);
+    const q = $('[data-vn-q]', w), an = $('[data-vn-a]', w), sws = $$('[data-vn-s]', w), ps = $$('[data-vn-p]', w), pct = $('[data-vn-pct]', w);
+    let cur = 0, user = false, seq = 0;
     const press = s => sws.forEach(b => b.setAttribute('aria-pressed', b.dataset.vnS === s ? 'true' : 'false'));
-    const show = s => { state = s; iv.classList.toggle('on', s === 'v'); inn.classList.toggle('on', s === 'n'); m.classList.toggle('is-n', s === 'n');
-      tag.textContent = s === 'v' ? 'Vorher' : 'Nachher'; press(target); };
-    const E = 'cubic-bezier(.6,.05,.25,1)';
-    const go = s => { target = s; press(s); if (busy) { queued = s; return; } if (s === state) return;
-      if (reduce || !foam.animate) { show(s); return; }
-      busy = true; m.classList.add('wash'); m.classList.remove('hint');
-      const a = foam.animate([{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)' }], { duration: 480, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' });
-      a.onfinish = () => { show(s);
-        foam.animate([{ clipPath: 'inset(0 0 0 0%)' }, { clipPath: 'inset(0 0 0 100%)' }], { duration: 1050, easing: E, fill: 'forwards' });
-        sq.animate([{ left: '0%', opacity: 1 }, { left: '100%', opacity: 1, offset: .88 }, { left: '100%', opacity: 0 }], { duration: 1190, easing: E, fill: 'forwards' })
-          .onfinish = () => { busy = false; m.classList.remove('wash'); const nx = queued; queued = null; if (nx && nx !== state) go(nx); else press(state); }; }; };
-    const touch = () => { user = true; tms.forEach(clearTimeout); tms = []; m.classList.remove('hint'); };
-    const pair = j => { if (j === cur && state === 'v') return; cur = j; const p = P[j], my = ++seq;
-      tms.forEach(clearTimeout); tms = [];
+    const big = () => innerWidth > 900 ? '' : '-m';
+    const W = window.FEWisch ? FEWisch(m, { art: 'schaum',
+      onTouch: () => { user = true; m.classList.remove('hint'); },
+      onProgress: p => { tag.textContent = p >= 1 ? 'Nachher' : p > .02 ? 'Wird gewaschen …' : 'Vorher'; m.classList.toggle('is-n', p >= 1); press(p >= 1 ? 'n' : 'v'); if (pct) pct.textContent = Math.round(p * 100) + ' % sauber'; } }) : null;
+    if (!W) return;
+    m.classList.add('wi-js');
+    const load = j => { cur = j; const p = P[j], my = ++seq;
       ps.forEach((b, k) => b.setAttribute('aria-pressed', k === j ? 'true' : 'false')); q.textContent = p.q; if (an) an.textContent = p.a || '';
-      // beide Bilder in der passenden Größe laden (Handy: kleine Datei), dann tauschen: erst vorher, kurz darauf einschäumen und abziehen
-      const pre = ['v', 'n'].map(k => { const x = new Image(); x.sizes = iv.sizes || '(max-width:900px) 100vw, 46vw'; x.srcset = `${p.b}${k}-m.webp 800w, ${p.b}${k}.webp 1400w`; x.src = `${p.b}${k}.webp`; return x; });
-      Promise.all(pre.map(x => x.decode ? x.decode().catch(() => {}) : 0)).then(() => { if (my !== seq) return;
-        setSrc(iv, `${p.b}v`); setSrc(inn, `${p.b}n`); iv.alt = p.av; inn.alt = p.an; target = 'v'; if (!busy) show('v'); else queued = null;
-        tms.push(setTimeout(() => { if (my === seq) go('n'); }, reduce ? 0 : 650)); }); };
-    $('[data-vn-tog]', m).addEventListener('click', () => { touch(); go(state === 'v' ? 'n' : 'v'); });
-    sws.forEach(b => b.addEventListener('click', () => { touch(); go(b.dataset.vnS); }));
-    ps.forEach((b, j) => b.addEventListener('click', () => { touch(); pair(j); }));
-    // Selbst-Impuls: einmal vorher zeigen, dann von selbst einschäumen und abziehen; danach Hinweis zum Selbermachen
-    onView(m, () => { if (reduce) { m.classList.add('hint'); return; }
-      tms.push(setTimeout(() => { if (user) return; go('n'); tms.push(setTimeout(() => { if (!user) m.classList.add('hint'); }, 1900)); }, 1300)); }, .3);
+      setSrc(inn, `${p.b}n`); inn.alt = p.an; iv.alt = p.av; setSrc(iv, `${p.b}v`);
+      return W.setBefore(`${p.b}v${big()}.webp`).then(() => my === seq); };
+    sws.forEach(b => b.addEventListener('click', () => { user = true; m.classList.remove('hint'); b.dataset.vnS === 'n' ? W.clearAll() : W.reset(); }));
+    ps.forEach((b, j) => b.addEventListener('click', () => { user = true; load(j).then(ok => { if (ok && !reduce) setTimeout(() => W.demo(), 350); }); }));
+    load(0);
+    // Selbst-Impuls: eine Hand wischt einmal quer drüber (Blasen, saubere Spur), danach Hinweis zum Selbermachen
+    onView(m, () => { m.classList.add('hint'); if (reduce) return; setTimeout(() => { if (!user) W.demo(); }, 700); }, .35);
   });
 
   /* ---------- Polizei und Feuerwehr: Fotostapel zum Durchwischen, Blaulicht bei jedem Wechsel ---------- */
@@ -118,14 +107,19 @@
     let dir = portrait() ? 'm' : 'd';
     const src = i => `seq/hd/${dir}/h${String(i + 1).padStart(3, '0')}.webp`;
     if (dir === 'm') poster.src = src(0);
-    let frames = new Array(N), cur = 0, shown = -1, started = false, oi = 0;
+    let frames = new Array(N), cur = 0, shown = -1, started = false, oi = 0, tgt = 0, fpos = 0, raf = 0;
     const order = []; for (const st of [8, 4, 2, 1]) for (let i = 0; i < N; i += st) if (!order.includes(i)) order.push(i);
     const load = i => { if (frames[i]) return; const im = new Image(); im.decoding = 'async'; im.src = src(i); frames[i] = im; im.onload = () => { if (i === 0) sec.classList.add('ready'); if (Math.abs(i - cur) < 5) draw(cur, true); }; };
     const pump = () => { for (let k = 0; k < 4 && oi < order.length; k++, oi++) load(order[oi]); if (oi < order.length) setTimeout(pump, 90); };
     const start = () => { if (started) return; started = true; load(0); pump(); };
     const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { start(); io.disconnect(); } }, { rootMargin: '1200px 0px' }); io.observe(sec);
     const nearest = i => { for (let k = 0; k < N; k++) for (const j of [i - k, i + k]) if (j >= 0 && j < N && frames[j] && frames[j].complete && frames[j].naturalWidth) return frames[j]; return null; };
-    function draw(i, force) { if (!force && i === shown) return; const im = nearest(i); if (!im) return; shown = i; const W = cv.width, H = cv.height, s = Math.max(W / im.naturalWidth, H / im.naturalHeight), w = im.naturalWidth * s, h = im.naturalHeight * s; ctx.drawImage(im, (W - w) / 2, (H - h) / 2, w, h); }
+    // weich: zwischen zwei Einzelbildern wird nach Scroll-Position überblendet (kein Ruckeln, auch bei schnellem Scrollen)
+    const ok = im => im && im.complete && im.naturalWidth;
+    const paint = (im, a) => { const W = cv.width, H = cv.height, s = Math.max(W / im.naturalWidth, H / im.naturalHeight), w = im.naturalWidth * s, h = im.naturalHeight * s; ctx.globalAlpha = a; ctx.drawImage(im, (W - w) / 2, (H - h) / 2, w, h); ctx.globalAlpha = 1; };
+    function draw(i, force) { const p = fpos, a = Math.max(0, Math.min(N - 1, Math.floor(p))), f = p - a, key = Math.round(p * 20);
+      if (!force && key === shown) return; const A = ok(frames[a]) ? frames[a] : nearest(a); if (!A) return; shown = key;
+      paint(A, 1); const B = frames[a + 1]; if (f > .03 && ok(B) && A === frames[a]) paint(B, f); }
     let lw = 0, lh = 0;
     const size = () => { const d = Math.min(devicePixelRatio || 1, 2), w = Math.round(cv.clientWidth * d), h = Math.round(cv.clientHeight * d); if (w === lw && Math.abs(h - lh) < 160 * d && lw) return; lw = w; lh = h; cv.width = w; cv.height = h;
       const nd = portrait() ? 'm' : 'd'; if (nd !== dir) { dir = nd; poster.src = src(0); if (started) { frames = new Array(N); oi = 0; load(cur); pump(); } } draw(cur, true); };
@@ -137,8 +131,7 @@
       let st = 0; stAt.forEach((a, i) => { if (p >= a) st = i; }); steps.forEach((l, i) => l.classList.toggle('on', i === st)); bar.style.transform = `scaleX(${p})`;
       if (p > .02) sec.classList.add('moved');
     };
-    let tgt = 0, fpos = 0, raf = 0;
-    const tick = () => { raf = 0; fpos += (tgt - fpos) * .2; if (Math.abs(tgt - fpos) < .05) fpos = tgt; cur = Math.round(fpos); draw(cur); if (fpos !== tgt) raf = requestAnimationFrame(tick); };
+    const tick = () => { raf = 0; fpos += (tgt - fpos) * .16; if (Math.abs(tgt - fpos) < .02) fpos = tgt; cur = Math.round(fpos); draw(cur); if (fpos !== tgt) raf = requestAnimationFrame(tick); };
     const prog = () => { const r = sec.getBoundingClientRect(); return Math.min(1, Math.max(0, -r.top / (sec.offsetHeight - innerHeight))); };
     const onScroll = () => { const p = prog(); tgt = p * (N - 1); if (!raf) raf = requestAnimationFrame(tick); phase(p); };
     addEventListener('scroll', onScroll, { passive: true }); onScroll();

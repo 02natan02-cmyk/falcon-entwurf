@@ -192,134 +192,36 @@
   }
 
   /* =====================================================================
-     POLIEREN
+     Schritt 1 – Polieren: echte Haube, Finger wischt die Wirbelkratzer weg (04.11.2026)
      ===================================================================== */
   const pol = $('[data-polish]');
-  if (pol) {
-    const cv = $('canvas', pol), ctx = cv.getContext('2d'), pad = $('.pad', pol), sw = document.createElement('canvas'), sctx = sw.getContext('2d', { willReadFrequently: true });
-    let W, H, dpr = DPR(), lx = .5, ly = .35, down = false, vis = false, baseA = 1;
-    const gl_ = $('[data-gloss]'), glb = $('[data-gloss-bar]');
-    const measure = () => { const d = sctx.getImageData(0, 0, W, H).data; let a = 0, n = 0; for (let i = 3; i < d.length; i += 4 * 97) { n++; a += d[i]; } return a / n; };
-    const ok = document.createElement('span'); ok.className = 'pol-ok'; ok.innerHTML = 'Spiegelglanz <b>✓</b>'; pol.appendChild(ok);
-    const upd = () => { const m = measure(); const p = Math.max(0, Math.min(1, 1 - m / (baseA || 1))); const g = Math.min(100, Math.round(12 + p * 92)); gl_.textContent = g + ' %'; glb.style.width = g + '%'; if (g >= 96 && !pol.classList.contains('mirror')) { pol.classList.add('mirror'); gl_.textContent = '100 %'; glb.style.width = '100%'; } };
-    const scratch = () => { sctx.clearRect(0, 0, W, H); sctx.lineCap = 'round';
-      for (let i = 0; i < 1100; i++) { const cx = Math.random() * W, cy = Math.random() * H, r = (40 + Math.random() * 220) * dpr, a = Math.random() * 6.28, l = .15 + Math.random() * .55; sctx.strokeStyle = `rgba(255,255,255,${.05 + Math.random() * .2})`; sctx.lineWidth = (.5 + Math.random() * .9) * dpr; sctx.beginPath(); sctx.arc(cx, cy, r, a, a + l); sctx.stroke(); }
-      baseA = measure() || 1; pol.classList.remove('mirror'); upd(); };
-    const base = document.createElement('canvas'), bctx = base.getContext('2d');
-    const paintBase = () => { base.width = W; base.height = H; // Tiefschwarz-Metallic mit Flakes, Sicke und Türfuge
-      const g = bctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#1d2a35'); g.addColorStop(.42, '#0e161d'); g.addColorStop(.6, '#0a1015'); g.addColorStop(1, '#030507'); bctx.fillStyle = g; bctx.fillRect(0, 0, W, H);
-      const sky = bctx.createLinearGradient(0, 0, 0, H * .4); sky.addColorStop(0, 'rgba(150,185,205,.16)'); sky.addColorStop(1, 'rgba(150,185,205,0)'); bctx.fillStyle = sky; bctx.fillRect(0, 0, W, H * .4);
-      for (let i = 0; i < W * H / 260; i++) { bctx.fillStyle = `rgba(${200 + Math.random() * 55 | 0},${210 + Math.random() * 45 | 0},255,${Math.random() * .16})`; bctx.fillRect(Math.random() * W, Math.random() * H, dpr, dpr); }
-      const cy = H * .62; const ln = bctx.createLinearGradient(0, 0, W, 0); ln.addColorStop(0, 'rgba(255,255,255,0)'); ln.addColorStop(.35, 'rgba(255,255,255,.32)'); ln.addColorStop(.7, 'rgba(255,255,255,.18)'); ln.addColorStop(1, 'rgba(255,255,255,0)'); bctx.fillStyle = ln; bctx.fillRect(0, cy, W, 2 * dpr); bctx.fillStyle = 'rgba(0,0,0,.45)'; bctx.fillRect(0, cy + 2 * dpr, W, 5 * dpr);
-      bctx.fillStyle = 'rgba(0,0,0,.7)'; bctx.fillRect(W * .66, 0, 2.5 * dpr, H); bctx.fillStyle = 'rgba(255,255,255,.07)'; bctx.fillRect(W * .66 + 2.5 * dpr, 0, 1 * dpr, H);
-      const hx = W * .72, hy = cy - 34 * dpr, hw = 92 * dpr, hh = 18 * dpr; bctx.fillStyle = 'rgba(0,0,0,.55)'; bctx.beginPath(); bctx.roundRect ? bctx.roundRect(hx, hy, hw, hh, hh / 2) : bctx.rect(hx, hy, hw, hh); bctx.fill(); const hg = bctx.createLinearGradient(0, hy, 0, hy + hh); hg.addColorStop(0, 'rgba(255,255,255,.35)'); hg.addColorStop(1, 'rgba(255,255,255,.02)'); bctx.fillStyle = hg; bctx.beginPath(); bctx.roundRect ? bctx.roundRect(hx + 2 * dpr, hy + 2 * dpr, hw - 4 * dpr, hh - 6 * dpr, hh / 2) : bctx.rect(hx, hy, hw, hh); bctx.fill(); };
-    const size = () => { dpr = DPR(); W = cv.width = sw.width = Math.max(10, pol.clientWidth * dpr); H = cv.height = sw.height = Math.max(10, pol.clientHeight * dpr); paintBase(); scratch(); };
-    size(); let rw = pol.clientWidth; new ResizeObserver(() => { if (Math.abs(pol.clientWidth - rw) > 30) { rw = pol.clientWidth; size(); } }).observe(pol);
-    visTrack(pol, v => vis = v);
-    const rub = (x, y, al = .55) => { sctx.globalCompositeOperation = 'destination-out'; const g = sctx.createRadialGradient(x, y, 0, x, y, 64 * dpr); g.addColorStop(0, `rgba(0,0,0,${al})`); g.addColorStop(1, 'rgba(0,0,0,0)'); sctx.fillStyle = g; sctx.beginPath(); sctx.arc(x, y, 64 * dpr, 0, 7); sctx.fill(); sctx.globalCompositeOperation = 'source-over'; };
-    const pos = e => { const r = pol.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
-    let mt = 0;
-    // v6: Impuls – beim ersten Sichtkontakt poliert die Maschine selbst zwei Kreise, der Glanzgrad zählt sichtbar mit
-    let demo = false, demoDone = false;
-    const stopDemo = () => { if (!demo) return; demo = false; pol.classList.remove('spin', 'demo'); if (!down) pol.classList.remove('on'); upd(); };
-    const runDemo = () => { if (demoDone || pol.classList.contains('used') || reduce) return; demoDone = true; demo = true; pol.classList.add('on', 'spin', 'demo');
-      const t0 = performance.now(), D = 2700; let lp = null;
-      const st = now => { if (!demo) return; const p = Math.min(1, (now - t0) / D), w = pol.clientWidth, h = pol.clientHeight;
-        const th = p * Math.PI * 4 - Math.PI / 2, x = w * (.28 + .26 * p) + Math.cos(th) * w * .13, y = h * .52 + Math.sin(th) * h * .2;
-        pad.style.transform = `translate(${x}px,${y}px)`; lx = x / w; ly = y / h;
-        if (lp) { const n = Math.max(1, Math.ceil(Math.hypot(x - lp[0], y - lp[1]) / 9)); for (let i = 1; i <= n; i++) rub((lp[0] + (x - lp[0]) * i / n) * dpr, (lp[1] + (y - lp[1]) * i / n) * dpr, .32); }
-        lp = [x, y]; if (now - mt > 120) { mt = now; upd(); }
-        if (p < 1) requestAnimationFrame(st); else stopDemo(); };
-      requestAnimationFrame(st); };
-    onView(pol, () => setTimeout(runDemo, 450), '-28%');
-    pol.addEventListener('pointerenter', () => pol.classList.add('on')); /* Scrollen unter ruhender Maus beendet die Vorführung nicht */
-    pol.addEventListener('pointerleave', () => { if (!demo) pol.classList.remove('on', 'spin'); down = false; });
-    pol.addEventListener('pointerdown', e => { stopDemo(); down = true; pol.classList.add('on', 'spin', 'used'); try { pol.setPointerCapture(e.pointerId); } catch (_) {} const [x, y] = pos(e); pad.style.transform = `translate(${x}px,${y}px)`; });
-    addEventListener('pointerup', () => { if (demo) return; down = false; pol.classList.remove('spin'); if (!fine) pol.classList.remove('on'); upd(); });
-    pol.addEventListener('pointermove', e => { if (demo) { if (!e.movementX && !e.movementY) return; stopDemo(); } const [x, y] = pos(e); pad.style.transform = `translate(${x}px,${y}px)`; lx = x / pol.clientWidth; ly = y / pol.clientHeight; if (down) { rub(x * dpr, y * dpr); const n = performance.now(); if (n - mt > 140) { mt = n; upd(); } } });
-    $('[data-polish-reset]').addEventListener('click', scratch);
-    (function loop(t) { requestAnimationFrame(loop); if (!vis) return;
-      if (!down && !pol.classList.contains('on')) { lx = .5 + Math.sin(t / 2600) * .3; ly = .35 + Math.sin(t / 1900) * .15; }
-      ctx.drawImage(base, 0, 0);
-      const sx = lx * W, sy = ly * H;
-      const sun = ctx.createRadialGradient(sx, sy, 0, sx, sy, 280 * dpr); sun.addColorStop(0, 'rgba(255,250,235,.95)'); sun.addColorStop(.06, 'rgba(255,240,210,.55)'); sun.addColorStop(.3, 'rgba(120,140,150,.12)'); sun.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = sun; ctx.fillRect(0, 0, W, H);
-      ctx.save(); ctx.beginPath(); ctx.arc(sx, sy, 320 * dpr, 0, 7); ctx.clip(); ctx.globalAlpha = .95; ctx.drawImage(sw, 0, 0); ctx.restore();
-      ctx.globalAlpha = .13; ctx.drawImage(sw, 0, 0); ctx.globalAlpha = 1;
-    })();
+  if (pol && window.FEWisch) {
+    const gl = $('[data-gloss]'), gb = $('[data-gloss-bar]'); let used = false;
+    const W = FEWisch(pol, { art: 'politur', onTouch: () => { used = true; pol.classList.add('touched'); },
+      onProgress: p => { const v = Math.round(12 + p * 88); if (gl) gl.textContent = v + ' %'; if (gb) gb.style.transform = `scaleX(${v / 100})`; } });
+    W.setBefore(pol.dataset.before);
+    const rs = $('[data-polish-reset]'); if (rs) rs.addEventListener('click', () => { used = true; W.reset(); });
+    onView(pol, () => { if (!reduce) setTimeout(() => { if (!used) W.demo(); }, 600); }, '0px');
   }
 
   /* =====================================================================
-     REGEN / KERAMIK
+     Schritt 2 – Versiegeln: links ohne, rechts Keramik (helle Tropfen), Trennlinie ziehen
      ===================================================================== */
   const rain = $('[data-rain]');
   if (rain) {
-    const cv = $('canvas', rain), ctx = cv.getContext('2d'), wet = document.createElement('canvas'), wctx = wet.getContext('2d');
-    let W, H, dpr = DPR(), seal = .5, gx = 0, gy = 1, drops = [], storm = 0, vis = false, last = 0;
-    const size = () => { dpr = DPR(); W = cv.width = wet.width = Math.max(10, rain.clientWidth * dpr); H = cv.height = wet.height = Math.max(10, rain.clientHeight * dpr); };
-    size(); new ResizeObserver(size).observe(rain);
-    visTrack(rain, v => vis = v);
-    const sealX = () => W * (1 - seal);
-    const add = (x, y, r) => drops.push({ x, y, r: r || (2.4 + Math.random() * 4.2) * dpr, vx: 0, vy: 0, life: 0 });
-    // v6: Impuls – die Trennlinie wandert beim ersten Sichtkontakt einmal hin und her; Hinweis verschwindet nach der ersten Berührung
-    let rTouched = false, rTw = null;
-    const rTouch = () => { rTw && rTw.kill(); rTw = null; if (rTouched) return; rTouched = true; rain.classList.add('touched'); };
-    $('[data-seal]').addEventListener('input', e => { rTouch(); seal = +e.target.value / 100; });
-    const sealIn = $('[data-seal]');
-    onView(rain, () => setTimeout(() => { if (rTouched || !hasG || reduce) return; const o = { v: seal }, u = () => { seal = o.v; sealIn.value = Math.round(seal * 100); };
-      rTw = gsap.timeline({ onComplete: () => rTw = null }).to(o, { v: .8, duration: 1.1, ease: 'power2.inOut', onUpdate: u }).to(o, { v: .22, duration: 1.4, ease: 'power2.inOut', onUpdate: u }, '+=.2').to(o, { v: .5, duration: 1, ease: 'power2.inOut', onUpdate: u }, '+=.2'); }, 500), '-28%');
-    const shower = (cx, cy) => { const r = rain.getBoundingClientRect(); for (let i = 0; i < 26; i++) add((cx - r.left) * dpr + (Math.random() - .5) * 140 * dpr, (cy - r.top) * dpr + (Math.random() - .5) * 100 * dpr); };
-    let pd = null;
-    const setSealX = cx => { const r = rain.getBoundingClientRect(); seal = Math.max(0, Math.min(1, 1 - (cx - r.left) / r.width)); sealIn.value = Math.round(seal * 100); rain.classList.add('dragged'); };
-    rain.addEventListener('pointerdown', e => { rTouch(); pd = { x: e.clientX, y: e.clientY, drag: false, id: e.pointerId }; const r = rain.getBoundingClientRect(); if (Math.abs(e.clientX - (r.left + r.width * (1 - seal))) < 34) { pd.drag = true; try { rain.setPointerCapture(e.pointerId); } catch (_) {} setSealX(e.clientX); } });
-    rain.addEventListener('pointermove', e => { if (!pd) return; const dx = e.clientX - pd.x, dy = e.clientY - pd.y; if (!pd.drag && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) { pd.drag = true; try { rain.setPointerCapture(e.pointerId); } catch (_) {} } if (pd.drag) setSealX(e.clientX); });
-    rain.addEventListener('pointerup', e => { if (pd && !pd.drag) shower(e.clientX, e.clientY); pd = null; });
-    rain.addEventListener('pointercancel', () => { pd = null; });
-    $('[data-storm]').addEventListener('click', () => storm = 4.5);
-    if (fine) rain.addEventListener('pointermove', e => { const r = rain.getBoundingClientRect(); const t = ((e.clientX - r.left) / r.width - .5) * 1.1; gx = Math.sin(t); gy = Math.cos(t); });
-    rain.addEventListener('pointerleave', () => { gx = 0; gy = 1; });
-    const tiltBtn = $('[data-tilt]');
-    const onOri = e => { if (e.gamma == null) return; const a = Math.max(-60, Math.min(60, e.gamma)) * Math.PI / 180; gx = Math.sin(a); gy = Math.cos(a); };
-    tiltBtn.addEventListener('click', async () => { try { if (window.DeviceOrientationEvent && DeviceOrientationEvent.requestPermission) { const p = await DeviceOrientationEvent.requestPermission(); if (p !== 'granted') return; } addEventListener('deviceorientation', onOri); tiltBtn.textContent = 'Neigung aktiv ✓'; } catch (e) { tiltBtn.textContent = 'Nicht verfügbar'; } });
-    if (!fine) addEventListener('deviceorientation', onOri);
-    const paint = () => {
-      const g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#0f3a40'); g.addColorStop(.5, '#08232a'); g.addColorStop(1, '#123f45');
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-      const sx = sealX(); ctx.fillStyle = 'rgba(255,255,255,.04)'; ctx.fillRect(sx, 0, W - sx, H);
-      const s = ctx.createLinearGradient(0, H * .15, W, H * .45); s.addColorStop(0, 'rgba(255,255,255,0)'); s.addColorStop(.5, 'rgba(255,255,255,.11)'); s.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = s; ctx.fillRect(0, 0, W, H);
-      ctx.drawImage(wet, 0, 0);
-      ctx.strokeStyle = 'rgba(63,224,229,.85)'; ctx.setLineDash([6 * dpr, 6 * dpr]); ctx.lineWidth = 2 * dpr; ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, H); ctx.stroke(); ctx.setLineDash([]);
-      { const ky = H / 2, kr = 19 * dpr; ctx.fillStyle = 'rgba(63,224,229,.95)'; ctx.beginPath(); ctx.arc(sx, ky, kr, 0, 7); ctx.fill(); ctx.fillStyle = '#05262b'; ctx.font = `800 ${15 * dpr}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('‹ ›', sx, ky + dpr); }
-    };
-    const step = (t) => {
-      requestAnimationFrame(step); if (!vis) return; const dt = Math.min(.05, (t - last) / 1000 || .016); last = t;
-      const rate = storm > 0 ? 70 : 12; storm = Math.max(0, storm - dt);
-      for (let i = 0; i < rate * dt * 10; i++) add(Math.random() * W, Math.random() * H * .9);
-      wctx.globalCompositeOperation = 'destination-out'; wctx.fillStyle = `rgba(0,0,0,${.35 * dt})`; wctx.fillRect(0, 0, W, H); wctx.globalCompositeOperation = 'source-over';
-      const sx = sealX(), G = 900 * dpr;
-      for (const d of drops) {
-        d.life += dt; const sealed = d.x > sx;
-        if (sealed) { if (d.r > 2.2 * dpr) { d.vx += gx * G * dt * .9; d.vy += gy * G * dt * .9; } d.vx *= .9; d.vy *= .9; }
-        else { d.r = Math.min(d.r * (1 + dt * .3), 10 * dpr); if (d.r > 5 * dpr) { d.vx += gx * G * dt * .05; d.vy += gy * G * dt * .05; } d.vx *= .82; d.vy *= .82; if (d.life > 3.5) d.dead = true;
-          wctx.fillStyle = 'rgba(160,210,215,.025)'; wctx.beginPath(); wctx.ellipse(d.x, d.y, d.r * 1.6, d.r * 1.2, 0, 0, 7); wctx.fill(); }
-        d.x += d.vx * dt; d.y += d.vy * dt;
-      }
-      drops.sort((a, b) => a.x - b.x);
-      for (let i = 0; i < drops.length; i++) { const a = drops[i]; if (a.dead) continue; for (let j = i + 1; j < drops.length && drops[j].x - a.x < 20 * dpr; j++) { const b = drops[j]; if (b.dead) continue; const dx = a.x - b.x, dy = a.y - b.y; if (dx * dx + dy * dy < (a.r + b.r) * (a.r + b.r) * .6) { a.r = Math.min(Math.sqrt(a.r * a.r + b.r * b.r), 14 * dpr); a.vy = (a.vy + b.vy) / 2; a.vx = (a.vx + b.vx) / 2; b.dead = true; } } }
-      drops = drops.filter(d => !d.dead && d.y < H + 40 && d.y > -40 && d.x > -40 && d.x < W + 40).slice(-900);
-      paint();
-      for (const d of drops) {
-        if (d.x > sx) {
-          const g = ctx.createRadialGradient(d.x - d.r * .35, d.y - d.r * .4, d.r * .1, d.x, d.y, d.r);
-          g.addColorStop(0, 'rgba(255,255,255,.95)'); g.addColorStop(.35, 'rgba(160,230,235,.55)'); g.addColorStop(1, 'rgba(10,40,45,.55)');
-          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, 7); ctx.fill();
-          ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(d.x + d.r * .2, d.y + d.r * .9, d.r * .8, d.r * .25, 0, 0, 7); ctx.fill();
-          if (Math.hypot(d.vx, d.vy) > 40 * dpr) { ctx.strokeStyle = 'rgba(200,240,242,.25)'; ctx.lineWidth = d.r * .6; ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(d.x - d.vx * .03, d.y - d.vy * .03); ctx.stroke(); }
-        } else { const fa = Math.max(0, 1 - d.life / 3.5); ctx.fillStyle = `rgba(170,215,220,${.2 * fa})`; ctx.beginPath(); ctx.ellipse(d.x, d.y, d.r * 1.5, d.r * 1.1, 0, 0, 7); ctx.fill(); ctx.strokeStyle = `rgba(220,245,247,${.22 * fa})`; ctx.lineWidth = 1 * dpr; ctx.stroke(); }
-      }
-    };
-    requestAnimationFrame(step);
+    const mi = $('.cer-m', rain), ln = $('.cer-line', rain), seal = $('[data-seal]'); let pos = 50, user = false, dr = false, anim = 0;
+    const set = v => { pos = Math.max(0, Math.min(100, v)); mi.style.clipPath = `inset(0 0 0 ${pos}%)`; ln.style.left = pos + '%'; if (seal) seal.value = 100 - pos; };
+    const fromX = x => { const r = rain.getBoundingClientRect(); return (x - r.left) / r.width * 100; };
+    const stop = () => { user = true; cancelAnimationFrame(anim); rain.classList.add('touched'); };
+    rain.addEventListener('pointerdown', e => { if (e.button > 0) return; stop(); dr = true; rain.setPointerCapture(e.pointerId); set(fromX(e.clientX)); });
+    rain.addEventListener('pointermove', e => { if (dr) set(fromX(e.clientX)); });
+    const up = () => { dr = false; }; rain.addEventListener('pointerup', up); rain.addEventListener('pointercancel', up);
+    if (seal) seal.addEventListener('input', () => { stop(); set(100 - +seal.value); });
+    set(50);
+    // Selbst-Impuls: Linie wandert einmal hin und her, damit man sieht, was passiert
+    onView(rain, () => { if (reduce) return; const t0 = performance.now(), D = 2600;
+      const st = now => { if (user) return; const q = Math.min(1, (now - t0) / D); set(50 + Math.sin(q * Math.PI * 2) * 28 * (1 - q * .3)); if (q < 1) anim = requestAnimationFrame(st); else set(50); };
+      setTimeout(() => { if (!user) anim = requestAnimationFrame(st); }, 500); }, '0px');
   }
 
   /* =====================================================================
