@@ -401,7 +401,7 @@
       applyLight();
       const odd = p.h < .5 || p.h > 2.6 || p.dist < .3;
       hintEl.className = 'kpf-ok' + (odd ? ' warn' : '');
-      hintEl.innerHTML = odd ? `Ungewöhnlich: Die Kamera wäre ${fmt(p.h)} m hoch. Liegen 1 und 2 unten in den Ecken? Stimmt die Wandlänge (${WN[face]}: ${fmt(p.cfg.Lu)} m)?` : `Passt: Foto aus ca. <b>${fmt(p.h)} m</b> Höhe, <b>${fmt(p.dist, 1)} m</b> vor der Wand.`;
+      hintEl.innerHTML = odd ? `Ungewöhnlich: Die Kamera wäre ${fmt(p.h)} m hoch. Liegen 1 und 2 unten in den Ecken? Stimmt die Wandlänge (${WN[face]}: ${fmt(p.cfg.Lu)} m)?` : `Passt: Foto aus rund <b>${fmt(p.h)} m</b> Höhe, <b>${fmt(p.dist, 1)} m</b> vor der Wand.`;
     }
     drawOv(); syncUI();
   }

@@ -258,7 +258,7 @@
     }
     if (form === 'zwei' && room.d > 420 && b.roomGiven) b.notes.push('Bei zweizeiligen Küchen sind 1,20 bis 1,50 m Gang ideal – die Zeilen stehen an den langen Wänden.');
     b.form = form; b.room = room;
-    if (b.halb) b.notes.push('Eine Halbinsel bzw. Theke plant der Online-Planer als L-Schenkel – die genaue Theke zeichnet das Studio danach ein.');
+    if (b.halb) b.notes.push('Eine Halbinsel oder Theke plant der Online-Planer als L-Schenkel – die genaue Theke zeichnet das Studio danach ein.');
     // Erkanntes für die Chips
     const g = b.got;
     if (b.formSaid || b.halb) g.push(FORMS[form].n.replace(/^k/, 'K')); else g.push(FORMS[form].n.replace(/^k/, 'K') + ' (Vorschlag)');
@@ -277,7 +277,7 @@
     if (st.handle) g.push({ grifflos: 'Grifflos', gold: 'Messinggriffe', schwarz: 'Schwarze Griffe', bar: 'Edelstahlgriffe', knopf: 'Knopfgriffe' }[st.handle]);
     if (st.top) g.push('Platte ' + TOPS[st.top]); if (st.finish) g.push({ matt: 'Matt', seide: 'Seidenmatt', glanz: 'Hochglanz' }[st.finish]);
     if (b.ah) g.push(`Arbeitshöhe ${b.ah} cm`);
-    if (b.budget) g.push(`Budget ca. ${eur(b.budget)} €`);
+    if (b.budget) g.push(`Budget rund ${eur(b.budget)} €`);
     return b;
   }
 
@@ -435,7 +435,7 @@
     if (b.water && ['N', 'E', 'S', 'W'].includes(b.water.wall)) plan.cx = [['wasser', b.water.wall, Math.round(b.water.s != null ? b.water.s : wlen(plan, b.water.wall) / 2)]];
     { const xc = extraCx(plan, b); if (xc.length) plan.cx = (plan.cx || []).concat(xc); }
     plan.s = buildStyle(b, cur);
-    // … und die Spüle rückt zum Wasser bzw. unters Fenster – nur wenn es insgesamt besser wird
+    // … und die Spüle rückt zum Wasser oder unters Fenster – nur wenn es insgesamt besser wird
     if (plan.cx) { try { sinkToWater(plan, { wall: plan.cx[0][1], s: plan.cx[0][2] }); } catch (e) { } }
     else if (Array.isArray(b.fixOps) && b.fixOps.length) { const fw = plan.op.find(o => o[0] === 'fenster' && plan.rw[o[1]]); if (fw) try { sinkToWater(plan, { wall: fw[1], s: fw[2] + fw[3] / 2 }); } catch (e) { } }
     if (W.mulde && Object.values(plan.rw).some(r => r.some(m => m[0] === 'kf' || m[0] === 'ko'))) plan.s.hobV = 'dd';
@@ -453,7 +453,7 @@
     if (W.muell && !cnt('mt')) notes.push('Der Mülltrenner sitzt bei dieser Größe am besten im Spülenschrank.');
     if (!W.noDw && !cnt('gs') && !(isl && isl.v === 'spuele')) notes.push('Eine Spülmaschine passt bei dieser Wandlänge leider nicht hinein.');
     if (opt.herd && cnt('ko') && !W.herd) notes.push('Bei dieser Wandlänge sitzt der Backofen im Herd unter dem Kochfeld – so bleibt genug Arbeitsfläche zwischen Kochfeld und Spüle.');
-    if (b.budget) notes.push(b.budget < 10000 ? `Für ca. ${eur(b.budget)} € ist alles bewusst schlicht geplant${cnt('eb') && !W.corner ? ' (Blindecke statt Le-Mans-Auszug)' : ''} – Geräte und Fronten stimmt ${person()} mit Ihnen auf das Budget ab.` : `Ihr Budget von ca. ${eur(b.budget)} € geht mit Ihrer Anfrage mit – die genaue Kalkulation macht ${person()} mit Ihnen.`);
+    if (b.budget) notes.push(b.budget < 10000 ? `Für rund ${eur(b.budget)} € ist alles bewusst schlicht geplant${cnt('eb') && !W.corner ? ' (Blindecke statt Le-Mans-Auszug)' : ''} – Geräte und Fronten stimmt ${person()} mit Ihnen auf das Budget ab.` : `Ihr Budget von rund ${eur(b.budget)} € geht mit Ihrer Anfrage mit – die genaue Kalkulation macht ${person()} mit Ihnen.`);
     return { plan, notes: notes.filter(Boolean), ctx, sinkWall, ww, opt };
   }
   // Spüle (samt Spülmaschine daneben) an eine Stelle rücken – nur übernehmen, wenn es nicht mehr Hinweise gibt als vorher
@@ -868,7 +868,7 @@
     <h2 class="kpai-h" id="kpai-t"><span class="kpai-mn">Erzählen Sie uns von Ihrer Küche.<em>Wir planen sie ein.</em></span><span class="kpai-me">Was soll sich ändern?<em>Einfach sagen – wir setzen es um.</em></span></h2>
     <p class="kpai-p"><span class="kpai-mn">Raum, Fenster, Wünsche, Farben – ganz in Ihren Worten. Zuerst prüfen wir mit Ihnen die Raummaße, dann steht ein durchdachter Entwurf im Planer, den Sie nur noch verfeinern.</span><span class="kpai-me">Fenster verschieben, Raummaße korrigieren, Wasseranschluss eintragen, Spüle unters Fenster … – Ihr Entwurf bleibt, nur das Gesagte ändert sich. Jede Änderung lässt sich rückgängig machen.</span></p>
     <div class="kpai-coach" hidden role="status" aria-live="polite"></div>
-    <div class="kpai-ta"><textarea maxlength="${MAXLEN}" rows="5" placeholder="z. B. ${esc(EX)}" aria-label="Ihre Küche in eigenen Worten"></textarea>
+    <div class="kpai-ta"><textarea maxlength="${MAXLEN}" rows="5" placeholder="zum Beispiel ${esc(EX)}" aria-label="Ihre Küche in eigenen Worten"></textarea>
       <div class="kpai-tab"><button type="button" class="kpai-ex">Beispiel<span>einsetzen</span></button><span class="kpai-cnt">0 / ${MAXLEN}</span><span class="kpai-vst"></span><canvas class="kpai-wave" aria-hidden="true"></canvas><button type="button" class="kpai-mic" aria-pressed="false" aria-label="Einsprechen: Ihre Küche einfach erzählen"><span class="kpai-mh" aria-hidden="true"></span>${ICO.mic}${ICO.stop}<b>Einsprechen</b></button><span class="kpai-tip" aria-hidden="true">Neu: einfach erzählen statt tippen</span></div></div>
     <p class="kpai-vnote" hidden>Die Sprache wandelt Ihr Browser in Text um (je nach Browser bei Google, Apple oder Microsoft). Wir erhalten keine Aufnahme – nur den Text im Feld.</p>
     <div class="kpai-mn"><p class="kpai-l">Form</p><div class="kpai-chips" data-g="f">${CHIPS_F.map(([n, s]) => `<button type="button" data-ph="${esc(s)}">${n}</button>`).join('')}</div>
@@ -967,7 +967,7 @@
   }
   /* ================= 6c) Spracheingabe ================= */
   // Chrome, Edge, Safari, Samsung: Spracherkennung des Browsers (Web Speech API), Text erscheint live im Feld.
-  // Ohne eigene Erkennung (z. B. Firefox, In-App-Browser) oder wenn sie scheitert: Hinweis auf das Diktier-Mikrofon der Tastatur bzw. des Computers.
+  // Ohne eigene Erkennung (z. B. Firefox, In-App-Browser) oder wenn sie scheitert: Hinweis auf das Diktier-Mikrofon der Tastatur oder des Computers.
   const SRC = window.SpeechRecognition || window.webkitSpeechRecognition;
   const UA = navigator.userAgent || '', TOUCH = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   const OSN = /Android/i.test(UA) ? 'android' : (/iPhone|iPad|iPod/i.test(UA) || (/Macintosh/i.test(UA) && navigator.maxTouchPoints > 1)) ? 'ios' : /Windows/i.test(UA) ? 'win' : /Mac OS X|Macintosh/i.test(UA) ? 'mac' : 'other';
@@ -1152,7 +1152,7 @@
   function setMode(m, focus) {
     mode = m === 'edit' ? 'edit' : 'neu'; const sec = ov_.querySelector('[data-s="in"]'); sec.classList.toggle('edit', mode === 'edit');
     ov_.querySelectorAll('[data-mode]').forEach(b => { const on = b.dataset.mode === mode; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
-    const ta = ov_.querySelector('textarea'); ta.placeholder = 'z. B. ' + (mode === 'edit' ? EXE : EX); ov_.querySelector('.kpai-err').textContent = '';
+    const ta = ov_.querySelector('textarea'); ta.placeholder = 'zum Beispiel ' + (mode === 'edit' ? EXE : EX); ov_.querySelector('.kpai-err').textContent = '';
     if (focus) ta.focus();
   }
   function close() {

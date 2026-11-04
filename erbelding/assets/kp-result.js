@@ -276,7 +276,7 @@
     let s = '';
     // Wandfläche, Decke, Boden
     s += `<rect x="0" y="${Y(ROOM_H)}" width="${L}" height="${ROOM_H}" fill="#f7f2ea"/>`;
-    s += pline(0, Y(ROOM_H), L, Y(ROOM_H), { c: MUTE, w: .4 * u / 10, dash: `${.8 * u} ${.5 * u}` }) + ptxt(L - .4 * u, Y(ROOM_H) + 1.05 * u, 'Decke ca. 260 – bitte messen', .62 * u, { fill: MUTE, anchor: 'end' });
+    s += pline(0, Y(ROOM_H), L, Y(ROOM_H), { c: MUTE, w: .4 * u / 10, dash: `${.8 * u} ${.5 * u}` }) + ptxt(L - .4 * u, Y(ROOM_H) + 1.05 * u, 'Decke rund 260 – bitte messen', .62 * u, { fill: MUTE, anchor: 'end' });
     s += pline(0, Y(ROOM_H), 0, 0, { c: INK, w: 1.2 * u / 10 }) + pline(L, Y(ROOM_H), L, 0, { c: INK, w: 1.2 * u / 10 });
     // Öffnungen
     w.open.forEach(op => {
@@ -428,7 +428,7 @@
       if (c.t === 'heiz') {
         const y0 = c.y0 ?? 10, hh = c.hh || 60, hw = c.hw || 100, a = c.s - hw / 2, b = c.s + hw / 2, B = pd.walls[c.wall].base;
         const tall = B.some(q => q.kind === 't' && a < q.s + q.w - 2 && b > q.s + 2), low = B.some(q => q.kind !== 't' && a < q.s + q.w - 2 && b > q.s + 2) && y0 < pd.ah;
-        const st = tall ? 'hinter einem Hochschrank – versetzen' : low ? 'hinter den Unterschränken – versetzen (z. B. unters Fenster) oder Sockelheizung' : 'bleibt frei – Luft nach oben lassen';
+        const st = tall ? 'hinter einem Hochschrank – versetzen' : low ? 'hinter den Unterschränken – versetzen (zum Beispiel unters Fenster) oder Sockelheizung' : 'bleibt frei – Luft nach oben lassen';
         return { nr: 'B' + (i + 1), k: c.wall, s: Math.round(c.s), h: y0 + hh / 2, cat: 'h', sh: 'Heizung', n: `Heizkörper ${hw} × ${hh} cm · vorhanden`, d: st, ex: true, ok: !tall && !low, hw, hh, y0 };
       }
       if (c.t === 'abluft') {
@@ -440,7 +440,7 @@
       const behind = pd.walls[c.wall].base.some(b => b.kind === 't' && c.s > b.s + 2 && c.s < b.s + b.w - 2), h0 = c.h || (c.t === 'dose' ? pd.ah + 20 : c.t === 'wasser' ? 55 : 50);
       const inWin = pd.walls[c.wall].open.some(o2 => c.s > o2.s - 4 && c.s < o2.s + o2.w + 4 && h0 > (o2.y0 || 0) - 4 && h0 < (o2.y0 || 0) + (o2.h || 0) + 4);
       let st;
-      if (inWin) st = c.t === 'dose' ? 'liegt im Fenster- bzw. Türbereich – versetzen' : 'liegt im Fenster- bzw. Türbereich – Leitung versetzen';
+      if (inWin) st = c.t === 'dose' ? 'liegt im Fenster- oder Türbereich – versetzen' : 'liegt im Fenster- oder Türbereich – Leitung versetzen';
       else if (c.t === 'dose') st = near && dd <= 25 ? `passt zu Nr. ${near.nr}` : behind ? 'hinter einem Hochschrank – versetzen oder stilllegen' : 'kann bleiben';
       else if (!want.length) st = 'wird für diese Küche nicht gebraucht';
       else if (!near) st = 'an einer anderen Wand – Leitung zur Küche verlegen';
@@ -979,7 +979,7 @@
         if (!r || !live()) return null;
         cache.set(key, r); if (cache.size > 12) cache.delete(cache.keys().next().value);
         return r;
-      } catch (e) { console.info('Echtoptik: Raytracing auf diesem Gerät zu langsam bzw. nicht möglich – die Schnellansicht bleibt (' + (e && e.message || e) + ')'); return null; }
+      } catch (e) { console.info('Echtoptik: Raytracing auf diesem Gerät zu langsam oder nicht möglich – die Schnellansicht bleibt (' + (e && e.message || e) + ')'); return null; }
       finally { release(); }
     })();
     job.p.then(r => {
@@ -1363,7 +1363,7 @@
   <li>Geräte, Herdanschluss und Spülmaschine jeweils auf eigenem Stromkreis absichern; Ausführung nach VDE 0100 durch einen Elektrofachbetrieb.</li>
   <li>Anschlusswerte und Nischenmaße der gewählten Geräte vor dem Verlegen mit den Datenblättern abgleichen.</li>
   <li>Wasser- und Abwasseranschlüsse hinter dem Spülenschrank; die Spülmaschine schließt an Eckventil und Siphon der Spüle an.</li>
-  <li>Steckdosen hinter Schränken müssen erreichbar bleiben – die Positionen liegen deshalb in Fächern bzw. Nachbarschränken.</li>
+  <li>Steckdosen hinter Schränken müssen erreichbar bleiben – die Positionen liegen deshalb in Fächern oder Nachbarschränken.</li>
   <li>Bei Dunstabzug mit Abluft zusätzlich Mauerdurchbruch mit Mauerkasten einplanen.</li>
 </ul></section>`;
     if (anim && !RMO) { sh.classList.remove('kpr-in'); void sh.offsetWidth; sh.classList.add('kpr-in'); }

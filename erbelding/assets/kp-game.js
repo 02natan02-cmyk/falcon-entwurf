@@ -174,7 +174,7 @@
   function progress(f, canvas, rest) {
     if (!root) return; lastProg = f;
     const bar = root.querySelector('[data-bar]'); if (bar) bar.style.width = Math.round(clamp(f, 0, 1) * 100) + '%';
-    const ts = root.querySelector('[data-ts]'); if (ts && !readyUrl) ts.textContent = `${Math.round(f * 100)} %` + (rest != null && isFinite(rest) ? ` · noch ca. ${rest >= 60 ? Math.round(rest / 60) + ' min' : Math.max(1, Math.round(rest)) + ' s'}` : '') + ' – spielen Sie solange eine Runde.';
+    const ts = root.querySelector('[data-ts]'); if (ts && !readyUrl) ts.textContent = `${Math.round(f * 100)} %` + (rest != null && isFinite(rest) ? ` · noch rund ${rest >= 60 ? Math.round(rest / 60) + ' min' : Math.max(1, Math.round(rest)) + ' s'}` : '') + ' – spielen Sie solange eine Runde.';
     if (canvas) { try { const th = root.querySelector('[data-th]'); th.getContext('2d').drawImage(canvas, 0, 0, th.width, th.height); } catch (e) { } if (performance.now() - bgT > 1600) { setBg(canvas); bgT = performance.now(); buildBg(f); } }
   }
   let finImg = null;

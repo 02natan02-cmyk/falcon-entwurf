@@ -1297,7 +1297,7 @@
       let g = `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#f7f2ea" stroke-width="13"/>`;
       if (o.t !== 'tuer') { const o2 = 4; g += `<line x1="${x1 - nx * o2}" y1="${y1 - ny * o2}" x2="${x2 - nx * o2}" y2="${y2 - ny * o2}" stroke="${c}" stroke-width="2.6"/><line x1="${x1 + nx * o2}" y1="${y1 + ny * o2}" x2="${x2 + nx * o2}" y2="${y2 + ny * o2}" stroke="${c}" stroke-width="2.6"/>`; if (o.t === 'balkon') g += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="7" opacity=".35"/>`; }
       if (opSwings(o)) {
-        // Aufschlag: jeder Flügel dreht um seine Bandseite – in den Raum (bzw. bei Türen „nach außen“ aus dem Raum)
+        // Aufschlag: jeder Flügel dreht um seine Bandseite – in den Raum (oder bei Türen „nach außen“ aus dem Raum)
         const sg = opDir(o) === 'out' ? -1 : 1, door = o.t === 'tuer';
         opWings(o).forEach(f => {
           const [hx, hy] = pt(f.h, 0), [lx, ly] = pt(f.l, 0), [tx, ty] = pt(f.h, sg * f.r);
@@ -1460,7 +1460,7 @@
     (P.cx || []).filter(c => c.t === 'dose' && !c.neu && cxH(c) > 60 && cxH(c) < 180).forEach(c => { const r = P.rows[c.wall]; if (r && r.some((m, i) => { const L = locate(c.wall, i); return M[m.t].h === 't' && c.s > L.x0 + 2 && c.s < L.x0 + L.w - 2; })) warn('Eine Steckdose sitzt hinter einem Hochschrank – versetzen oder stilllegen'); });
     // Abluft: Haube am Durchbruch, Muldenlüfter braucht den Durchbruch im Sockel
     { const ab = (P.cx || []).filter(c => c.t === 'abluft'), hobs = []; for (const w in P.rows) { const X = xs(w); P.rows[w].forEach((m, i) => { if (m.t === 'kf' || m.t === 'ko') hobs.push({ w, s: X[i] + m.w / 2 }); }); }
-      if (ab.length && hobs.length) { if (isDD()) { if (!ab.some(c => cxH(c) <= 40)) warn('Der Muldenlüfter braucht den Abluft-Durchbruch im Sockel (ca. 12 cm über dem Boden)'); }
+      if (ab.length && hobs.length) { if (isDD()) { if (!ab.some(c => cxH(c) <= 40)) warn('Der Muldenlüfter braucht den Abluft-Durchbruch im Sockel (rund 12 cm über dem Boden)'); }
         else { let best = 1e9; hobs.forEach(hb => ab.forEach(c => { const d = c.wall === hb.w ? Math.abs(c.s - hb.s) : 1e4; if (d < best) best = d; })); if (ab.every(c => cxH(c) <= 40)) warn('Abluft im Sockel passt nur zum Muldenlüfter – für die Haube oben durch die Wand'); else if (best >= 1e4) warn('Die Haube hängt nicht an der Wand mit dem Abluft-Durchbruch – Kanal einplanen oder Umluft'); else if (best > 60) warn(`Die Haube hängt ${(best / 100).toFixed(1).replace('.', ',')} m neben dem Abluft-Durchbruch – Kanal einplanen`); else ok('Haube am Abluft-Durchbruch'); } } }
     if (isl && P.room.d < 380) warn('Für eine Insel sollte der Raum mind. 3,80 m tief sein');
     return out;
@@ -1659,7 +1659,7 @@
   <label class="kp-ac-r"><span>Farbton</span><input type="range" min="0" max="359" step="1" data-ac-h aria-label="Farbton"></label>
   <label class="kp-ac-r"><span>Helligkeit</span><input type="range" min="14" max="97" step="1" data-ac-l aria-label="Helligkeit"></label>
   <label class="kp-ac-r"><span>Intensität</span><input type="range" min="0" max="72" step="1" data-ac-c aria-label="Intensität"></label>
-  <form class="kp-ac-code" data-ac-code><input data-ac-in placeholder="z. B. RAL 3015 oder #D8A0A6" autocomplete="off" spellcheck="false" aria-label="Farbcode eingeben"><button type="submit">Übernehmen</button></form>
+  <form class="kp-ac-code" data-ac-code><input data-ac-in placeholder="zum Beispiel RAL 3015 oder #D8A0A6" autocomplete="off" spellcheck="false" aria-label="Farbcode eingeben"><button type="submit">Übernehmen</button></form>
 </div>
 <p class="kp-p sm kp-ac-note">Am Bildschirm wirken Farben je nach Gerät etwas anders. ${who} bekommt mit Ihrer Anfrage den passenden Herstellerton dazu und zeigt Ihnen das Originalmuster.</p>`;
     const H = $('[data-ac-h]', acEl), Lr = $('[data-ac-l]', acEl), Cr = $('[data-ac-c]', acEl), fb = $('[data-ac-fb]', acEl), ft = $('[data-ac-ft]', acEl);
@@ -1670,7 +1670,7 @@
     $('[data-ac-code]', acEl).addEventListener('submit', e => { e.preventDefault(); const inp = $('[data-ac-in]', acEl), v = inp.value.trim(); let hex = null;
       const r = v.match(/(?:ral)?\s*(\d{4})\b/i), h = v.match(/#?([0-9a-f]{6})\b/i);
       if (h && !/^\d{4}$/.test(v.replace(/\s|ral/gi, ''))) hex = '#' + h[1].toLowerCase(); else if (r) { const x = RAL.find(q => q[0] === r[1]); if (x) hex = x[2]; else { toast(`RAL ${r[1]} kennt der Planer nicht – bitte mit den Reglern annähern. ${who} bringt den Originalfächer mit.`); return; } }
-      if (!hex) { toast('Bitte einen RAL-Code (z. B. RAL 3015) oder einen Farbwert wie #D8A0A6 eingeben.'); return; }
+      if (!hex) { toast('Bitte einen RAL-Code (zum Beispiel RAL 3015) oder einen Farbwert wie #D8A0A6 eingeben.'); return; }
       inp.value = ''; inp.blur(); setFront(hex, true); });
   }
   // Anzeige „Ihr Ton“ + Regler-Stand + Verläufe der Regler-Spuren

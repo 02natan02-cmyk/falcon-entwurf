@@ -58,7 +58,7 @@
       $('[data-ah-k]').textContent = K + ' cm'; $('[data-ah-k2]').textContent = K2 + ' cm';
       $('[data-ah-ideal]').textContent = res;
       let msg;
-      if (on && Math.abs(i1 - i2) >= 8) msg = `Zwischen Ihnen liegen ${Math.abs(i1 - i2)} cm Wunschhöhe. Der Profi-Trick: zwei Höhen planen – z. B. Kochinsel auf ${Math.max(i1, i2)} cm, Spülzeile auf ${Math.min(i1, i2)} cm. Das kann kein Möbelhaus von der Stange.`;
+      if (on && Math.abs(i1 - i2) >= 8) msg = `Zwischen Ihnen liegen ${Math.abs(i1 - i2)} cm Wunschhöhe. Der Profi-Trick: zwei Höhen planen, zum Beispiel Kochinsel auf ${Math.max(i1, i2)} cm, Spülzeile auf ${Math.min(i1, i2)} cm. Das kann kein Möbelhaus von der Stange.`;
       else if (on) msg = `Gute Nachricht: Sie liegen nah beieinander. ${res} cm passt Ihnen beiden – ${diff > 0 ? diff + ' cm höher' : diff < 0 ? -diff + ' cm niedriger' : 'genau so hoch'} als Standard.`;
       else msg = Math.abs(diff) <= 1 ? 'Die Standardhöhe passt Ihnen fast genau – Glückwunsch.' : diff > 0 ? `Eine Standardküche wäre für Sie ${diff} cm zu niedrig – das spüren Sie nach jedem Kochen im Kreuz. Spüle gern noch 5 cm höher, Kochfeld 5 cm tiefer.` : `Eine Standardküche wäre für Sie ${-diff} cm zu hoch. Wir planen sie niedriger – mit passendem Sockel.`;
       $('[data-ah-msg]').textContent = msg;
