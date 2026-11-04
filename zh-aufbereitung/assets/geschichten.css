@@ -174,9 +174,25 @@
   .hdl-steps li:not(.on){font-size:0;letter-spacing:0}
   .hdl-steps li:not(.on)::after{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.35)}
 }
+/* Hochformat (Handy, Tablet hoch): Film als breites Fenster oben statt Vollbild-Ausschnitt – man sieht fast das ganze Bild, Text darunter (Natan 04.11. 23:11) */
+@media (max-aspect-ratio:20/21){
+  .hdl-pin{--vt:78px;--vh:max(170px,min(76vw,44svh,calc(100svh - 380px)))}
+  .hdl-hint{white-space:nowrap}
+  .hdl-poster,.hdl-cv{inset:auto 0;top:var(--vt);height:var(--vh)}
+  .hdl-shade{background:linear-gradient(180deg,transparent calc(var(--vt) + var(--vh) - 80px),#07090b calc(var(--vt) + var(--vh) - 2px)),linear-gradient(180deg,rgba(0,0,0,.42),transparent calc(var(--vt) + 70px))}
+  .hdl-tag{top:calc(var(--vt) + 12px)}
+  .hdl-play{top:calc(var(--vt) + var(--vh) - 62px);bottom:auto;min-height:44px}
+  .hdl-hint{top:calc(var(--vt) + var(--vh) / 2)}
+  .hdl-steps{top:calc(var(--vt) + var(--vh) + 8px);bottom:auto;padding-bottom:10px}
+  .hdl-copy{align-items:start;padding-top:calc(var(--vt) + var(--vh) + 50px);padding-bottom:0}
+  .hc .ch-num{display:none}
+  .hc .h2{font-size:clamp(25px,7vw,40px)}
+  .hc .lead{font-size:clamp(15px,4vw,18px);margin-top:8px}
+}
+@media (max-aspect-ratio:20/21) and (max-width:900px){.hc .ctas{display:none}}
 
 /* ---------- Wischen mit dem Finger (Vorher/Nachher, Polieren) ---------- */
-.wi{touch-action:pan-y;cursor:crosshair;-webkit-user-select:none;user-select:none;overflow:hidden}
+.wi{touch-action:none;cursor:crosshair;-webkit-user-select:none;user-select:none;overflow:hidden}
 .wi-cv,.wi-fx{position:absolute;inset:0;width:100%;height:100%;display:block}
 .wi-cv{z-index:2}.wi-fx{z-index:3;pointer-events:none}
 .wi-pad{position:absolute;left:0;top:0;z-index:4;width:0;height:0;pointer-events:none;opacity:0;transition:opacity .2s}

@@ -10,6 +10,8 @@
     cv.className = 'wi-cv'; fx.className = 'wi-fx'; cv.setAttribute('aria-hidden', 'true'); fx.setAttribute('aria-hidden', 'true');
     const pad = document.createElement('span'); pad.className = 'wi-pad ' + art; pad.setAttribute('aria-hidden', 'true');
     el.append(cv, fx, pad); el.classList.add('wi');
+    // Scroll-Sperre: solange noch Schmutz drauf ist, gehört der Finger dem Bild (die Seite scrollt daneben); fertig gewischt → normal scrollen
+    const lock = on => { el.style.touchAction = on ? 'none' : 'pan-y'; }; lock(true);
     const c = cv.getContext('2d'), f = fx.getContext('2d');
     let img = null, W = 0, H = 0, d = 1, strokes = [], cur = null, done = false, parts = [], raf = 0, last = null;
     const GX = 36, GY = 27; let grid = new Uint8Array(GX * GY), cleared = 0;
@@ -48,14 +50,14 @@
       f.globalAlpha = 1; if (parts.length) raf = requestAnimationFrame(tick); };
     const at = e => { const r = el.getBoundingClientRect(); return [(e.clientX - r.left) * d, (e.clientY - r.top) * d]; };
     const movePad = (p, on) => { pad.style.transform = `translate(${p[0] / d}px,${p[1] / d}px)`; pad.classList.toggle('on', on); };
-    const finish = () => { if (done) return; done = true; el.classList.add('wi-done');
+    const finish = () => { if (done) return; done = true; el.classList.add('wi-done'); lock(false);
       if (reduce || !cv.animate) { c.clearRect(0, 0, W, H); } else cv.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 650, easing: 'ease-out' }).onfinish = () => { c.clearRect(0, 0, W, H); };
       if (!reduce) for (let k = 0; k < 26; k++) spawn(Math.random() * W, Math.random() * H);
       o.onProgress && o.onProgress(1); o.onDone && o.onDone(); };
     const add = p => { if (done) return; const lp = cur[cur.length - 1]; cur.push([p[0] / W, p[1] / H]);
       lp ? line([lp[0] * W, lp[1] * H], p) : dab(p[0], p[1]); spawn(p[0], p[1]);
       const pr = prog(); o.onProgress && o.onProgress(pr); if (pr >= 1) finish(); };
-    // Zeiger: waagerecht wischen putzt, senkrecht scrollt die Seite weiter (touch-action: pan-y)
+    // Zeiger: jede Richtung putzt (touch-action: none bis fertig)
     let down = false, pid = null;
     el.addEventListener('pointerdown', e => { if (e.button > 0 || !img) return; down = true; pid = e.pointerId; o.onTouch && o.onTouch(); el.classList.add('wi-used');
       cur = []; strokes.push(cur); const p = at(e); movePad(p, true); add(p); });
@@ -64,8 +66,8 @@
     const up = e => { if (!down || (e && e.pointerId !== pid)) return; down = false; pad.classList.remove('on'); };
     el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); el.addEventListener('pointerleave', e => { up(e); pad.classList.remove('on'); });
     const api = {
-      setBefore(src) { return new Promise(res => { const im = new Image(); im.decoding = 'async'; im.onload = () => { img = im; strokes = []; done = false; el.classList.remove('wi-done'); cv.style.opacity = ''; W = 0; size(); o.onProgress && o.onProgress(0); res(); }; im.onerror = res; im.src = src; }); },
-      reset() { strokes = []; done = false; el.classList.remove('wi-done'); cv.getAnimations && cv.getAnimations().forEach(a => a.cancel()); cv.style.opacity = ''; replay(); o.onProgress && o.onProgress(0); },
+      setBefore(src) { return new Promise(res => { const im = new Image(); im.decoding = 'async'; im.onload = () => { img = im; strokes = []; done = false; el.classList.remove('wi-done'); lock(true); cv.style.opacity = ''; W = 0; size(); o.onProgress && o.onProgress(0); res(); }; im.onerror = res; im.src = src; }); },
+      reset() { strokes = []; done = false; el.classList.remove('wi-done'); lock(true); cv.getAnimations && cv.getAnimations().forEach(a => a.cancel()); cv.style.opacity = ''; replay(); o.onProgress && o.onProgress(0); },
       clearAll() { finish(); },
       // Selbst-Impuls: eine Hand wischt einmal quer drüber und lässt eine saubere Spur stehen
       demo() { if (reduce || !img || done) return; const hand = el.querySelector('.wi-hand'); const P = [[.18, .62], [.36, .42], [.55, .58], [.74, .40], [.86, .55]];
