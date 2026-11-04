@@ -1,0 +1,15 @@
+/* Küchenplaner im Look von Grundriss in Lebensgröße: Grundriss-Projektion (schwarz, orange Linien) */
+.kp{background:var(--cream);padding-top:62px}
+.kp-head{top:62px;background:#fff}
+@media (max-width:1000px){.kp{padding-top:62px}.kp-head{top:62px}}
+.kp[data-theme="blueprint"] .kp-build{background-color:#0b0b0b;background-image:linear-gradient(rgba(240,123,79,.16) 1px,transparent 1px),linear-gradient(90deg,rgba(240,123,79,.16) 1px,transparent 1px),linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:100px 100px,100px 100px,20px 20px,20px 20px}
+.kp[data-theme="blueprint"] .kp-k{color:var(--orange)}
+.kp[data-theme="blueprint"] .kp-walltabs{background:rgba(255,255,255,.08)}
+.kp[data-theme="blueprint"] .kp-walltabs button{color:#f2f1ee}
+.kp[data-theme="blueprint"] .kp-wall{box-shadow:0 0 0 1px rgba(240,123,79,.45),0 24px 50px -24px rgba(0,0,0,.8)}
+.kp[data-theme="blueprint"] .kp-stage{background:radial-gradient(ellipse at 50% 30%,#f7f6f3,#dcd9d3)}
+.kp[data-theme="blueprint"] .kp-newb{background:rgba(255,255,255,.08);color:#f2f1ee;border-color:rgba(255,255,255,.2)}
+.kp[data-theme="blueprint"] .kp-newb[aria-expanded="true"]{background:#fff;color:#020202}
+.kp-steps button.on i,.kp-steps button.done i{background:var(--orange)!important;color:#fff!important}
+.kp-live i{background:var(--orange)!important}
+.kp-ki,.ki{scroll-margin-top:80px}
