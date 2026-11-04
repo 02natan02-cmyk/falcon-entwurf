@@ -68,7 +68,8 @@
   function planer() {
     var film = document.querySelector('[data-film]'), v = film && film.querySelector('video');
     var lt = document.querySelector('[data-logo-tip]');
-    function logoTip() { if (!lt || sessionStorage.getItem('gil-lt')) return; setTimeout(function () { lt.hidden = false; }, 2500); }
+    var noLT = false;
+    function logoTip() { if (!lt || noLT || sessionStorage.getItem('gil-lt')) return; setTimeout(function () { lt.hidden = false; }, 2500); }
     if (lt) {
       lt.querySelector('[data-logo-x]').addEventListener('click', function () { lt.hidden = true; try { sessionStorage.setItem('gil-lt', '1'); } catch (e) { } });
       lt.querySelector('[data-logo-on]').addEventListener('click', function () {
@@ -80,7 +81,7 @@
         }, 450);
       });
     }
-    var want = /[?&]film=1/.test(Q) && !/[?&]nointro/.test(Q); if (/[?&]nointro/.test(Q)) lt = null;
+    var want = /[?&]film=1/.test(Q) && !/[?&]nointro/.test(Q); if (/[?&]nointro/.test(Q)) noLT = true;
     if (!film || !v || !want) { logoTip(); return; }
     // Film nur zeigen, wenn er da ist
     fetch('media/film.mp4', { method: 'HEAD' }).then(function (r) {
