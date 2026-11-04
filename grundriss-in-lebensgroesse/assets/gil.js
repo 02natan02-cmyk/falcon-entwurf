@@ -80,12 +80,12 @@
         }, 450);
       });
     }
-    var want = /[?&]film=1/.test(Q) && !/[?&]nointro/.test(Q);
+    var want = /[?&]film=1/.test(Q) && !/[?&]nointro/.test(Q); if (/[?&]nointro/.test(Q)) lt = null;
     if (!film || !v || !want) { logoTip(); return; }
     // Film nur zeigen, wenn er da ist
     fetch('media/film.mp4', { method: 'HEAD' }).then(function (r) {
       if (!r.ok) { logoTip(); return; }
-      v.poster = 'media/film-poster.jpg'; v.src = 'media/film.mp4'; film.hidden = false; document.documentElement.classList.add('c-lock');
+      v.muted = true; v.poster = 'media/film-poster.jpg'; v.src = 'media/film.mp4'; film.hidden = false; document.documentElement.classList.add('c-lock');
       var end = film.querySelector('[data-film-end]');
       function close() { film.classList.add('out'); v.pause(); document.documentElement.classList.remove('c-lock'); setTimeout(function () { film.hidden = true; }, 900); history.replaceState(null, '', location.pathname); logoTip(); }
       function play() { film.classList.add('playing'); var p = v.play(); if (p && p.catch) p.catch(function () { film.classList.remove('playing'); }); }
