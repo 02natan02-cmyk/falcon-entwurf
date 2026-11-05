@@ -3,7 +3,8 @@ import re
 D = 0.35  # Ton startet 0,35 s nach dem Bild
 import sys
 GAP = 49.0; M = float(sys.argv[1]) if len(sys.argv) > 1 else 20.0  # Musik-Zwischenspiel (Montage) nach 'und dem PC.'
-S = lambda x: x if x < GAP else x + M
+GAP2 = 103.23; I = float(sys.argv[2]) if len(sys.argv) > 2 else 0.0  # Zusatz Installationspläne nach 'liegt bei Florian.'
+S = lambda x: x + (M if x >= GAP else 0) + (I if x >= GAP2 else 0)
 def t(s):
     s = max(0, s); h = int(s // 3600); m = int(s % 3600 // 60); return f"{h}:{m:02d}:{s % 60:05.2f}"
 chunks = []
@@ -49,8 +50,6 @@ T(1.3, 8.6, 'BigO', L, 500, 'von der Couch aus.')
 T(13.9, 21.4, 'Kick', L, 360, 'IHR STUDIO IN SAARLOUIS')
 T(14.2, 21.4, 'Mid', L, 410, 'Der Grundriss')
 T(14.6, 21.4, 'MidO', L, 500, 'in Originalgröße.')
-T(21.6, 27.9, 'Mid', L, 410, 'Planungstisch.')
-T(22.9, 27.9, 'MidO', L, 500, 'VR-Brille.')
 T(28.2, 30.7, 'Mid', L, 440, 'Sie sind allen voraus.', dy=30)
 T(30.9, 34.9, 'Kick', L, 360, 'NEU')
 T(31.1, 34.9, 'Mid', L, 410, 'Dieses Erlebnis –')
@@ -83,6 +82,19 @@ T(114.0, 115.4, 'MidO', L, 510, 'Macht ihn stärker.')
 T(115.6, 127.8, 'Kick', 960 - 470, 300, 'GEBAUT VON EINEM KÜCHENMONTEUR', dy=20)
 T(118.9, 127.8, 'Mid', 960 - 470, 350, 'Im Studio allen voraus.', dy=30)
 T(121.4, 127.8, 'MidO', 960 - 470, 440, 'Jetzt auch auf Ihrer Website.', dy=30)
+# Zusatz Installationspläne (Natan 05.11.)
+g2 = GAP2 + M + D
+for line in open('/home/claude/gil/film/subs_ins.txt', encoding='utf-8'):
+    a0, b0, txt = line.strip().split('|', 2); a0, b0 = g2 + 0.3 + float(a0), g2 + 0.3 + float(b0); w = txt.split()
+    n = max(1, round(len(w) / 3.5)); per = [w[i * len(w) // n:(i + 1) * len(w) // n] for i in range(n)]
+    tot = sum(len(' '.join(p)) for p in per); c = a0
+    for p in per:
+        dd = (b0 - a0) * len(' '.join(p)) / tot
+        ev.append(f"Dialogue: 5,{t(c)},{t(c + dd + 0.12)},Sub,,0,0,0,,{{\\fad(110,90)\\fscx94\\fscy94\\t(0,200,\\fscx100\\fscy100)}}{' '.join(p)}"); c += dd
+T(g2 + 0.3, g2 + I - 0.2, 'Kick', L, 360, 'INSTALLATIONSPLAN', raw=True)
+T(g2 + 0.5, g2 + I - 0.2, 'Mid', L, 410, 'Einfach mit dabei.', raw=True)
+T(g2 + 3.1, g2 + I - 0.2, 'MidO', L, 500, 'Ein Klick – aus.', raw=True)
+T(g2 + 6.3, g2 + I - 0.2, 'Kick', L, 600, 'UND JEDER ANDERE WUNSCH', raw=True)
 # Montage: ein Klick – eine Änderung (Musik allein)
 MON = [l.strip().split('|') for l in open('/home/claude/gil/film/mont.txt', encoding='utf-8') if l.strip()]
 g0 = GAP + D

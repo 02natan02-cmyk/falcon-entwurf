@@ -116,7 +116,7 @@ INDEX = head('Grundriss in Lebensgröße Saarlouis – Küchenstudio & Events', 
 <p class="home-hero-copy">Grundriss in Lebensgröße, Küchenstudio und Eventlocation - auf 200 m² mitten in Saarlouis.</p>
 <div class="home-cards" id="bereiche">
 {card('saeule.webp', 'Grundriss-Projektion mit beweglichen Möbeln in der Halle', 'grid', 'Planung in Lebensgröße', 'Probewohnen, bevor Sie bauen: Ihr Grundriss im Maßstab 1:1 mit Wänden und Möbeln.', 'index.html#bereiche')}
-{card('kueche.webp', 'Drei Personen besprechen eine Küche am digitalen Planungstisch', 'chef', 'Küchenstudio', 'Ihre Küche planen, in Originalgröße erleben und aus einer Hand bekommen.', 'planer.html', ' is-kp')}
+{card('kueche.webp', 'Drei Personen besprechen eine Küche vor dem großen Bildschirm im Studio', 'chef', 'Küchenstudio', 'Ihre Küche planen, in Originalgröße erleben und aus einer Hand bekommen.', 'planer.html', ' is-kp')}
 {card('events.webp', 'Hände mit Cocktails über einem Bartisch im warmen Licht', 'party', 'Events', 'Sommerlounge, Pop-Up-Club, Ihre Feier oder Ihr Firmenevent.', 'index.html#bereiche')}
 </div>
 <div class="home-facts"><span>{ic('max')}200 m² in Originalgröße</span><span>{ic('pack')}Planung, Verkauf &amp; Montage aus einer Hand</span><span class="home-facts-badge">★ 5,0 · 43 Google-Rezensionen</span></div>
@@ -133,7 +133,7 @@ INDEX = head('Grundriss in Lebensgröße Saarlouis – Küchenstudio & Events', 
 KPC = dict(
     film_erf='mit Planung, Verkauf und Montage aus einer Hand', mail=MAIL, wa=WA, form_mail=FORM_MAIL,
     studio='Grundriss in Lebensgröße · Saarlouis', greet='Hallo Florian', acc=ORANGE,
-    person='Florian', person_short='Florian', pl_name='Planungstisch Saarlouis', pl_theme='blueprint', herst='ballerina,nobilia', filmclips=('img/kpfilm/' if os.path.isdir(HERE + 'kpfilm/k') else ''),
+    person='Florian', person_short='Florian', pl_name='Grundriss in Lebensgröße', pl_theme='blueprint', herst='ballerina,nobilia', filmclips=('img/kpfilm/' if os.path.isdir(HERE + 'kpfilm/k') else ''),
     ki_name='Raum-Vorschau', ki_kick='Neu · Raum-Vorschau per Foto', ki_h1='Ihr Raum heute.', ki_h2='Ihre Küche morgen.',
     ki_p='Ein Handyfoto vom leeren Raum oder Ihrer alten Küche genügt. Der Planer stellt die Küche, die Sie gerade geplant haben, in 3D direkt in Ihr Foto – mit Vorher/Nachher-Regler. Danach erleben Sie sie bei uns in der Halle in Originalgröße.',
     ah_kick='Planung in Lebensgröße', ah_h1='Gebaut für', ah_h2='Ihre Größe.', ah_p='Stellen Sie Ihre Größe ein – wir finden die Arbeitshöhe, die zu Ihnen passt.')
@@ -144,7 +144,7 @@ BRANDS = f'''<section class="gil-brands" aria-labelledby="gb-h"><div class="cont
 <article class="gb gb-b"><span class="gb-tag">Top-Qualität</span><h3>Ballerina</h3><p>Hochwertige Küchen für alle, die bei Fronten, Verarbeitung und Ausstattung keine Kompromisse machen.</p><a class="btn btn--orange sm" href="#main" data-gb="ballerina">Mit Ballerina planen</a></article>
 <article class="gb gb-n"><span class="gb-tag">Top-Preise</span><h3>Nobilia</h3><p>Einer der größten Küchenhersteller – riesige Auswahl an Farben und Fronten zu starken Preisen.</p><a class="btn btn--white sm" href="#main" data-gb="nobilia">Mit Nobilia planen</a></article>
 </div>
-<p class="gb-n2">Ihre Farbwahl im Planer schicken wir mit dem passenden Serienton an Florian. Die Feinheiten klären wir gemeinsam – am Planungstisch und in Originalgröße in unserer Halle.</p>
+<p class="gb-n2">Ihre Farbwahl im Planer schicken wir mit dem passenden Serienton an Florian. Die Feinheiten klären wir gemeinsam – im Studio und in Originalgröße in unserer Halle.</p>
 </div></section>'''
 
 kpm = kp_markup.planner(KPC).replace('href="index.html#arbeitshoehe"', 'href="#arbeitshoehe"')

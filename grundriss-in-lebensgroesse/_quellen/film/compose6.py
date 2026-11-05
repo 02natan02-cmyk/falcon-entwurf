@@ -85,8 +85,9 @@ for i, bt in enumerate(MB):
     mt += d
 M = 22.91 if SEGONLY else round(mt - 0.15, 3)  # Montage-Länge inkl. Ausklang
 open(F + 'mont.txt', 'w', encoding='utf-8').write('\n'.join(f'{a:.2f}|{b:.2f}|{l}' for a, b, l in mlab))
-if not SEGONLY: subprocess.run(['python3', F + 'ass6.py', str(M)], check=True)
-S = lambda x: x if x < GAP else x + M
+if not SEGONLY: subprocess.run(['python3', F + 'ass6.py', str(M), str(round(0.3 + 8.67 + 0.5, 2))], check=True)
+GAP2 = 103.23; I = round(0.3 + 8.67 + 0.5, 2)  # Zusatz Installationspläne
+S = lambda x: x + (M if x >= GAP else 0) + (I if x >= GAP2 else 0)
 END = round(S(VEND) + 3.6, 2)
 
 # ---------- Zeitplan in Ton-Sekunden (ungeschoben); Bild = Ton + D ----------
@@ -95,8 +96,8 @@ P = [
  ('01_logo', 8.75, lambda d: clip('01_logo', d, HL, ss=7.0, z0=1.0, z1=1.22, c0=(.5, .55), c1=(.42, .62))),
  ('02_halle', 13.5, lambda d: still('02_halle', d, IMG + 'saeule.webp', 1.0, 1.32, (.5, .5), (.55, .42), [(G('g_left'), 0)], sharp=True)),
  ('03_boden', 16.6, lambda d: still('03_boden', d, IMG + 'saeule.webp', 1.55, 1.4, (.25, .62), (.62, .62), [(G('g_left'), 0)], sharp=True)),
- ('04_tisch', 21.0, lambda d: still('04_tisch', d, IMG + 'kueche.webp', 1.7, 1.45, (.72, .9), (.68, .82), [(G('g_left'), 0)], sharp=True)),
- ('05_vr', 22.5, lambda d: still('05_vr', d, IMG + 'kueche.webp', 1.15, 1.45, (.62, .35), (.55, .4), [(G('g_left'), 0)], sharp=True)),
+ ('04_boden2', 21.0, lambda d: still('04_boden2', d, IMG + 'saeule.webp', 1.6, 1.4, (.62, .72), (.5, .68), [(G('g_left'), 0)], sharp=True)),
+ ('05_vr', 22.5, lambda d: still('05_vr', d, IMG + 'kueche.webp', 1.6, 1.8, (.62, .3), (.58, .3), [(G('g_left'), 0)], sharp=True)),
  ('06_voraus', 27.7, lambda d: clip('06_voraus', d, HH, ss=9.0, z0=1.12, z1=1.0, c0=(.5, .5), dim=0.6)),
  ('07_couch', 30.5, lambda d: still('07_couch', d, F + 'couch.jpg', 1.0, 1.18, (.5, .5), (.45, .48), [(G('g_left'), 0)])),
   ('08_tablet', 34.85, lambda d: tablet('08_tablet', d, F + 'couch.jpg', 'u_design2', ss=0.0, speed=1.0)),
@@ -112,8 +113,9 @@ P = [
  ('17_logo', 82.5, lambda d: clip('17_logo', d, HL, ss=2.0, speed=1.5, z0=1.0, z1=1.25, c0=(.5, .5), c1=(.42, .6), overs=[(G('g_left'), 5.0)])),
  ('18_staunen', 94.3, lambda d: still('18_staunen', d, IMG + 'saeule.webp', 1.1, 1.3, (.4, .5), (.6, .45), [(G('g_dim'), 0), (G('g_left'), 0)], blur=1)),
  ('19_plaene', 97.4, lambda d: clip('19_plaene', d, 'u_plans', ss=0.4, speed=1.4, z0=1.2, z1=1.32, c0=(.5, .5))),
- ('20_senden', 103.0, lambda d: clip('20_senden', d, 'u_send', ss=0.2, speed=1.0, z0=1.15, z1=1.3, c0=(.5, .5))),
- ('21_staerker', 111.5, lambda d: still('21_staerker', d, IMG + 'kueche.webp', 1.05, 1.22, (.4, .45), (.6, .4), [(G('g_dim'), 0), (G('g_left'), 0)], blur=1)),
+ ('19b_install', 103.2299, lambda d: clip('19b_install', d, 'u_plans', ss=6.0, speed=0.6, z0=1.15, z1=1.35, c0=(.5, .5), c1=(.45, .55), overs=[(G('g_left'), 0.2)])),
+ ('20_senden', 103.23, lambda d: clip('20_senden', d, 'u_send', ss=0.2, speed=1.0, z0=1.15, z1=1.3, c0=(.5, .5))),
+ ('21_staerker', 111.5, lambda d: clip('21_staerker', d, HH, ss=9.5, speed=0.9, z0=1.15, z1=1.0, c0=(.5, .5), dim=0.5, overs=[(G('g_left'), 0)])),
  ('22_ende', 115.2, lambda d: clip('22_ende', d, HH, ss=0.5, speed=0.8, z0=1.0, z1=1.1, c0=(.5, .5), dim=0.45, overs=[(G('o_logo_low'), 6.0)])),
 ]
 DES = 'u_design2' if os.path.exists(R + 'u_design2.mp4') else 'u_design'
