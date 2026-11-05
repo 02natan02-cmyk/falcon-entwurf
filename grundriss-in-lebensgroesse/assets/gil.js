@@ -96,17 +96,17 @@
     var film = document.querySelector('[data-film]'), v = film && film.querySelector('video');
     var lt = document.querySelector('[data-logo-tip]');
     var noLT = false;
-    function logoTip() { if (!lt || noLT || sessionStorage.getItem('gil-lt')) return; setTimeout(function () { lt.hidden = false; }, 2500); }
+    function logoTip() { if (!lt || noLT || sessionStorage.getItem('gil-lt')) return; setTimeout(function w() { if (document.documentElement.classList.contains('kpfm-on') || document.querySelector('[data-film]:not([hidden])')) return setTimeout(w, 800); lt.hidden = false; }, 2500); }
     if (lt) {
       lt.querySelector('[data-logo-x]').addEventListener('click', function () { lt.hidden = true; try { sessionStorage.setItem('gil-lt', '1'); } catch (e) { } });
-      lt.querySelector('[data-logo-on]').addEventListener('click', function () {
+      lt.querySelectorAll('[data-logo-on],[data-logo-on2]').forEach(function (bt) { bt.addEventListener('click', function () {
         lt.hidden = true; try { sessionStorage.setItem('gil-lt', '1'); } catch (e) { }
         var st = document.querySelectorAll('[data-kstep]'); if (st[2]) st[2].click();
         setTimeout(function () {
           var b = document.querySelector('[data-e="back"][data-v="motiv"]'); if (b) b.click();
           var w = document.querySelector('[data-kp-walls]'); if (w) w.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 450);
-      });
+      }); });
     }
     var want = /[?&]film=1/.test(Q) && !/[?&]nointro/.test(Q); if (/[?&]nointro/.test(Q)) noLT = true;
     if (!film || !v || !want) { logoTip(); return; }

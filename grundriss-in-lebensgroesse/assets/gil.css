@@ -264,3 +264,9 @@ html.c-lock,html.c-lock body{overflow:hidden}
 .vh-play[hidden]{display:none}
 .vh-arrive .vh-l,.vh-arrive .vh-r{transform:none}
 .vh-arrive.open .vh-l{transform:translateX(-102%)}.vh-arrive.open .vh-r{transform:translateX(102%)}
+
+.logo-tip .lt-pic{position:relative;display:block;width:100%;margin:0 0 12px;padding:0;border:0;border-radius:12px;overflow:hidden;cursor:pointer;background:#000;box-shadow:0 0 0 1px rgba(240,123,79,.35)}
+.logo-tip .lt-pic img{display:block;width:100%;height:auto;transition:transform .6s cubic-bezier(.2,.7,.2,1)}
+.logo-tip .lt-pic:hover img,.logo-tip .lt-pic:focus-visible img{transform:scale(1.04)}
+.logo-tip .lt-pic i{position:absolute;left:10px;top:10px;font:600 11px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;font-style:normal;color:#fff;background:rgba(0,0,0,.55);padding:6px 9px;border-radius:999px}
+@media (max-height:640px){.logo-tip .lt-pic{display:none}}
