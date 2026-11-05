@@ -86,9 +86,17 @@ T(121.4, 127.8, 'MidO', 960 - 470, 440, 'Jetzt auch auf Ihrer Website.', dy=30)
 # Montage: ein Klick – eine Änderung (Musik allein)
 MON = [l.strip().split('|') for l in open('/home/claude/gil/film/mont.txt', encoding='utf-8') if l.strip()]
 g0 = GAP + D
-T(g0 + 0.2, g0 + M - 0.3, 'Kick', 140, 120, 'EIN KLICK · VON DER COUCH AUS', dy=-20, raw=True)
+T(g0 + 0.2, g0 + M - 0.3, 'Kick', 140, 90, 'EIN KLICK · VON DER COUCH AUS', dy=-20, raw=True)
+for line in open('/home/claude/gil/film/subs_mont.txt', encoding='utf-8'):
+    if not line.strip(): continue
+    a0, b0, txt = line.strip().split('|', 2); a0, b0 = g0 + 0.3 + float(a0), g0 + 0.3 + float(b0); w = txt.split()
+    n = max(1, round(len(w) / 3.5)); per = [w[i * len(w) // n:(i + 1) * len(w) // n] for i in range(n)]
+    tot = sum(len(' '.join(p)) for p in per); c = a0
+    for p in per:
+        dd = (b0 - a0) * len(' '.join(p)) / tot
+        ev.append(f"Dialogue: 5,{t(c)},{t(c + dd + 0.12)},Sub,,0,0,0,,{{\\fad(110,90)\\fscx94\\fscy94\\t(0,200,\\fscx100\\fscy100)}}{' '.join(p)}"); c += dd
 for a, b, txt in MON:
     a, b = g0 + float(a), g0 + float(b)
-    ev.append(f"Dialogue: 6,{t(a)},{t(b)},Big,,0,0,0,,{{\\move(140,900,140,860,0,260)\\fad(160,140)\\fscx96\\fscy96\\t(0,260,\\fscx100\\fscy100)}}{txt}")
+    ev.append(f"Dialogue: 6,{t(a)},{t(b)},Big,,0,0,0,,{{\\move(140,170,140,135,0,260)\\fad(160,140)\\fscx96\\fscy96\\t(0,260,\\fscx100\\fscy100)}}{txt}")
 open('/home/claude/gil/film/film.ass', 'w', encoding='utf-8').write(HEAD + '\n'.join(ev) + '\n')
 print(len(chunks), 'Untertitel,', len(ev), 'Ereignisse')

@@ -43,11 +43,19 @@ def clip(name, d, src, ss=0, speed=1.0, z0=1.0, z1=1.0, c0=(.5, .5), c1=None, ov
     a, fc = overs_fc(a, fc, d, overs); add(name, d, a, fc)
 def kicard(name, d, src, ss=0, speed=1.0, t1=3.9, t2=4.8):
     e = f"(if(lt(t,{t1}),0,if(gt(t,{t2}),1,0.5-0.5*cos(PI*(t-{t1})/({t2}-{t1})))))"
-    a = ['-ss', str(ss), '-i', R + src + '.mp4', '-ss', '2', '-i', R + 'h_hero.mp4']
+    a = ['-ss', str(ss), '-i', R + src + '.mp4', '-ss', '2', '-i', R + HH + '.mp4']
     fc = (f"[1:v]setpts=(PTS-STARTPTS)/0.6,fps=30,scale=1920:1080,tpad=stop_mode=clone:stop_duration=40,gblur=sigma=18,colorchannelmixer=rr=.32:gg=.32:bb=.32[bg];"
           f"[0:v]setpts=(PTS-STARTPTS)/{speed},fps=30,scale=1920:1080:flags=lanczos,tpad=stop_mode=clone:stop_duration=40,"
           f"scale=w='trunc((1920-960*{e})/2)*2':h='trunc((1080-540*{e})/2)*2':eval=frame:flags=bicubic[fg];"
           f"[bg][fg]overlay=x='900*{e}':y='270*{e}':eval=frame[v]")
+    add(name, d, a, fc)
+def tablet(name, d, bgimg, src, ss=0, speed=1.0):
+    a = ['-loop', '1', '-framerate', '30', '-t', f'{d:.3f}', '-i', bgimg, '-ss', str(ss), '-i', R + src + '.mp4']
+    k = f"(0.5-0.5*cos(PI*min(t,{d})/{d}))"
+    fc = (f"[0:v]scale=5760:3240:force_original_aspect_ratio=increase,crop=5760:3240,gblur=sigma=30,{zp(d, 1.1, 1.2, (.45, .5), (.45, .5), 5760, 3240)},colorchannelmixer=rr=.45:gg=.45:bb=.45[bg];"
+          f"[1:v]setpts=(PTS-STARTPTS)/{speed},fps=30,scale=1280:720:flags=lanczos,tpad=stop_mode=clone:stop_duration=40,pad=1320:760:20:20:color=0x0b0b0b,format=rgba,"
+          f"geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='if(gt(hypot(max(0,abs(X-660)-626),max(0,abs(Y-380)-346)),34),0,255)'[tb];"
+          f"[bg][tb]overlay=x='300+40*{k}':y='160-10*{k}'[v]")
     add(name, d, a, fc)
 def phone(name, d, bgimg, src, ss=0, speed=1.0):
     a = ['-loop', '1', '-framerate', '30', '-t', f'{d:.3f}', '-i', bgimg, '-ss', str(ss), '-i', R + src + '.mp4']
@@ -61,18 +69,21 @@ G = lambda n: F + n + '.png'
 # ---------- Montage aus u_mont2 (Musik allein): [Quelle von, bis, Etikett] ----------
 SEGONLY = '--seg' in sys.argv
 SKIP = [x for x in sys.argv if not x.startswith('--')][1:]
+HH = 'h_hero_n' if os.path.exists(R + 'h_hero_n.mp4') else 'h_hero'
+HL = 'h_logo2_n' if os.path.exists(R + 'h_logo2_n.mp4') else 'h_logo2'
+SFX = '_n' if os.path.exists(R + 'u_mont2_n.mp4') else ''
 MB = [] if SEGONLY else json.load(open(F + 'mont_beats.json', encoding='utf-8'))
 MSPEED = 1.25
 mparts = []; mt = 0; mlab = []
 for i, bt in enumerate(MB):
-    msrc, s0, s1, lab = bt[:4]; zz = bt[4] if len(bt) > 4 else [1.06, 1.0, .5, .52]
-    d = (s1 - s0) / MSPEED
+    msrc, s0, s1, lab, d = bt[:5]; zz = bt[5] if len(bt) > 5 else [1.06, 1.0, .5, .52]
+    sp = (s1 - s0) / d
     nm = f'm{i:02d}'
-    ext = (1.2 if i == len(MB) - 1 else 0)  # letzter Teil füllt die Musiklücke bis zur Stimme
-    clip(nm, d + X + ext, msrc, ss=s0, speed=MSPEED, z0=zz[0], z1=zz[1], c0=(zz[2], zz[3]), c1=(zz[2], zz[3]), ss2=2)
+    clip(nm, d + X, msrc[:-1] if msrc.endswith('!') else msrc + SFX, ss=s0, speed=sp, z0=zz[0], z1=zz[1], c0=(zz[2], zz[3]), c1=(zz[2], zz[3]), ss2=2)
     mparts.append(segs.pop())
-    mlab.append((mt + 0.15, mt + d - 0.05, lab)); mt += d
-M = 20.0 if SEGONLY else round(mt + 1.2 - 0.15, 2)  # Montage-Länge inkl. Ausklang
+    if lab: mlab.append((mt + 0.1, mt + d + 0.1, lab))
+    mt += d
+M = 22.91 if SEGONLY else round(mt - 0.15, 3)  # Montage-Länge inkl. Ausklang
 open(F + 'mont.txt', 'w', encoding='utf-8').write('\n'.join(f'{a:.2f}|{b:.2f}|{l}' for a, b, l in mlab))
 if not SEGONLY: subprocess.run(['python3', F + 'ass6.py', str(M)], check=True)
 S = lambda x: x if x < GAP else x + M
@@ -80,30 +91,30 @@ END = round(S(VEND) + 3.6, 2)
 
 # ---------- Zeitplan in Ton-Sekunden (ungeschoben); Bild = Ton + D ----------
 P = [
- ('00_hero', 0.0, lambda d: clip('00_hero', d, 'h_hero', ss=0.2, z0=1.0, z1=1.08, c0=(.45, .5), c1=(.55, .48), overs=[(G('g_left'), 0)])),
- ('01_logo', 8.75, lambda d: clip('01_logo', d, 'h_logo2', ss=7.0, z0=1.0, z1=1.22, c0=(.5, .55), c1=(.42, .62))),
+ ('00_hero', 0.0, lambda d: clip('00_hero', d, HH, ss=0.2, z0=1.0, z1=1.08, c0=(.45, .5), c1=(.55, .48), overs=[(G('g_left'), 0)])),
+ ('01_logo', 8.75, lambda d: clip('01_logo', d, HL, ss=7.0, z0=1.0, z1=1.22, c0=(.5, .55), c1=(.42, .62))),
  ('02_halle', 13.5, lambda d: still('02_halle', d, IMG + 'saeule.webp', 1.0, 1.32, (.5, .5), (.55, .42), [(G('g_left'), 0)], sharp=True)),
  ('03_boden', 16.6, lambda d: still('03_boden', d, IMG + 'saeule.webp', 1.55, 1.4, (.25, .62), (.62, .62), [(G('g_left'), 0)], sharp=True)),
  ('04_tisch', 21.0, lambda d: still('04_tisch', d, IMG + 'kueche.webp', 1.7, 1.45, (.72, .9), (.68, .82), [(G('g_left'), 0)], sharp=True)),
  ('05_vr', 22.5, lambda d: still('05_vr', d, IMG + 'kueche.webp', 1.15, 1.45, (.62, .35), (.55, .4), [(G('g_left'), 0)], sharp=True)),
- ('06_voraus', 27.7, lambda d: clip('06_voraus', d, 'h_hero', ss=9.0, z0=1.12, z1=1.0, c0=(.5, .5), dim=0.6)),
+ ('06_voraus', 27.7, lambda d: clip('06_voraus', d, HH, ss=9.0, z0=1.12, z1=1.0, c0=(.5, .5), dim=0.6)),
  ('07_couch', 30.5, lambda d: still('07_couch', d, F + 'couch.jpg', 1.0, 1.18, (.5, .5), (.45, .48), [(G('g_left'), 0)])),
- ('08_tablet', 34.85, lambda d: still('08_tablet', d, F + 'couch.jpg', 1.2, 3.2, (.45, .5), (.41, .47))),
+  ('08_tablet', 34.85, lambda d: tablet('08_tablet', d, F + 'couch.jpg', 'u_design2', ss=0.0, speed=1.0)),
  ('09_form', 39.85, lambda d: clip('09_form', d, 'u_form', ss=0.3, speed=1.9, z0=1.35, z1=1.25, c0=(.36, .38), c1=(.42, .4))),
- ('10_dreh', 43.9, lambda d: clip('10_dreh', d, 'h_hero', ss=4.0, speed=1.5, z0=1.0, z1=1.1, c0=(.5, .5))),
- ('11_handy', 46.4, lambda d: phone('11_handy', d, IMG + 'kueche.webp', 'm_plan', ss=3.0, speed=1.3)),
+ ('10_dreh', 43.9, lambda d: clip('10_dreh', d, HH, ss=4.0, speed=1.5, z0=1.0, z1=1.1, c0=(.5, .5))),
+  ('11_handy', 46.4, lambda d: phone('11_handy', d, IMG + 'kueche.webp', 'm_plan', ss=7.5, speed=1.3)),
  ('MONTAGE', 49.0, None),
  ('12_design', 49.15, lambda d: clip('12_design', d, DES, ss=0.5, speed=1.7, z0=1.35, z1=1.25, c0=(.42, .36), c1=(.45, .4))),
  ('13_cx', 55.0, lambda d: clip('13_cx', d, 'u_cx', ss=0.3, speed=1.6, z0=1.2, z1=1.45, c0=(.5, .45), c1=(.5, .53))),
  ('14_ki', 60.0, lambda d: kicard('14_ki', d, KI, ss=3.4, speed=0.9)),
  ('15_echt', 75.1, lambda d: clip('15_echt', d, 'u_echt', ss=5.2, speed=1.0, z0=1.15, z1=1.35, c0=(.5, .5))),
  ('16_spiel', 78.5, lambda d: clip('16_spiel', d, 'u_game', ss=0.45, speed=0.55, z0=1.9, z1=1.55, c0=(.5, .3), c1=(.5, .4))),
- ('17_logo', 82.5, lambda d: clip('17_logo', d, 'h_logo2', ss=1.0, speed=1.3, z0=1.0, z1=1.25, c0=(.5, .5), c1=(.42, .6), overs=[(G('g_left'), 5.0)])),
+ ('17_logo', 82.5, lambda d: clip('17_logo', d, HL, ss=2.0, speed=1.5, z0=1.0, z1=1.25, c0=(.5, .5), c1=(.42, .6), overs=[(G('g_left'), 5.0)])),
  ('18_staunen', 94.3, lambda d: still('18_staunen', d, IMG + 'saeule.webp', 1.1, 1.3, (.4, .5), (.6, .45), [(G('g_dim'), 0), (G('g_left'), 0)], blur=1)),
  ('19_plaene', 97.4, lambda d: clip('19_plaene', d, 'u_plans', ss=0.4, speed=1.4, z0=1.2, z1=1.32, c0=(.5, .5))),
  ('20_senden', 103.0, lambda d: clip('20_senden', d, 'u_send', ss=0.2, speed=1.0, z0=1.15, z1=1.3, c0=(.5, .5))),
  ('21_staerker', 111.5, lambda d: still('21_staerker', d, IMG + 'kueche.webp', 1.05, 1.22, (.4, .45), (.6, .4), [(G('g_dim'), 0), (G('g_left'), 0)], blur=1)),
- ('22_ende', 115.2, lambda d: clip('22_ende', d, 'h_hero', ss=0.5, speed=0.8, z0=1.0, z1=1.1, c0=(.5, .5), dim=0.45, overs=[(G('o_logo_low'), 6.0)])),
+ ('22_ende', 115.2, lambda d: clip('22_ende', d, HH, ss=0.5, speed=0.8, z0=1.0, z1=1.1, c0=(.5, .5), dim=0.45, overs=[(G('o_logo_low'), 6.0)])),
 ]
 DES = 'u_design2' if os.path.exists(R + 'u_design2.mp4') else 'u_design'
 KI = 'u_ki2' if os.path.exists(R + 'u_ki2.mp4') else 'u_ki'
