@@ -1,0 +1,288 @@
+/* Schriften lokal (SIL Open Font License), keine Verbindung zu Google */
+@font-face{font-family:"Bodoni Moda";font-style:normal;font-display:swap;font-weight:400 900;src:url(../schrift/bodoni-moda.woff2) format("woff2")}
+@font-face{font-family:"Bodoni Moda";font-style:italic;font-display:swap;font-weight:400 900;src:url(../schrift/bodoni-moda-kursiv.woff2) format("woff2")}
+@font-face{font-family:"Hanken Grotesk";font-style:normal;font-display:swap;font-weight:100 900;src:url(../schrift/hanken-grotesk.woff2) format("woff2")}
+/* Beethoven Barbershop – „Sinfonie in Fresh-Dur“
+   Eine Welt: Flügellack, Bordeaux und Gold aus dem Wappen, Creme wie ein Programmheft.
+   Bewusst nur ein Look (dunkler Konzertsaal), Farben alle als Token. */
+:root{
+  --lack:#0d0a0a;
+  --lack-2:#161010;
+  --lack-3:#211716;
+  --bordeaux:#7d1727;
+  --bordeaux-tief:#3c0b14;
+  --gold:#c9a35a;
+  --gold-hell:#ecd59f;
+  --gold-dunkel:#8d6c32;
+  --creme:#f2e9d8;
+  --tinte:#2a1c17;
+  --rauch:#ad9f90;
+  --rauch-heft:#6f5d50;
+  --linie:rgba(201,163,90,.26);
+  --linie-heft:rgba(42,28,23,.2);
+  --display:"Bodoni Moda","Didot","Bodoni 72","Times New Roman",serif;
+  --text:"Hanken Grotesk","Helvetica Neue",Arial,sans-serif;
+  --kopf:64px;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--lack);color:var(--creme);font-family:var(--text);font-size:18px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:clip}
+img,video,canvas{max-width:100%;display:block}
+a{color:var(--gold-hell)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--gold-hell);outline-offset:3px}
+.rand{padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px))}
+.breit{max-width:1200px;margin:0 auto}
+.lese{max-width:60ch}
+.unsichtbar{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--lack);z-index:60}
+
+/* ---------- Intro (Ouvertüre) ---------- */
+.intro{position:fixed;inset:0;z-index:100;background:radial-gradient(70% 60% at 50% 45%,#2a0d14,var(--lack) 70%);display:grid;place-items:center;transition:opacity .9s ease,visibility .9s}
+.intro.weg{opacity:0;visibility:hidden}
+.intro-buehne{display:grid;justify-items:center;gap:22px;text-align:center;padding:24px}
+.intro-wappen{width:min(42vw,190px);height:auto}
+.intro-wappen .strich{fill:none;stroke:var(--gold);stroke-width:2;stroke-dasharray:900;stroke-dashoffset:900;animation:zeichnen 2.2s cubic-bezier(.6,.1,.2,1) forwards}
+.intro-wappen .b{fill:var(--gold-hell);opacity:0;animation:auf .8s 1.3s forwards}
+.intro-titel{font-family:var(--display);font-size:clamp(30px,6vw,58px);font-weight:500;letter-spacing:.02em;opacity:0;animation:auf 1s 1.6s forwards}
+.intro-titel em{color:var(--gold-hell)}
+.intro-system{width:min(70vw,420px);height:34px;position:relative;opacity:0;animation:auf .6s .4s forwards}
+.intro-system i{position:absolute;left:0;right:0;height:1px;background:var(--linie)}
+.intro-system i:nth-child(1){top:2px}.intro-system i:nth-child(2){top:9px}.intro-system i:nth-child(3){top:16px}.intro-system i:nth-child(4){top:23px}.intro-system i:nth-child(5){top:30px}
+.intro-laden{position:absolute;left:0;top:0;bottom:0;width:0;border-right:2px solid var(--gold-hell);box-shadow:6px 0 14px -4px var(--gold);transition:width .3s}
+.intro-weiter{position:absolute;right:max(18px,env(safe-area-inset-right,0px));bottom:max(22px,env(safe-area-inset-bottom,0px));background:none;border:1px solid var(--linie);color:var(--rauch);border-radius:999px;padding:9px 18px;font-size:14px;letter-spacing:.08em;cursor:pointer}
+.intro-weiter:hover{color:var(--gold-hell);border-color:var(--gold)}
+@keyframes zeichnen{to{stroke-dashoffset:0}}
+@keyframes auf{to{opacity:1}}
+
+/* ---------- Kopf mit Partitur ---------- */
+.kopf{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;z-index:50;background:linear-gradient(rgba(13,10,10,.92),rgba(13,10,10,.78));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--linie)}
+.kopf-innen{height:var(--kopf);display:flex;align-items:center;gap:18px}
+.marke{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--creme);flex:none}
+.marke-b{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--bordeaux);border:1.5px solid var(--gold);font-family:var(--display);font-weight:700;font-size:21px;color:var(--gold-hell)}
+.marke-name{font-family:var(--display);font-size:19px;letter-spacing:.06em;line-height:1}
+.marke-name small{display:block;font-family:var(--text);font-size:10px;letter-spacing:.32em;color:var(--gold);margin-top:3px}
+.nav{display:flex;gap:4px;margin-left:auto}
+.nav a{color:var(--creme);text-decoration:none;font-size:15px;padding:8px 12px;border-radius:999px;transition:background .2s,color .2s}
+.nav a:hover,.nav a.aktiv{background:rgba(201,163,90,.14);color:var(--gold-hell)}
+.anruf{flex:none;display:inline-flex;align-items:center;gap:8px;text-decoration:none;background:var(--gold);color:var(--lack);font-weight:600;font-size:15px;padding:10px 16px;border-radius:999px}
+.anruf:hover{background:var(--gold-hell)}
+.ton-knopf{flex:none;background:none;border:1px solid var(--linie);border-radius:999px;padding:8px 12px;font-size:14px;color:var(--rauch);cursor:pointer}
+.ton-knopf[aria-pressed="true"]{color:var(--lack);background:var(--gold-hell);border-color:var(--gold-hell)}
+.menue-knopf{display:none;background:none;border:1px solid var(--linie);border-radius:10px;width:44px;height:44px;cursor:pointer;color:var(--gold-hell)}
+.partitur{position:relative;height:16px;margin-bottom:6px}
+.partitur i{position:absolute;left:0;right:0;height:1px;background:rgba(201,163,90,.18)}
+.partitur i:nth-child(1){top:1px}.partitur i:nth-child(2){top:4px}.partitur i:nth-child(3){top:7px}.partitur i:nth-child(4){top:10px}.partitur i:nth-child(5){top:13px}
+.partitur .kopfstrich{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--gold-hell);box-shadow:0 0 10px var(--gold);left:0}
+.partitur .n{position:absolute;width:7px;height:5px;border-radius:50%;background:var(--gold);transform:translate(-50%,-50%) rotate(-20deg) scale(0);transition:transform .5s cubic-bezier(.3,1.6,.5,1)}
+.partitur .n.da{transform:translate(-50%,-50%) rotate(-20deg) scale(1)}
+.partitur .n::after{content:"";position:absolute;right:0;bottom:2px;width:1px;height:11px;background:var(--gold)}
+
+main{display:block}
+
+/* ---------- gemeinsame Kapitel-Teile ---------- */
+.kapitel{position:relative}
+.tempo{font-family:var(--display);font-style:italic;color:var(--gold);font-size:clamp(17px,1.6vw,21px);letter-spacing:.01em}
+.tempo::before{content:"";display:inline-block;width:28px;height:1px;background:var(--gold);vertical-align:middle;margin-right:12px}
+h1,h2,h3{font-family:var(--display);font-weight:500;line-height:1.02;margin:0;text-wrap:balance}
+h2{font-size:clamp(40px,7vw,96px);letter-spacing:-.01em}
+h2 em,h1 em{font-style:italic;color:var(--gold-hell)}
+.zitat{font-family:var(--display);font-style:italic;font-size:clamp(20px,2.2vw,28px);line-height:1.35;color:var(--creme)}
+.zitat cite{display:block;font-family:var(--text);font-style:normal;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-top:10px}
+.knopf{display:inline-flex;align-items:center;gap:10px;text-decoration:none;font-weight:600;font-size:16px;padding:14px 22px;border-radius:999px;border:1px solid var(--gold);color:var(--gold-hell);background:rgba(13,10,10,.35);cursor:pointer}
+.knopf.voll{background:var(--gold);color:var(--lack)}
+.knopf:hover{background:var(--gold-hell);color:var(--lack);border-color:var(--gold-hell)}
+.symbol{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:rgba(242,233,216,.7);background:rgba(13,10,10,.5);padding:4px 9px;border-radius:2px}
+
+/* ---------- Scroll-Film (Kern-Baustein) ---------- */
+.film{position:relative}
+.film-buehne{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;background:var(--lack)}
+.film-buehne canvas{position:absolute;inset:0;width:100%;height:100%}
+.film-buehne .hall{filter:blur(38px) saturate(1.15) brightness(.55);transform:scale(1.15)}
+.film-buehne .poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.film-schleier{position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,10,10,.55) 0%,rgba(13,10,10,0) 30%,rgba(13,10,10,0) 55%,rgba(13,10,10,.85) 100%);pointer-events:none}
+.film-text{position:absolute;left:0;right:0;bottom:0;padding-bottom:max(56px,env(safe-area-inset-bottom,0px));pointer-events:none}
+.film-text .breit>*{pointer-events:auto}
+.film-takte{position:absolute;inset:0;pointer-events:none}
+.takt{position:absolute;left:0;right:0;opacity:0;transform:translateY(24px);transition:opacity .6s,transform .6s}
+.takt.an{opacity:1;transform:none}
+.film-lauf{position:absolute;right:max(18px,env(safe-area-inset-right,0px));bottom:max(22px,env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:10px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--rauch)}
+.film-lauf b{display:block;width:90px;height:2px;background:var(--linie);position:relative}
+.film-lauf b span{position:absolute;inset:0 auto 0 0;width:0;background:var(--gold-hell)}
+
+/* Hero */
+.hero h1{font-size:clamp(48px,10vw,150px);letter-spacing:-.015em;text-shadow:0 2px 40px rgba(0,0,0,.6)}
+.hero .unter{font-size:clamp(17px,2vw,22px);color:var(--creme);max-width:34ch;margin:18px 0 26px;text-shadow:0 1px 20px rgba(0,0,0,.8)}
+.hero-zeile{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.offen{display:inline-flex;align-items:center;gap:10px;font-size:15px;color:var(--creme);background:rgba(13,10,10,.55);border:1px solid var(--linie);border-radius:999px;padding:10px 16px}
+.offen i{width:9px;height:9px;border-radius:50%;background:#7a7a7a;box-shadow:0 0 0 0 rgba(120,200,120,.5)}
+.offen.ja i{background:#6fd38a;animation:puls 2s infinite}
+@keyframes puls{0%{box-shadow:0 0 0 0 rgba(111,211,138,.55)}70%{box-shadow:0 0 0 10px rgba(111,211,138,0)}100%{box-shadow:0 0 0 0 rgba(111,211,138,0)}}
+
+/* ---------- Abschnitte ohne Film ---------- */
+.abschnitt{padding-block:clamp(90px,12vw,170px)}
+.kopfzeile{display:grid;gap:18px;margin-bottom:clamp(36px,5vw,64px)}
+
+/* Crescendo: Fade-Regler */
+.crescendo{background:radial-gradient(90% 60% at 80% 0%,rgba(125,23,39,.32),transparent 60%),var(--lack)}
+.fade-raster{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(28px,5vw,72px);align-items:center}
+.fade-bild{position:relative;aspect-ratio:4/5;border-radius:4px;overflow:hidden;background:var(--lack-3);box-shadow:0 40px 80px -30px rgba(0,0,0,.8)}
+.fade-bild img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .45s}
+.fade-bild img.an{opacity:1}
+.dynamik{display:flex;justify-content:space-between;font-family:var(--display);font-style:italic;font-weight:700;font-size:clamp(20px,2.4vw,30px);color:var(--rauch);margin:26px 0 10px}
+.dynamik span{transition:color .3s,transform .3s}
+.dynamik span.an{color:var(--gold-hell);transform:scale(1.25)}
+.regler{position:relative;height:56px;touch-action:none;cursor:grab}
+.regler .bahn{position:absolute;left:0;right:0;top:50%;height:2px;background:linear-gradient(90deg,var(--linie),var(--gold))}
+.regler .griff{position:absolute;top:50%;width:44px;height:44px;border-radius:50%;background:var(--gold-hell);transform:translate(-50%,-50%);box-shadow:0 0 0 6px rgba(236,213,159,.15),0 8px 20px rgba(0,0,0,.5);display:grid;place-items:center;color:var(--lack);font-size:15px}
+.regler-hinweis{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);text-align:center;transition:opacity .4s}
+.fade-name{font-family:var(--display);font-size:clamp(34px,4vw,54px);margin-top:18px}
+.fade-text{color:var(--rauch);margin-top:6px;min-height:3.2em}
+.fade-mm{font-variant-numeric:tabular-nums;color:var(--gold)}
+
+/* Programmheft (Leistungen + Preise) */
+.heft{background:var(--creme);color:var(--tinte)}
+.heft .tempo{color:var(--bordeaux)}.heft .tempo::before{background:var(--bordeaux)}
+.heft h2 em{color:var(--bordeaux)}
+.heft-raster{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(30px,6vw,90px)}
+.programm{list-style:none;padding:0;margin:0;border-top:2px solid var(--tinte)}
+.programm li{display:grid;grid-template-columns:1fr auto;gap:4px 18px;align-items:baseline;padding:16px 0;border-bottom:1px solid var(--linie-heft)}
+.programm .titel{font-family:var(--display);font-size:clamp(21px,2vw,26px);font-weight:600}
+.programm .titel small{display:block;font-family:var(--text);font-size:14px;font-weight:400;color:var(--rauch-heft);margin-top:2px}
+.programm .preis{font-family:var(--display);font-size:clamp(22px,2.2vw,28px);font-variant-numeric:lining-nums tabular-nums;color:var(--bordeaux)}
+.programm .preis::after{content:" €"}
+.heft-seite{display:grid;gap:22px;align-content:start}
+.heft-karte{border:1px solid var(--linie-heft);padding:22px;display:grid;gap:8px}
+.heft-karte b{font-family:var(--display);font-size:24px;font-weight:600}
+.heft-karte span{color:var(--rauch-heft)}
+.heft-bild{aspect-ratio:3/4;overflow:hidden;border-radius:3px;background:#d9ccb4}
+.heft-bild img,.heft-bild video{width:100%;height:100%;object-fit:cover;display:block}
+
+/* Dolce */
+.dolce .film-text h2{max-width:12ch}
+.neunte .takt h2{font-size:clamp(38px,5.2vw,82px);text-shadow:0 4px 34px rgba(0,0,0,.7)}
+.neunte .takt .lese{text-shadow:0 2px 14px rgba(0,0,0,.8);max-width:40ch}
+.neunte .film-schleier{background:linear-gradient(180deg,rgba(13,10,10,.45) 0%,rgba(13,10,10,0) 22%,rgba(13,10,10,0) 48%,rgba(13,10,10,.9) 100%)}
+.neunte .film-text{bottom:auto;top:76px}
+
+/* Für Elise (Kinder) */
+.elise{background:linear-gradient(180deg,var(--lack),var(--lack-2))}
+.elise-raster{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:clamp(28px,5vw,80px);align-items:center}
+.elise-foto{position:relative;border-radius:4px;overflow:hidden;box-shadow:0 40px 90px -30px rgba(0,0,0,.9)}
+.elise-foto img{width:100%;height:auto;display:block;transform:scale(1.14);transition:transform 2.6s cubic-bezier(.2,.7,.2,1)}
+.elise-foto{clip-path:inset(12% 10% 12% 10% round 4px);transition:clip-path 1.6s cubic-bezier(.2,.7,.2,1)}
+.elise-foto.da{clip-path:inset(0 0 0 0 round 4px)}
+.elise-foto.da img{transform:scale(1)}
+@media (prefers-reduced-motion:reduce){.elise-foto{clip-path:none}.elise-foto img{transform:none}}
+.elise-foto .blitz{position:absolute;right:14px;top:14px;width:64px;height:64px;filter:drop-shadow(0 0 16px rgba(236,213,159,.9))}
+.studio{margin-top:clamp(60px,8vw,110px);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,4vw,60px);align-items:center}
+.studio-flaeche{position:relative;aspect-ratio:1;border-radius:50%;overflow:hidden;touch-action:none;cursor:crosshair;box-shadow:0 0 0 1px var(--linie),0 30px 70px -20px rgba(0,0,0,.9)}
+.studio-flaeche canvas{position:absolute;inset:0;width:100%;height:100%}
+.studio-knoepfe{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.studio-knoepfe button{background:none;border:1px solid var(--linie);color:var(--creme);border-radius:999px;padding:10px 16px;cursor:pointer;font-size:15px}
+.studio-knoepfe button:hover{border-color:var(--gold);color:var(--gold-hell)}
+.studio-hinweis{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-top:14px}
+
+/* Ensemble */
+.ensemble{background:radial-gradient(70% 60% at 50% 20%,rgba(236,213,159,.12),transparent 70%),var(--lack-2);overflow:hidden}
+.buehne-team{position:relative;display:grid;grid-template-columns:repeat(var(--anzahl,3),minmax(0,1fr));gap:clamp(12px,2vw,26px);align-items:end}
+.musiker{position:relative;text-align:center;cursor:pointer;background:none;border:0;padding:0}
+.musiker .portrait{aspect-ratio:3/4;overflow:hidden;border-radius:3px;background:var(--lack-3);box-shadow:0 30px 60px -25px rgba(0,0,0,.9);transition:transform .4s}
+.musiker:hover .portrait{transform:translateY(-6px)}
+.musiker img{width:100%;height:100%;object-fit:cover}
+.musiker .name{font-family:var(--display);font-size:clamp(22px,2.4vw,32px);margin-top:14px}
+.musiker .rolle{font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.musiker.solist{transform:translateY(-24px)}
+.musiker.solist .portrait{box-shadow:0 0 0 1px var(--gold),0 40px 80px -25px rgba(0,0,0,.9)}
+.hut{position:absolute;pointer-events:none;width:clamp(90px,12vw,170px);height:auto;z-index:5;filter:drop-shadow(0 18px 20px rgba(0,0,0,.6))}
+.hut-gag{left:50%;top:-6%;transform:translate(-50%,0)}
+.hut-gag.fliegt{animation:hutflug 1.6s cubic-bezier(.3,.7,.3,1)}
+@keyframes hutflug{0%{transform:translate(-50%,0) rotate(0)}35%{transform:translate(-50%,-140%) rotate(-200deg)}70%{transform:translate(-50%,-20%) rotate(-350deg)}85%{transform:translate(-50%,6%) rotate(-362deg)}100%{transform:translate(-50%,0) rotate(-360deg)}}
+
+/* Applaus */
+.applaus{background:var(--lack);text-align:center;overflow:hidden}
+.saal{position:relative;height:clamp(260px,40vw,420px);margin:30px auto 0;max-width:1100px}
+.saal canvas{position:absolute;inset:0;width:100%;height:100%}
+.wertung{font-family:var(--display);font-size:clamp(90px,16vw,210px);line-height:.9;color:var(--gold-hell)}
+.wertung small{display:block;font-family:var(--text);font-size:15px;letter-spacing:.2em;text-transform:uppercase;color:var(--rauch);margin-top:14px}
+.zitate{position:relative;min-height:9em;max-width:760px;margin:30px auto 0}
+.zitate blockquote{position:absolute;inset:0;margin:0;opacity:0;transition:opacity .8s}
+.zitate blockquote.an{opacity:1;position:relative}
+.applaus-knoepfe{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:26px}
+.klatschen{user-select:none;-webkit-user-select:none;touch-action:none}
+
+/* Flügel */
+.fluegel{background:radial-gradient(80% 60% at 50% 0%,rgba(236,213,159,.12),transparent 70%),var(--lack-2)}
+.modus{display:inline-flex;border:1px solid var(--linie);border-radius:999px;padding:4px;gap:4px;margin:18px 0 0}
+.modus button{background:none;border:0;border-radius:999px;padding:9px 16px;cursor:pointer;color:var(--rauch);font-size:15px}
+.modus button[aria-pressed="true"]{background:var(--gold);color:var(--lack)}
+.tastatur-rahmen{margin-top:30px;overflow-x:auto;overscroll-behavior-x:contain;padding-bottom:6px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.tastatur{position:relative;display:flex;min-width:620px;height:clamp(170px,22vw,250px);margin:0 auto;max-width:1100px;user-select:none;-webkit-user-select:none;touch-action:pan-x;background:#050303;padding:10px 10px 0;border-radius:6px 6px 0 0;box-shadow:inset 0 10px 18px rgba(0,0,0,.8)}
+.taste-w{flex:1;position:relative;background:linear-gradient(#fbf7ef 0%,#efe6d4 85%,#d9ccb4 100%);border:1px solid #1a1110;border-top:0;border-radius:0 0 6px 6px;cursor:pointer;display:flex;align-items:flex-end;justify-content:center;padding:0 2px 10px;font-size:11px;line-height:1.15;color:#6f5d50;text-align:center;transition:background .06s}
+.taste-w.an{background:linear-gradient(#f3dfa6,#e2c37d)}
+.taste-s{position:absolute;top:10px;height:60%;background:linear-gradient(#2e2524,#070505);border:1px solid #000;border-radius:0 0 4px 4px;z-index:2;cursor:pointer;transform:translateX(-50%);box-shadow:inset -2px -4px 6px rgba(255,255,255,.06);transition:background .06s}
+.taste-s.an{background:linear-gradient(#8d1c2e,#3c0b14)}
+.taste-w:focus-visible,.taste-s:focus-visible{outline:3px solid var(--gold-hell);outline-offset:-4px}
+.akkord-anzeige{font-family:var(--display);font-style:italic;color:var(--gold-hell);font-size:20px;min-height:1.4em;margin-top:14px}
+.look{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center;max-width:760px;margin:20px auto 0;text-align:left;border-top:1px solid var(--linie);padding-top:20px;min-height:120px}
+.look-bild{width:110px;height:110px;border-radius:50%;overflow:hidden;background:var(--lack-3);border:1px solid var(--linie)}
+.look-bild img{width:100%;height:100%;object-fit:cover}
+.look b{display:block;font-family:var(--display);font-size:28px;font-weight:500;color:var(--gold-hell)}
+.look span{color:var(--rauch)}
+.tipp{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-top:12px}
+.finale{position:fixed;inset:0;pointer-events:none;z-index:80;display:none}
+.finale.an{display:block}
+.finale canvas{width:100%;height:100%}
+.finale .wort{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);font-family:var(--display);font-style:italic;font-size:clamp(56px,12vw,150px);color:var(--gold-hell);text-shadow:0 0 50px rgba(201,163,90,.7);white-space:nowrap}
+.finale .hut{left:-20%;top:30%;animation:hutquer 2.6s cubic-bezier(.4,.1,.3,1) forwards}
+@keyframes hutquer{0%{transform:translate(0,0) rotate(-30deg)}50%{transform:translate(60vw,-18vh) rotate(160deg)}100%{transform:translate(130vw,10vh) rotate(380deg)}}
+
+/* Da capo */
+.besuch{background:radial-gradient(80% 70% at 50% 100%,rgba(125,23,39,.45),transparent 70%),var(--lack)}
+.besuch-raster{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:clamp(30px,6vw,90px)}
+.adresse{font-family:var(--display);font-size:clamp(30px,3.6vw,46px);line-height:1.15}
+.zeiten{list-style:none;padding:0;margin:20px 0 0;max-width:420px}
+.zeiten li{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--linie);font-variant-numeric:tabular-nums}
+.zeiten li.heute{color:var(--gold-hell)}
+.merkmale{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.merkmale span{border:1px solid var(--linie);border-radius:999px;padding:6px 12px;font-size:14px;color:var(--rauch)}
+.karte-platz{aspect-ratio:4/3;border:1px solid var(--linie);border-radius:4px;display:grid;place-items:center;text-align:center;padding:24px;background:linear-gradient(135deg,var(--lack-2),var(--bordeaux-tief))}
+.karte-platz p{color:var(--rauch);font-size:15px;max-width:34ch;margin:10px auto 16px}
+.knoepfe{display:flex;flex-wrap:wrap;gap:12px;margin-top:26px}
+.schluss{text-align:center;padding-block:clamp(70px,10vw,140px) 40px}
+.schluss .wort{font-family:var(--display);font-style:italic;font-size:clamp(56px,11vw,150px);color:var(--gold-hell);line-height:1}
+.fuss{border-top:1px solid var(--linie);padding-block:28px calc(28px + env(safe-area-inset-bottom,0px));display:flex;flex-wrap:wrap;gap:12px 24px;justify-content:space-between;font-size:14px;color:var(--rauch)}
+.fuss a{color:var(--rauch)}
+
+/* ---------- Handy ---------- */
+@media (max-width:900px){
+  .nav{display:none}
+  .nav.offen-menue{display:flex;position:fixed;top:calc(var(--kopf) + 22px + env(safe-area-inset-top,0px));left:0;right:0;flex-direction:column;background:var(--lack);padding:16px max(18px,env(safe-area-inset-left,0px)) 24px;border-bottom:1px solid var(--linie)}
+  .nav.offen-menue a{font-family:var(--display);font-size:30px;padding:10px 0}
+  .menue-knopf{display:grid;place-items:center;margin-left:auto}
+  .anruf .wort{display:none}
+  .marke-name small{display:none}
+  .fade-raster,.heft-raster,.elise-raster,.studio,.besuch-raster{grid-template-columns:1fr}
+  .buehne-team{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .musiker.solist{grid-column:1/-1;transform:none;max-width:360px;justify-self:center}
+}
+@media (max-width:520px){
+  body{font-size:17px}
+  .marke-name{font-size:16px}
+  .ton-knopf{padding:8px 10px}
+  .look{grid-template-columns:1fr;text-align:center;justify-items:center}
+}
+@media (orientation:landscape) and (max-height:500px){
+  .film-text{padding-bottom:20px}
+  .hero h1{font-size:clamp(36px,7vw,70px)}
+  .hero .unter{margin:8px 0 12px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+
+.symbol-ecke{position:absolute;top:calc(64px + env(safe-area-inset-top,0px));right:max(18px,env(safe-area-inset-right,0px));z-index:2}
+.hero .film-schleier{background:linear-gradient(90deg,rgba(13,10,10,.78) 0%,rgba(13,10,10,.42) 42%,rgba(13,10,10,0) 72%),linear-gradient(180deg,rgba(13,10,10,.55) 0%,rgba(13,10,10,0) 26%,rgba(13,10,10,.1) 52%,rgba(13,10,10,.9) 100%)}
+.hero h1{text-shadow:0 6px 40px rgba(0,0,0,.55)}
+@media (max-width:700px){.hero .film-schleier{background:linear-gradient(180deg,rgba(13,10,10,.5) 0%,rgba(13,10,10,.05) 22%,rgba(13,10,10,.45) 48%,rgba(13,10,10,.92) 78%)}}

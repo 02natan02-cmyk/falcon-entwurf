@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<script data-fe="intro">try{if(performance.getEntriesByType('navigation')[0]?.type!=='back_forward')sessionStorage.removeItem('bb-intro')}catch(e){}</script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Beethoven Barbershop Saarbrücken · Barbier in St. Johann</title>
+<meta name="description" content="Beethoven Barbershop in der Dudweilerstraße 53, Saarbrücken: Fades, Bart, Rasur gegen den Strich und Kinderschnitte. Mo–Sa 9–19 Uhr, einfach vorbeikommen.">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0d0a0a">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="de_DE">
+<meta property="og:site_name" content="Beethoven Barbershop">
+<meta property="og:title" content="Beethoven Barbershop · Saarbrücken in Fresh-Dur">
+<meta property="og:description" content="Barbier in der Dudweilerstraße 53, Saarbrücken. Mit Flügel im Laden, Mokka zur Begrüßung und immer fresh.">
+<link rel="preload" href="schrift/bodoni-moda.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/b.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+ {"@type":"HairSalon","@id":"#laden","name":"Beethoven Barbershop","telephone":"+49 681 68629267",
+  "address":{"@type":"PostalAddress","streetAddress":"Dudweilerstraße 53","postalCode":"66111","addressLocality":"Saarbrücken","addressCountry":"DE"},
+  "geo":{"@type":"GeoCoordinates","latitude":49.2377446,"longitude":6.9976615},
+  "openingHoursSpecification":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],"opens":"09:00","closes":"19:00"}],
+  "foundingDate":"2020-10-01","paymentAccepted":"Bargeld, Kartenzahlung",
+  "sameAs":["https://www.instagram.com/beethoven_barber/","https://www.facebook.com/people/Beethoven-Barber-Shop/100063614107352/"]},
+ {"@type":"WebSite","name":"Beethoven Barbershop","inLanguage":"de-DE"}
+]}
+</script>
+</head>
+<body>
+
+<div class="intro" id="intro" role="dialog" aria-label="Intro">
+  <div class="intro-buehne">
+    <svg class="intro-wappen" viewBox="0 0 200 200" aria-hidden="true">
+      <circle class="strich" cx="100" cy="100" r="86"/>
+      <circle class="strich" cx="100" cy="100" r="74" style="animation-delay:.2s"/>
+      <path class="strich" d="M40 128 L160 72 M40 72 L160 128" style="animation-delay:.5s;stroke-width:1.2"/>
+      <text class="b" x="100" y="122" text-anchor="middle" font-family="Bodoni Moda,serif" font-size="72" font-weight="700">B</text>
+    </svg>
+    <div class="intro-system" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><div class="intro-laden" id="intro-laden"></div></div>
+    <div class="intro-titel">Beethoven <em>Barbershop</em></div>
+  </div>
+  <button class="intro-weiter" id="intro-weiter" type="button">Überspringen</button>
+</div>
+
+<header class="kopf">
+  <div class="rand"><div class="breit kopf-innen">
+    <a class="marke" href="#start" aria-label="Beethoven Barbershop, zum Anfang">
+      <span class="marke-b">B</span>
+      <span class="marke-name">Beethoven<small>Barbershop · Saarbrücken</small></span>
+    </a>
+    <nav class="nav" id="nav" aria-label="Hauptmenü">
+      <a href="#leistungen">Leistungen &amp; Preise</a>
+      <a href="#kinder">Kinder</a>
+      <a href="#team">Team</a>
+      <a href="#bewertungen">Bewertungen</a>
+      <a href="#fluegel">Flügel</a>
+      <a href="#besuch">Besuch</a>
+    </nav>
+    <button class="ton-knopf" id="ton" type="button" aria-pressed="false" aria-label="Flügel-Ton an oder aus">♪ Ton</button>
+    <button class="menue-knopf" id="menue" type="button" aria-expanded="false" aria-controls="nav" aria-label="Menü öffnen">☰</button>
+    <a class="anruf" href="tel:+4968168629267" aria-label="Anrufen: 0681 68629267">☎ <span class="wort">0681 68629267</span></a>
+  </div>
+  <div class="breit partitur" id="partitur" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><span class="kopfstrich" id="kopfstrich"></span></div>
+  </div>
+</header>
+
+<main id="start">
+
+  <!-- I · Ouvertüre: Flug durch den Laden -->
+  <section class="kapitel film hero" data-satz="Ouvertüre" data-film="hero" style="height:260vh" aria-label="Willkommen">
+    <div class="film-buehne">
+      <canvas class="hall" aria-hidden="true"></canvas>
+      <canvas class="bild" aria-hidden="true"></canvas>
+      <div class="film-schleier"></div>
+      <div class="film-text rand"><div class="breit">
+        <div class="tempo">Ouvertüre · Dudweilerstraße 53</div>
+        <h1>Saarbrücken in <em>Fresh-Dur</em>.</h1>
+        <p class="unter">Ein Barbershop mit Konzertflügel. Mokka zur Begrüßung, saubere Übergänge, und wenn du rausgehst: fresh.</p>
+        <div class="hero-zeile">
+          <span class="offen" id="offen"><i></i><span>Öffnungszeiten werden geladen</span></span>
+          <a class="knopf voll" href="#besuch">Einfach vorbeikommen</a>
+        </div>
+      </div></div>
+      <span class="symbol symbol-ecke">Echtes Ladenfoto · animiert</span>
+      <div class="film-lauf" aria-hidden="true">Scrollen <b><span></span></b></div>
+    </div>
+  </section>
+
+  <!-- II · Maestoso: Die Neunte, frisch geschnitten -->
+  <section class="kapitel film neunte" data-satz="Maestoso" data-film="neunte" style="height:300vh" aria-label="Die Neunte, frisch geschnitten">
+    <div class="film-buehne">
+      <canvas class="hall" aria-hidden="true"></canvas>
+      <canvas class="bild" aria-hidden="true"></canvas>
+      <div class="film-schleier"></div>
+      <div class="film-takte rand">
+        <div class="takt breit" data-von="0" data-bis=".3" style="bottom:12%"><div class="tempo">Maestoso</div><h2>Selbst Beethoven<br>hatte mal <em>Wildwuchs</em>.</h2></div>
+        <div class="takt breit" data-von=".38" data-bis=".7" style="bottom:12%"><h2>Ein Stuhl. Eine Maschine.<br><em>Ein Übergang.</em></h2></div>
+        <div class="takt breit" data-von=".78" data-bis="1.01" style="bottom:12%"><h2><em>Fresh Fresh.</em></h2><p class="lese" style="margin-top:14px">Bei uns kommt jeder frisch raus. Auch ein Komponist von 1820.</p></div>
+      </div>
+      <div class="film-text rand"><div class="breit"><span class="symbol" data-ki>Animation · Symbolbild</span></div></div>
+    </div>
+  </section>
+
+  <!-- III · Crescendo: der Übergang -->
+  <section class="kapitel abschnitt crescendo rand" id="uebergang" data-satz="Crescendo" aria-labelledby="h-uebergang">
+    <div class="breit">
+      <div class="kopfzeile">
+        <div class="tempo">Crescendo</div>
+        <h2 id="h-uebergang">Der Übergang ist<br>unser <em>Lieblingsstück</em>.</h2>
+      </div>
+      <div class="fade-raster">
+        <div class="fade-bild" id="fade-bild" aria-live="polite"></div>
+        <div>
+          <p class="lese" style="color:var(--rauch)">Von null Millimetern an der Haut bis zur Länge oben, ohne Kante dazwischen. Zieh den Regler und sieh dir die Fades an, die bei uns jeden Tag entstehen.</p>
+          <div class="dynamik" id="dynamik" aria-hidden="true"><span>pp</span><span>p</span><span>mp</span><span>mf</span><span>f</span></div>
+          <div class="regler" id="fade-regler" role="slider" tabindex="0" aria-label="Fade wählen" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0"><div class="bahn"></div><div class="griff">⇆</div></div>
+          <div class="regler-hinweis" id="fade-hinweis">← ziehen →</div>
+          <div class="fade-name" id="fade-name">Low Fade</div>
+          <div class="fade-text" id="fade-text"></div>
+          <blockquote class="zitat" style="margin:30px 0 0">„Übergang einfach clean.“<cite>Google-Bewertung</cite></blockquote>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- IV · Con fuoco: Programmheft mit Preisen -->
+  <section class="kapitel abschnitt heft rand" id="leistungen" data-satz="Con fuoco" aria-labelledby="h-leistungen">
+    <div class="breit">
+      <div class="kopfzeile">
+        <div class="tempo">Con fuoco · Das Programm</div>
+        <h2 id="h-leistungen">Leistungen &amp; <em>Preise</em></h2>
+      </div>
+      <div class="heft-raster">
+        <ol class="programm" id="programm">
+          <li><span class="titel">Herren-Haarschnitt<small>Schere und Maschine, Übergang nach Wunsch</small></span><span class="preis">19</span></li>
+          <li><span class="titel">Maschinenschnitt<small>eine Länge oder Fade</small></span><span class="preis">16</span></li>
+          <li><span class="titel">Bart schneiden<small>Kontur, Übergang zum Haar, Rasur gegen den Strich</small></span><span class="preis">12</span></li>
+          <li><span class="titel">Waschen</span><span class="preis">3</span></li>
+          <li><span class="titel">Augenbrauen mit Faden</span><span class="preis">7</span></li>
+          <li><span class="titel">Augenbrauen mit Messer</span><span class="preis">5</span></li>
+          <li><span class="titel">Kinder-Haarschnitt<small>unter 7 Jahren</small></span><span class="preis">14</span></li>
+          <li><span class="titel">Kinder-Haarschnitt<small>mit Seiten auf null</small></span><span class="preis">17</span></li>
+        </ol>
+        <div class="heft-seite">
+          <div class="heft-bild" data-medium="flamme"></div>
+          <div class="heft-karte"><b>Mit und ohne Termin</b><span>Einfach reinkommen oder vorher anrufen: 0681 68629267.</span></div>
+          <div class="heft-karte"><b>Bar oder mit Karte</b><span>Du kannst bei uns auch mit Karte zahlen.</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- V · Dolce: Live am Flügel -->
+  <section class="kapitel film dolce" data-satz="Dolce" data-film="dolce" style="height:240vh" aria-label="Ankommen">
+    <div class="film-buehne">
+      <canvas class="hall" aria-hidden="true"></canvas>
+      <canvas class="bild" aria-hidden="true"></canvas>
+      <div class="film-schleier"></div>
+      <span class="symbol symbol-ecke">Live im Laden · Oktober 2020</span>
+      <div class="film-text rand"><div class="breit">
+        <div class="tempo">Dolce</div>
+        <h2>Erst ein Mokka. <em>Dann der Schnitt.</em></h2>
+        <p class="lese" style="margin-top:16px;text-shadow:0 1px 18px rgba(0,0,0,.9)">Im Laden steht ein echter Flügel. Manchmal spielt jemand, während du im Stuhl sitzt.</p>
+        <blockquote class="zitat" style="margin:22px 0 0;max-width:36ch">„Man wurde mit etwas Süßem und einem Kaffee im Wartebereich begrüßt.“<cite>Google-Bewertung</cite></blockquote>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- VI · Für Elise: Kinder -->
+  <section class="kapitel abschnitt elise rand" id="kinder" data-satz="Für Elise" aria-labelledby="h-kinder">
+    <div class="breit">
+      <div class="elise-raster">
+        <figure class="elise-foto" style="margin:0" data-medium="sohn"></figure>
+        <div>
+          <div class="tempo">Für Elise · und alle Kleinen</div>
+          <h2 id="h-kinder">Der erste Schnitt.<br>Und der <em>coolste</em> in der Klasse.</h2>
+          <p class="lese" style="margin-top:20px;color:var(--rauch)">Viele unserer Kunden kommen mit ihren Kindern, manche seit dem allerersten Haarschnitt. Am Ende darf es auch ein Muster sein: ein Blitz, ein Stern, eine Linie.</p>
+          <blockquote class="zitat" style="margin:24px 0 0">„Ist jetzt von meinem Sohn und von mir der Barbier des Vertrauens.“<cite>Google-Bewertung</cite></blockquote>
+        </div>
+      </div>
+      <div class="studio" id="studio">
+        <div class="studio-flaeche" id="studio-flaeche" aria-label="Zeichenfläche: Muster in den Fade schneiden"><canvas id="studio-leinwand"></canvas></div>
+        <div>
+          <div class="tempo">Das Blitz-Studio</div>
+          <h3 style="font-size:clamp(32px,4vw,52px);margin-top:10px">Schneid dein <em style="color:var(--gold-hell)">Muster</em> selbst.</h3>
+          <p class="lese" style="color:var(--rauch);margin-top:14px">Mit dem Finger oder der Maus in den Fade ziehen. Oder ein Muster wählen, dann schneidet die Maschine es für dich. Zeig das Bild im Laden, dann wird es echt.</p>
+          <div class="studio-knoepfe">
+            <button type="button" data-muster="blitz">⚡ Blitz</button>
+            <button type="button" data-muster="stern">★ Stern</button>
+            <button type="button" data-muster="linien">≡ Linien</button>
+            <button type="button" data-muster="note">♪ Note</button>
+            <button type="button" data-muster="neu">Neu anfangen</button>
+          </div>
+          <div class="studio-hinweis" id="studio-hinweis">Tippen und ziehen</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VII · Tutti: Ensemble -->
+  <section class="kapitel abschnitt ensemble rand" id="team" data-satz="Tutti" aria-labelledby="h-team">
+    <div class="breit">
+      <div class="kopfzeile" style="text-align:center;justify-items:center">
+        <div class="tempo">Tutti · Das Ensemble</div>
+        <h2 id="h-team">Hut ab vor <em>dem Team</em>.</h2>
+      </div>
+      <div class="buehne-team" id="buehne-team"></div>
+    </div>
+  </section>
+
+  <!-- VIII · Applaus -->
+  <section class="kapitel abschnitt applaus rand" id="bewertungen" data-satz="Applaus" aria-labelledby="h-applaus">
+    <div class="breit">
+      <div class="tempo">Applaus</div>
+      <h2 id="h-applaus" class="unsichtbar">Bewertungen</h2>
+      <div class="wertung" id="wertung">4,7<small>aus 251 Google-Bewertungen</small></div>
+      <div class="saal"><canvas id="saal" aria-hidden="true"></canvas></div>
+      <div class="zitate" id="zitate">
+        <blockquote class="zitat an">„Der Gemüsehändler von nebenan hat gefragt, ob er ein Foto von meinem Cut als Frischezertifikat für seine Waren verwenden kann.“<cite>Google-Bewertung</cite></blockquote>
+        <blockquote class="zitat">„Noch nie jemanden gesehen, der so viel Spaß an seinem Job hat.“<cite>Google-Bewertung über Mr Fresh</cite></blockquote>
+        <blockquote class="zitat">„Hier wird sich wirklich noch Zeit gelassen, die Frisur so zu machen, wie es gut und richtig ist.“<cite>Google-Bewertung</cite></blockquote>
+        <blockquote class="zitat">„Sehr freundlich, ohne Termin morgens möglich gewesen.“<cite>Google-Bewertung</cite></blockquote>
+        <blockquote class="zitat">„Gute Jungs – komme seit Tag 1!“<cite>Google-Bewertung</cite></blockquote>
+      </div>
+      <div class="applaus-knoepfe">
+        <button class="knopf klatschen" id="klatschen" type="button">👏 Gedrückt halten: Applaus</button>
+        <a class="knopf" href="https://search.google.com/local/writereview?placeid=" id="bewerten" target="_blank" rel="noopener">Bewerte uns bei Google</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- IX · Capriccio: der Flügel -->
+  <section class="kapitel abschnitt fluegel rand" id="fluegel" data-satz="Capriccio" aria-labelledby="h-fluegel" style="text-align:center">
+    <div class="breit">
+      <div class="tempo">Capriccio</div>
+      <h2 id="h-fluegel">Spiel deinen <em>Schnitt</em>.</h2>
+      <p class="lese" style="margin:18px auto 0;color:var(--rauch)">Jede Taste ist ein Look aus dem Laden. Spiel einzelne Töne, Dur- oder Moll-Akkorde. Und wer die ersten Takte von „Für Elise“ trifft, erlebt das Finale.</p>
+      <div class="modus" role="group" aria-label="Spielweise">
+        <button type="button" data-modus="ton" aria-pressed="true">Einzelton</button>
+        <button type="button" data-modus="dur" aria-pressed="false">Dur</button>
+        <button type="button" data-modus="moll" aria-pressed="false">Moll</button>
+      </div>
+      <div class="tastatur-rahmen" id="tastatur-rahmen"><div class="tastatur" id="tastatur" role="group" aria-label="Klaviatur"></div></div>
+      <div class="akkord-anzeige" id="akkord" aria-live="polite"></div>
+      <div class="look" id="look"><div class="look-bild" id="look-bild"></div><div><b id="look-titel">Bühne frei</b><span id="look-text">Tippe eine Taste. Ton an für den Klang des Flügels.</span></div></div>
+      <div class="tipp" id="tipp">Tipp: E – Dis – E – Dis – E – H – D – C – A</div>
+    </div>
+  </section>
+  <div class="finale" id="finale" aria-hidden="true"><canvas id="regen"></canvas><div class="wort">Fresh Fresh.</div></div>
+
+  <!-- X · Da capo: Besuch -->
+  <section class="kapitel abschnitt besuch rand" id="besuch" data-satz="Da capo" aria-labelledby="h-besuch">
+    <div class="breit">
+      <div class="kopfzeile">
+        <div class="tempo">Da capo</div>
+        <h2 id="h-besuch">Komm <em>wieder</em>.<br>Oder zum ersten Mal.</h2>
+      </div>
+      <div class="besuch-raster">
+        <div>
+          <div class="adresse">Dudweilerstraße 53<br>66111 Saarbrücken</div>
+          <ul class="zeiten" id="zeiten">
+            <li data-tag="1"><span>Montag</span><span>9–19 Uhr</span></li>
+            <li data-tag="2"><span>Dienstag</span><span>9–19 Uhr</span></li>
+            <li data-tag="3"><span>Mittwoch</span><span>9–19 Uhr</span></li>
+            <li data-tag="4"><span>Donnerstag</span><span>9–19 Uhr</span></li>
+            <li data-tag="5"><span>Freitag</span><span>9–19 Uhr</span></li>
+            <li data-tag="6"><span>Samstag</span><span>9–19 Uhr</span></li>
+            <li data-tag="0"><span>Sonntag</span><span>geschlossen</span></li>
+          </ul>
+          <div class="merkmale"><span>Mit und ohne Termin</span><span>Kartenzahlung</span><span>Kinderfreundlich</span><span>Rollstuhlgerechter Eingang</span></div>
+          <div class="knoepfe">
+            <a class="knopf voll" href="tel:+4968168629267">☎ 0681 68629267</a>
+            <a class="knopf" href="https://www.google.com/maps/dir/?api=1&amp;destination=Beethoven+Barbershop+Dudweilerstra%C3%9Fe+53+66111+Saarbr%C3%BCcken" target="_blank" rel="noopener">Route planen</a>
+            <a class="knopf" href="https://www.instagram.com/beethoven_barber/" target="_blank" rel="noopener">Instagram</a>
+          </div>
+        </div>
+        <div class="karte-platz" id="karte-platz">
+          <div>
+            <div class="tempo" style="justify-content:center">Karte</div>
+            <p>Die Karte kommt von Google. Erst nach deinem Klick wird sie geladen und Google erhält dabei Daten wie deine IP-Adresse.</p>
+            <button class="knopf" type="button" id="karte-laden">Karte laden</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="schluss"><div class="wort">Fresh Fresh.</div></div>
+    <footer class="fuss breit">
+      <span>© Beethoven Barbershop · Saarbrücken</span>
+      <span><a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a></span>
+    </footer>
+  </section>
+</main>
+
+<script src="js/medien.js"></script>
+<script src="js/b.js"></script>
+</body>
+</html>

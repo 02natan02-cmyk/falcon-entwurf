@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Generalpause · Beethoven Barbershop</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/beethoven/css/b.css">
+<style>
+.gp{min-height:100vh;min-height:100svh;display:grid;place-items:center;text-align:center;padding-block:60px;background:radial-gradient(70% 60% at 50% 40%,#2a0d14,var(--lack) 70%)}
+.gp h1{font-size:clamp(64px,14vw,190px);font-style:italic;color:var(--gold-hell)}
+.gp .pause{display:block;width:84px;height:16px;background:var(--gold);margin:26px auto;border-radius:1px;box-shadow:0 0 30px rgba(201,163,90,.5)}
+.gp p{color:var(--rauch);max-width:38ch;margin:0 auto 26px}
+.gp .hut{position:relative;margin:0 auto 10px;width:150px;animation:wippen 3s ease-in-out infinite}
+@keyframes wippen{50%{transform:rotate(-6deg) translateY(-6px)}}
+.wege{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+</style>
+</head>
+<body>
+<main class="gp rand">
+  <div>
+    <img class="hut" id="hut" src="/beethoven/medien/foto/hut.webp" alt="" onerror="this.remove()">
+    <div class="tempo" style="justify-content:center">Takt verloren</div>
+    <h1>Generalpause.</h1>
+    <span class="pause" aria-hidden="true"></span>
+    <p>Diese Seite spielt gerade nicht. Vielleicht wurde sie verschoben. Hier geht es weiter:</p>
+    <div class="wege">
+      <a class="knopf voll" href="/beethoven/">Zur Startseite</a>
+      <a class="knopf" href="/beethoven/#leistungen">Leistungen &amp; Preise</a>
+      <a class="knopf" href="/beethoven/#besuch">Öffnungszeiten &amp; Anfahrt</a>
+      <a class="knopf" href="tel:+4968168629267">☎ 0681 68629267</a>
+    </div>
+  </div>
+</main>
+</body>
+</html>
