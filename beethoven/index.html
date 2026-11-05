@@ -2,17 +2,18 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<script data-fe="intro">try{if(performance.getEntriesByType('navigation')[0]?.type!=='back_forward')sessionStorage.removeItem('bb-intro')}catch(e){}</script>
+<script>try{if(performance.getEntriesByType('navigation')[0]?.type!=='back_forward')sessionStorage.removeItem('bb-intro')}catch(e){}</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Beethoven Barbershop Saarbrücken · Barbier in St. Johann</title>
-<meta name="description" content="Beethoven Barbershop in der Dudweilerstraße 53, Saarbrücken: Fades, Bart, Rasur gegen den Strich und Kinderschnitte. Mo–Sa 9–19 Uhr, einfach vorbeikommen.">
+<meta name="description" content="Beethoven Barbershop in der Dudweilerstraße 53, Saarbrücken: Fades, Bart, Rasur gegen den Strich und Kinderschnitte. Mo–Sa 9–19 Uhr, mit und ohne Termin.">
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#0d0a0a">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="de_DE">
 <meta property="og:site_name" content="Beethoven Barbershop">
 <meta property="og:title" content="Beethoven Barbershop · Saarbrücken in Fresh-Dur">
-<meta property="og:description" content="Barbier in der Dudweilerstraße 53, Saarbrücken. Mit Flügel im Laden, Mokka zur Begrüßung und immer fresh.">
+<meta property="og:description" content="Barbier in der Dudweilerstraße 53, Saarbrücken. Mit Konzertflügel im Laden, Mokka zur Begrüßung und immer fresh.">
+<link rel="icon" href="medien/wappen-gold.svg" type="image/svg+xml">
 <link rel="preload" href="schrift/bodoni-moda.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/b.css">
 <script type="application/ld+json">
@@ -29,235 +30,327 @@
 </head>
 <body>
 
+<!-- Intro: das echte Wappen vom Schaufenster -->
 <div class="intro" id="intro" role="dialog" aria-label="Intro">
+  <div class="intro-licht" aria-hidden="true"></div>
   <div class="intro-buehne">
-    <svg class="intro-wappen" viewBox="0 0 200 200" aria-hidden="true">
-      <circle class="strich" cx="100" cy="100" r="86"/>
-      <circle class="strich" cx="100" cy="100" r="74" style="animation-delay:.2s"/>
-      <path class="strich" d="M40 128 L160 72 M40 72 L160 128" style="animation-delay:.5s;stroke-width:1.2"/>
-      <text class="b" x="100" y="122" text-anchor="middle" font-family="Bodoni Moda,serif" font-size="72" font-weight="700">B</text>
-    </svg>
-    <div class="intro-system" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><div class="intro-laden" id="intro-laden"></div></div>
-    <div class="intro-titel">Beethoven <em>Barbershop</em></div>
+    <img class="intro-wappen" src="medien/wappen-gold.svg" alt="Beethoven Barbershop Saarbrücken" width="2160" height="1356">
+    <div class="intro-system" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><div class="intro-laden" id="intro-laden"></div><b class="intro-note" id="intro-note"></b></div>
+    <div class="intro-zeile">Saarbrücken in <em>Fresh-Dur</em></div>
   </div>
   <button class="intro-weiter" id="intro-weiter" type="button">Überspringen</button>
 </div>
 
-<header class="kopf">
+<header class="kopf" id="kopf">
   <div class="rand"><div class="breit kopf-innen">
     <a class="marke" href="#start" aria-label="Beethoven Barbershop, zum Anfang">
-      <span class="marke-b">B</span>
+      <span class="marke-b" aria-hidden="true"></span>
       <span class="marke-name">Beethoven<small>Barbershop · Saarbrücken</small></span>
     </a>
     <nav class="nav" id="nav" aria-label="Hauptmenü">
-      <a href="#leistungen">Leistungen &amp; Preise</a>
+      <a href="#leistungen">Preise</a>
       <a href="#kinder">Kinder</a>
       <a href="#team">Team</a>
       <a href="#bewertungen">Bewertungen</a>
       <a href="#fluegel">Flügel</a>
       <a href="#besuch">Besuch</a>
+      <a href="offene-fragen.html" class="nav-fragen">Offene Fragen</a>
     </nav>
-    <button class="ton-knopf" id="ton" type="button" aria-pressed="false" aria-label="Flügel-Ton an oder aus">♪ Ton</button>
-    <button class="menue-knopf" id="menue" type="button" aria-expanded="false" aria-controls="nav" aria-label="Menü öffnen">☰</button>
-    <a class="anruf" href="tel:+4968168629267" aria-label="Anrufen: 0681 68629267">☎ <span class="wort">0681 68629267</span></a>
+    <button class="status-pille" id="status-pille" type="button" aria-controls="spielplan" aria-expanded="false"><i></i><span>Öffnungszeiten</span></button>
+    <button class="ton-knopf" id="ton" type="button" aria-pressed="false" aria-label="Ton an oder aus"><span class="ton-welle" aria-hidden="true"><i></i><i></i><i></i></span><span class="ton-wort">Ton</span></button>
+    <button class="menue-knopf" id="menue" type="button" aria-expanded="false" aria-controls="nav" aria-label="Menü öffnen"><i></i><i></i><i></i></button>
+    <a class="anruf" href="tel:+4968168629267" aria-label="Anrufen: 0681 68629267"><span class="hoerer" aria-hidden="true">☎</span><span class="wort">0681 68629267</span></a>
   </div>
   <div class="breit partitur" id="partitur" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><span class="kopfstrich" id="kopfstrich"></span></div>
   </div>
 </header>
 
+<!-- Spielplan: die Öffnungszeiten von heute -->
+<div class="spielplan" id="spielplan" role="dialog" aria-label="Öffnungszeiten heute" aria-hidden="true">
+  <button class="sp-zu" id="sp-zu" type="button" aria-label="Spielplan schließen">✕</button>
+  <div class="sp-kopf">Spielplan · <span id="sp-tag">heute</span></div>
+  <div class="sp-zeit" id="sp-zeit">9 – 19 Uhr</div>
+  <div class="sp-status" id="sp-status"><i></i><span>…</span></div>
+  <div class="sp-tagbahn" aria-hidden="true"><span>9</span><div class="sp-bahn"><b id="sp-fuell"></b><i id="sp-jetzt"></i></div><span>19</span></div>
+  <ol class="sp-woche" id="sp-woche" aria-label="Wochenplan"></ol>
+  <div class="sp-knoepfe">
+    <a class="knopf voll" href="tel:+4968168629267">☎ Jetzt anrufen</a>
+    <a class="knopf" href="https://www.google.com/maps/dir/?api=1&amp;destination=Beethoven+Barbershop+Dudweilerstra%C3%9Fe+53+66111+Saarbr%C3%BCcken" target="_blank" rel="noopener">Route</a>
+  </div>
+  <div class="sp-fuss">Mit und ohne Termin · Bar oder mit Karte</div>
+</div>
+
+<!-- Anruf-Leiste am Handy -->
+<div class="leiste" id="leiste">
+  <a href="tel:+4968168629267" class="leiste-an">☎ Anrufen</a>
+  <button type="button" class="leiste-status" id="leiste-status" aria-controls="spielplan"><i></i><span>Öffnungszeiten</span></button>
+  <a href="https://www.google.com/maps/dir/?api=1&amp;destination=Beethoven+Barbershop+Dudweilerstra%C3%9Fe+53+66111+Saarbr%C3%BCcken" target="_blank" rel="noopener" class="leiste-route">➤ Route</a>
+</div>
+
+<!-- Der Hut von Mr Fresh fällt durch die ganze Seite -->
+<button class="hut-reise" id="hut-reise" type="button" aria-label="Hut ab! Der Hut von Mr Fresh"><img id="hut-a" src="medien/foto/hut.webp" alt="" width="700" height="399"><img id="hut-b" src="medien/foto/hut-b.webp" alt="" width="700" height="420"></button>
+
 <main id="start">
 
-  <!-- I · Ouvertüre: Flug durch den Laden -->
-  <section class="kapitel film hero" data-satz="Ouvertüre" data-film="hero" style="height:260vh" aria-label="Willkommen">
+  <!-- I · Ouvertüre: Beethoven bekommt einen Fade -->
+  <section class="kapitel film hero" data-satz="Ouvertüre" data-film="neunte" style="height:340vh" aria-label="Willkommen">
     <div class="film-buehne">
-      <canvas class="hall" aria-hidden="true"></canvas>
       <canvas class="bild" aria-hidden="true"></canvas>
       <div class="film-schleier"></div>
-      <div class="film-text rand"><div class="breit">
-        <div class="tempo">Ouvertüre · Dudweilerstraße 53</div>
-        <h1>Saarbrücken in <em>Fresh-Dur</em>.</h1>
-        <p class="unter">Ein Barbershop mit Konzertflügel. Mokka zur Begrüßung, saubere Übergänge, und wenn du rausgehst: fresh.</p>
-        <div class="hero-zeile">
-          <span class="offen" id="offen"><i></i><span>Öffnungszeiten werden geladen</span></span>
-          <a class="knopf voll" href="#besuch">Einfach vorbeikommen</a>
-        </div>
-      </div></div>
-      <span class="symbol symbol-ecke">Echtes Ladenfoto · animiert</span>
-      <div class="film-lauf" aria-hidden="true">Scrollen <b><span></span></b></div>
-    </div>
-  </section>
-
-  <!-- II · Maestoso: Die Neunte, frisch geschnitten -->
-  <section class="kapitel film neunte" data-satz="Maestoso" data-film="neunte" style="height:300vh" aria-label="Die Neunte, frisch geschnitten">
-    <div class="film-buehne">
-      <canvas class="hall" aria-hidden="true"></canvas>
-      <canvas class="bild" aria-hidden="true"></canvas>
-      <div class="film-schleier"></div>
+      <div class="rahmen-gold" aria-hidden="true"><i></i><i></i></div>
       <div class="film-takte rand">
-        <div class="takt breit" data-von="0" data-bis=".3" style="bottom:12%"><div class="tempo">Maestoso</div><h2>Selbst Beethoven<br>hatte mal <em>Wildwuchs</em>.</h2></div>
-        <div class="takt breit" data-von=".38" data-bis=".7" style="bottom:12%"><h2>Ein Stuhl. Eine Maschine.<br><em>Ein Übergang.</em></h2></div>
-        <div class="takt breit" data-von=".78" data-bis="1.01" style="bottom:12%"><h2><em>Fresh Fresh.</em></h2><p class="lese" style="margin-top:14px">Bei uns kommt jeder frisch raus. Auch ein Komponist von 1820.</p></div>
+        <div class="takt breit start an" data-von="-1" data-bis=".2">
+          <div class="tempo">Ouvertüre · Dudweilerstraße 53</div>
+          <h1>Saarbrücken in <em>Fresh-Dur</em>.</h1>
+          <p class="unter">Ein Barbershop mit Konzertflügel. Mokka zur Begrüßung, saubere Übergänge, und wenn du rausgehst: fresh.</p>
+          <div class="hero-zeile">
+            <a class="knopf voll gross" href="tel:+4968168629267">☎ Ruf an</a>
+            <a class="knopf gross" href="#besuch">Komm vorbei</a>
+          </div>
+        </div>
+        <div class="takt breit" data-von=".26" data-bis=".5"><div class="tempo">Maestoso</div><h2>Selbst Beethoven<br>hatte mal <em>Wildwuchs</em>.</h2></div>
+        <div class="takt breit" data-von=".56" data-bis=".8"><h2>Ein Stuhl. Eine Maschine.<br><em>Ein Übergang.</em></h2></div>
+        <div class="takt breit" data-von=".86" data-bis="1.01"><h2><em>Fresh Fresh.</em></h2><p class="lese">Bei uns kommt jeder frisch raus. Sogar Beethoven.</p></div>
       </div>
-      <div class="film-text rand"><div class="breit"><span class="symbol" data-ki>Animation · Symbolbild</span></div></div>
+      <span class="symbol symbol-ecke">Animation · Symbolbild</span>
+      <div class="film-lauf" aria-hidden="true"><span class="lauf-wort">Scrollen</span><b><span></span></b></div>
     </div>
   </section>
 
-  <!-- III · Crescendo: der Übergang -->
+  <!-- II · Andante: der Saal -->
+  <section class="kapitel film saal" data-satz="Andante" data-film="saal" style="height:300vh" aria-label="Der Laden">
+    <div class="naht" aria-hidden="true"></div>
+    <div class="film-buehne">
+      <canvas class="bild" aria-hidden="true"></canvas>
+      <div class="film-schleier"></div>
+      <div class="punkte" id="punkte" aria-hidden="true"></div>
+      <div class="film-takte rand">
+        <div class="takt breit" data-von="-1" data-bis=".34" data-hut-ziel><div class="tempo">Andante · Der Saal</div><h2>Willkommen<br>im <em>Konzertsaal</em>.</h2></div>
+        <div class="takt breit" data-von=".4" data-bis=".7"><h2>Erst ein Mokka.<br><em>Dann der Schnitt.</em></h2><p class="lese">Kaffee, Tee, Mokka und etwas Süßes. Lehn dich zurück, wir verstehen unser Handwerk.</p></div>
+        <div class="takt breit" data-von=".76" data-bis="1.01"><h2>Mit und <em>ohne</em> Termin.</h2><p class="lese">Einfach reinkommen oder vorher anrufen: <a href="tel:+4968168629267">0681 68629267</a></p></div>
+      </div>
+      <span class="symbol symbol-ecke">Echtes Ladenfoto · animiert</span>
+    </div>
+  </section>
+
+  <!-- III · Für Elise: der jüngste Stammkunde -->
+  <section class="kapitel abschnitt elise rand" id="kinder" data-satz="Für Elise" aria-labelledby="h-kinder">
+    <div class="naht" aria-hidden="true"></div>
+    <div class="breit elise-raster">
+      <figure class="elise-foto" data-medium="sohn" data-hut-ziel="0.86,0.02"></figure>
+      <div class="elise-text">
+        <div class="tempo">Für Elise · der Jüngste</div>
+        <h2 id="h-kinder">Der erste Schnitt.<br>Und der <em>coolste</em> im Kindergarten.</h2>
+        <p class="lese gross">Mit sechs Monaten saß er zur Eröffnung zum ersten Mal hier. Seitdem kommt er jeden Monat zu Mr Fresh. Damals unser jüngster Kunde, heute einer der treuesten.</p>
+        <div class="lebenslied" id="lebenslied" aria-label="Jeden Monat ein Haarschnitt seit der Eröffnung im Oktober 2020">
+          <div class="ll-system"><i></i><i></i><i></i><i></i><i></i><div class="ll-noten" id="ll-noten"></div></div>
+          <div class="ll-jahre" id="ll-jahre"></div>
+          <div class="ll-unter">Jede Note ein Monat. Jeder Monat ein Termin bei Mr Fresh.</div>
+        </div>
+        <blockquote class="zitat">„Ist jetzt von meinem Sohn und von mir der Barbier des Vertrauens.“<cite>Google-Bewertung</cite></blockquote>
+      </div>
+    </div>
+  </section>
+
+  <!-- IV · Crescendo: der Übergang -->
   <section class="kapitel abschnitt crescendo rand" id="uebergang" data-satz="Crescendo" aria-labelledby="h-uebergang">
+    <div class="naht" aria-hidden="true"></div>
     <div class="breit">
-      <div class="kopfzeile">
-        <div class="tempo">Crescendo</div>
+      <div class="kopfzeile" data-hut-ziel="0.02,0.0">
+        <div class="tempo">Crescendo · der Fade</div>
         <h2 id="h-uebergang">Der Übergang ist<br>unser <em>Lieblingsstück</em>.</h2>
       </div>
       <div class="fade-raster">
-        <div class="fade-bild" id="fade-bild" aria-live="polite"></div>
+        <div class="fade-buehne">
+          <div class="fade-bild" id="fade-bild" aria-live="polite"></div>
+          <div class="fade-skala" id="fade-skala" aria-hidden="true"><b></b></div>
+        </div>
         <div>
-          <p class="lese" style="color:var(--rauch)">Von null Millimetern an der Haut bis zur Länge oben, ohne Kante dazwischen. Zieh den Regler und sieh dir die Fades an, die bei uns jeden Tag entstehen.</p>
+          <p class="lese" style="color:var(--rauch)">Von der Haut bis zur Länge oben, ohne Kante dazwischen. Schieb die Maschine nach rechts und hör, wie der Fade lauter wird.</p>
           <div class="dynamik" id="dynamik" aria-hidden="true"><span>pp</span><span>p</span><span>mp</span><span>mf</span><span>f</span></div>
-          <div class="regler" id="fade-regler" role="slider" tabindex="0" aria-label="Fade wählen" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0"><div class="bahn"></div><div class="griff">⇆</div></div>
-          <div class="regler-hinweis" id="fade-hinweis">← ziehen →</div>
-          <div class="fade-name" id="fade-name">Low Fade</div>
+          <div class="regler" id="fade-regler" role="slider" tabindex="0" aria-label="Fade wählen" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0">
+            <div class="bahn"><b id="fade-bahn-fuell"></b></div>
+            <div class="griff maschine" aria-hidden="true"><svg viewBox="0 0 120 54"><defs><linearGradient id="mg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a2f2b"/><stop offset=".5" stop-color="#151010"/><stop offset="1" stop-color="#2a201d"/></linearGradient><linearGradient id="mk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6eacb"/><stop offset="1" stop-color="#b8975a"/></linearGradient></defs><rect x="18" y="8" width="96" height="38" rx="19" fill="url(#mg)" stroke="#c9a35a" stroke-width="1.5"/><rect x="2" y="10" width="20" height="34" rx="3" fill="url(#mk)"/><path d="M4 12v30M7 12v30M10 12v30M13 12v30M16 12v30" stroke="#6f5d50" stroke-width="1"/><rect x="40" y="21" width="44" height="12" rx="6" fill="#c9a35a" opacity=".85"/><circle cx="100" cy="27" r="4" fill="#ecd59f"/></svg></div>
+          </div>
+          <div class="regler-hinweis" id="fade-hinweis">← Maschine ziehen →</div>
+          <div class="fade-name" id="fade-name">Taper</div>
           <div class="fade-text" id="fade-text"></div>
-          <blockquote class="zitat" style="margin:30px 0 0">„Übergang einfach clean.“<cite>Google-Bewertung</cite></blockquote>
+          <blockquote class="zitat">„Übergang einfach clean.“<cite>Google-Bewertung</cite></blockquote>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- IV · Con fuoco: Programmheft mit Preisen -->
+  <!-- V · Con fuoco: Programmheft mit Preisen und Flamme -->
   <section class="kapitel abschnitt heft rand" id="leistungen" data-satz="Con fuoco" aria-labelledby="h-leistungen">
+    <div class="naht hell" aria-hidden="true"></div>
     <div class="breit">
-      <div class="kopfzeile">
-        <div class="tempo">Con fuoco · Das Programm</div>
+      <div class="kopfzeile" data-hut-ziel="0.02,0.0">
+        <div class="tempo">Con fuoco · das Programm</div>
         <h2 id="h-leistungen">Leistungen &amp; <em>Preise</em></h2>
       </div>
       <div class="heft-raster">
         <ol class="programm" id="programm">
-          <li><span class="titel">Herren-Haarschnitt<small>Schere und Maschine, Übergang nach Wunsch</small></span><span class="preis">19</span></li>
-          <li><span class="titel">Maschinenschnitt<small>eine Länge oder Fade</small></span><span class="preis">16</span></li>
-          <li><span class="titel">Bart schneiden<small>Kontur, Übergang zum Haar, Rasur gegen den Strich</small></span><span class="preis">12</span></li>
-          <li><span class="titel">Waschen</span><span class="preis">3</span></li>
-          <li><span class="titel">Augenbrauen mit Faden</span><span class="preis">7</span></li>
-          <li><span class="titel">Augenbrauen mit Messer</span><span class="preis">5</span></li>
-          <li><span class="titel">Kinder-Haarschnitt<small>unter 7 Jahren</small></span><span class="preis">14</span></li>
-          <li><span class="titel">Kinder-Haarschnitt<small>mit Seiten auf null</small></span><span class="preis">17</span></li>
+          <li><span class="titel">Herren-Haarschnitt<small>Schere und Maschine, Übergang nach Wunsch</small></span><span class="punkte-linie"></span><span class="preis">19</span></li>
+          <li><span class="titel">Maschinenschnitt<small>eine Länge oder Fade</small></span><span class="punkte-linie"></span><span class="preis">16</span></li>
+          <li><span class="titel">Bart schneiden<small>Kontur, Übergang zum Haar, Rasur gegen den Strich</small></span><span class="punkte-linie"></span><span class="preis">12</span></li>
+          <li><span class="titel">Waschen</span><span class="punkte-linie"></span><span class="preis">3</span></li>
+          <li><span class="titel">Augenbrauen mit Faden</span><span class="punkte-linie"></span><span class="preis">7</span></li>
+          <li><span class="titel">Augenbrauen mit Messer</span><span class="punkte-linie"></span><span class="preis">5</span></li>
+          <li><span class="titel">Kinder-Haarschnitt<small>unter 7 Jahren</small></span><span class="punkte-linie"></span><span class="preis">14</span></li>
+          <li><span class="titel">Kinder-Haarschnitt<small>mit Seiten auf null</small></span><span class="punkte-linie"></span><span class="preis">17</span></li>
         </ol>
         <div class="heft-seite">
-          <div class="heft-bild" data-medium="flamme"></div>
-          <div class="heft-karte"><b>Mit und ohne Termin</b><span>Einfach reinkommen oder vorher anrufen: 0681 68629267.</span></div>
-          <div class="heft-karte"><b>Bar oder mit Karte</b><span>Du kannst bei uns auch mit Karte zahlen.</span></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- V · Dolce: Live am Flügel -->
-  <section class="kapitel film dolce" data-satz="Dolce" data-film="dolce" style="height:240vh" aria-label="Ankommen">
-    <div class="film-buehne">
-      <canvas class="hall" aria-hidden="true"></canvas>
-      <canvas class="bild" aria-hidden="true"></canvas>
-      <div class="film-schleier"></div>
-      <span class="symbol symbol-ecke">Live im Laden · Oktober 2020</span>
-      <div class="film-text rand"><div class="breit">
-        <div class="tempo">Dolce</div>
-        <h2>Erst ein Mokka. <em>Dann der Schnitt.</em></h2>
-        <p class="lese" style="margin-top:16px;text-shadow:0 1px 18px rgba(0,0,0,.9)">Im Laden steht ein echter Flügel. Manchmal spielt jemand, während du im Stuhl sitzt.</p>
-        <blockquote class="zitat" style="margin:22px 0 0;max-width:36ch">„Man wurde mit etwas Süßem und einem Kaffee im Wartebereich begrüßt.“<cite>Google-Bewertung</cite></blockquote>
-      </div></div>
-    </div>
-  </section>
-
-  <!-- VI · Für Elise: Kinder -->
-  <section class="kapitel abschnitt elise rand" id="kinder" data-satz="Für Elise" aria-labelledby="h-kinder">
-    <div class="breit">
-      <div class="elise-raster">
-        <figure class="elise-foto" style="margin:0" data-medium="sohn"></figure>
-        <div>
-          <div class="tempo">Für Elise · und alle Kleinen</div>
-          <h2 id="h-kinder">Der erste Schnitt.<br>Und der <em>coolste</em> in der Klasse.</h2>
-          <p class="lese" style="margin-top:20px;color:var(--rauch)">Viele unserer Kunden kommen mit ihren Kindern, manche seit dem allerersten Haarschnitt. Am Ende darf es auch ein Muster sein: ein Blitz, ein Stern, eine Linie.</p>
-          <blockquote class="zitat" style="margin:24px 0 0">„Ist jetzt von meinem Sohn und von mir der Barbier des Vertrauens.“<cite>Google-Bewertung</cite></blockquote>
-        </div>
-      </div>
-      <div class="studio" id="studio">
-        <div class="studio-flaeche" id="studio-flaeche" aria-label="Zeichenfläche: Muster in den Fade schneiden"><canvas id="studio-leinwand"></canvas></div>
-        <div>
-          <div class="tempo">Das Blitz-Studio</div>
-          <h3 style="font-size:clamp(32px,4vw,52px);margin-top:10px">Schneid dein <em style="color:var(--gold-hell)">Muster</em> selbst.</h3>
-          <p class="lese" style="color:var(--rauch);margin-top:14px">Mit dem Finger oder der Maus in den Fade ziehen. Oder ein Muster wählen, dann schneidet die Maschine es für dich. Zeig das Bild im Laden, dann wird es echt.</p>
-          <div class="studio-knoepfe">
-            <button type="button" data-muster="blitz">⚡ Blitz</button>
-            <button type="button" data-muster="stern">★ Stern</button>
-            <button type="button" data-muster="linien">≡ Linien</button>
-            <button type="button" data-muster="note">♪ Note</button>
-            <button type="button" data-muster="neu">Neu anfangen</button>
+          <div class="feuer-buehne" id="feuer-buehne">
+            <div class="heft-bild" data-medium="flamme"></div>
+            <canvas class="feuer" id="feuer" aria-hidden="true"></canvas>
+            <div class="feuer-schild">Die Flamme <span>für die Ohrhärchen</span></div>
           </div>
-          <div class="studio-hinweis" id="studio-hinweis">Tippen und ziehen</div>
+          <div class="notenblatt" id="notenblatt">
+            <div class="nb-unter"><b>Hier brennt nur das Notenblatt.</b><span>Mit und ohne Termin · Bar oder mit Karte</span></div>
+            <canvas id="nb-leinwand" aria-hidden="true"></canvas>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- VII · Tutti: Ensemble -->
+  <!-- VI · Dolce: live am Flügel -->
+  <section class="kapitel abschnitt live rand" id="live" data-satz="Dolce" aria-labelledby="h-live">
+    <div class="naht" aria-hidden="true"></div>
+    <canvas class="noten-flug" id="noten-flug" aria-hidden="true"></canvas>
+    <div class="breit live-raster">
+      <div class="live-bild" data-hut-ziel="0.9,0.0">
+        <video id="live-video" muted loop playsinline preload="none" poster="medien/foto/live-fluegel-poster.webp" aria-label="Ein Pianist spielt live am Flügel im Laden, Oktober 2020"><source src="medien/video/live-fluegel.mp4" type="video/mp4"></video>
+        <span class="live-marke"><i></i>Live im Laden · Oktober 2020</span>
+        <button class="live-ton" id="live-ton" type="button" aria-pressed="false"><span class="lt-kreis"><span class="lt-pfeil">▶</span></span><span class="lt-wort">Mit Ton hören</span></button>
+      </div>
+      <div>
+        <div class="tempo">Dolce · live am Flügel</div>
+        <h2 id="h-live">Manchmal spielt jemand, während du <em>im Stuhl</em> sitzt.</h2>
+        <p class="lese" style="color:var(--rauch)">Der Flügel steht mitten im Laden. Zu besonderen Anlässen gibt es Live-Musik, so wie hier im Oktober 2020. Mach den Ton an und hör rein.</p>
+        <blockquote class="zitat">„Man wurde mit etwas Süßem und einem Kaffee im Wartebereich begrüßt.“<cite>Google-Bewertung</cite></blockquote>
+      </div>
+    </div>
+  </section>
+
+  <!-- VII · Scherzo: das Muster-Studio -->
+  <section class="kapitel abschnitt studio-kap rand" id="studio-kap" data-satz="Scherzo" aria-labelledby="h-studio">
+    <div class="naht" aria-hidden="true"></div>
+    <div class="breit studio">
+      <div class="studio-flaeche" id="studio-flaeche" aria-label="Zeichenfläche: Muster in den Fade schneiden">
+        <canvas id="studio-leinwand"></canvas>
+        <canvas id="studio-haare" class="studio-haare"></canvas>
+        <div class="studio-maschine" id="studio-maschine" aria-hidden="true"><svg viewBox="0 0 54 150"><defs><linearGradient id="sm" x1="0" x2="1"><stop offset="0" stop-color="#2a201d"/><stop offset=".5" stop-color="#0f0b0a"/><stop offset="1" stop-color="#2a201d"/></linearGradient><linearGradient id="sk" x1="0" x2="1"><stop offset="0" stop-color="#f6eacb"/><stop offset="1" stop-color="#b8975a"/></linearGradient></defs><rect x="7" y="18" width="40" height="128" rx="18" fill="url(#sm)" stroke="#c9a35a" stroke-width="1.5"/><rect x="9" y="2" width="36" height="20" rx="2" fill="url(#sk)"/><path d="M12 3v18M16 3v18M20 3v18M24 3v18M28 3v18M32 3v18M36 3v18M40 3v18" stroke="#6f5d50"/><rect x="21" y="52" width="12" height="46" rx="6" fill="#c9a35a" opacity=".85"/><circle cx="27" cy="120" r="4" fill="#ecd59f"/></svg></div>
+        <div class="studio-tipp" id="studio-tipp">Mit dem Finger ziehen</div>
+      </div>
+      <div>
+        <div class="tempo">Scherzo · das Muster-Studio</div>
+        <h2 id="h-studio" style="font-size:clamp(38px,5vw,72px)">Schneid dein <em>Muster</em> selbst.</h2>
+        <p class="lese" style="color:var(--rauch);margin-top:14px">Ein echter Fade aus dem Laden. Zieh mit dem Finger oder der Maus eine Linie hinein, oder wähl ein Muster und schau der Maschine zu. Das Bild kannst du speichern und im Laden zeigen.</p>
+        <div class="studio-knoepfe">
+          <button type="button" data-muster="linien">Zwei Linien</button>
+          <button type="button" data-muster="blitz">Blitz</button>
+          <button type="button" data-muster="welle">Welle</button>
+          <button type="button" data-muster="stern">Stern</button>
+          <button type="button" data-muster="neu" class="leise">Neu anfangen</button>
+          <button type="button" data-muster="speichern" class="leise">Bild speichern</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VIII · Tutti: das Ensemble -->
   <section class="kapitel abschnitt ensemble rand" id="team" data-satz="Tutti" aria-labelledby="h-team">
+    <div class="naht" aria-hidden="true"></div>
     <div class="breit">
-      <div class="kopfzeile" style="text-align:center;justify-items:center">
-        <div class="tempo">Tutti · Das Ensemble</div>
+      <div class="kopfzeile" data-hut-ziel="0.02,0.0">
+        <div class="tempo">Tutti · das Ensemble</div>
         <h2 id="h-team">Hut ab vor <em>dem Team</em>.</h2>
       </div>
-      <div class="buehne-team" id="buehne-team"></div>
+      <div class="solist">
+        <div class="solist-bild" id="solist-bild"><div class="spot" aria-hidden="true"></div></div>
+        <div class="solist-text">
+          <div class="tempo">Solist</div>
+          <div class="solist-name">Mr Fresh</div>
+          <div class="solist-rolle">Chef · der mit dem Hut</div>
+          <blockquote class="zitat">„Noch nie jemanden gesehen, der so viel Spaß an seinem Job hat.“<cite>Google-Bewertung</cite></blockquote>
+          <blockquote class="zitat klein">„Echt stabiler Schnitt von Mr Fresh!“<cite>Google-Bewertung</cite></blockquote>
+        </div>
+      </div>
+      <div class="filmstreifen" id="filmstreifen" aria-label="Fotos vom Team"><div class="fs-band" id="fs-band"></div></div>
+      <div class="fs-hinweis" id="fs-hinweis">← wischen →</div>
     </div>
   </section>
 
-  <!-- VIII · Applaus -->
-  <section class="kapitel abschnitt applaus rand" id="bewertungen" data-satz="Applaus" aria-labelledby="h-applaus">
-    <div class="breit">
-      <div class="tempo">Applaus</div>
-      <h2 id="h-applaus" class="unsichtbar">Bewertungen</h2>
-      <div class="wertung" id="wertung">4,7<small>aus 251 Google-Bewertungen</small></div>
-      <div class="saal"><canvas id="saal" aria-hidden="true"></canvas></div>
-      <div class="zitate" id="zitate">
-        <blockquote class="zitat an">„Der Gemüsehändler von nebenan hat gefragt, ob er ein Foto von meinem Cut als Frischezertifikat für seine Waren verwenden kann.“<cite>Google-Bewertung</cite></blockquote>
-        <blockquote class="zitat">„Noch nie jemanden gesehen, der so viel Spaß an seinem Job hat.“<cite>Google-Bewertung über Mr Fresh</cite></blockquote>
-        <blockquote class="zitat">„Hier wird sich wirklich noch Zeit gelassen, die Frisur so zu machen, wie es gut und richtig ist.“<cite>Google-Bewertung</cite></blockquote>
-        <blockquote class="zitat">„Sehr freundlich, ohne Termin morgens möglich gewesen.“<cite>Google-Bewertung</cite></blockquote>
-        <blockquote class="zitat">„Gute Jungs – komme seit Tag 1!“<cite>Google-Bewertung</cite></blockquote>
+  <!-- IX · Applaus: die Bühne -->
+  <section class="kapitel buehne-kap" id="bewertungen" data-satz="Applaus" aria-labelledby="h-applaus" style="height:260vh">
+    <div class="naht" aria-hidden="true"></div>
+    <div class="bk-buehne">
+      <div class="bk-szene" id="bk-szene">
+        <div class="bk-hinten"><div class="bk-kegel"></div><canvas id="bk-staub" class="bk-staub"></canvas>
+          <div class="bk-inhalt">
+            <div class="bk-sterne" id="bk-sterne" aria-hidden="true"><i>★</i><i>★</i><i>★</i><i>★</i><i>★</i></div>
+            <h2 id="h-applaus" class="bk-wert"><span id="bk-wert">0,0</span><small>aus <b id="bk-zahl">0</b> Google-Bewertungen</small></h2>
+            <div class="bk-zitate" id="bk-zitate">
+              <blockquote class="zitat an">„Der Gemüsehändler von nebenan hat gefragt, ob er ein Foto von meinem Cut als Frischezertifikat für seine Waren verwenden kann.“<cite>Google-Bewertung</cite></blockquote>
+              <blockquote class="zitat">„Hier wird sich wirklich noch Zeit gelassen, die Frisur so zu machen, wie es gut und richtig ist.“<cite>Google-Bewertung</cite></blockquote>
+              <blockquote class="zitat">„Sehr freundlich, ohne Termin morgens möglich gewesen.“<cite>Google-Bewertung</cite></blockquote>
+              <blockquote class="zitat">„Gute Jungs – komme seit Tag 1!“<cite>Google-Bewertung</cite></blockquote>
+            </div>
+          </div>
+        </div>
+        <div class="bk-vorhang links" id="bk-links"></div>
+        <div class="bk-vorhang rechts" id="bk-rechts"></div>
+        <div class="bk-rahmen"></div>
+        <canvas id="bk-jubel" class="bk-jubel" aria-hidden="true"></canvas>
       </div>
-      <div class="applaus-knoepfe">
-        <button class="knopf klatschen" id="klatschen" type="button">👏 Gedrückt halten: Applaus</button>
-        <a class="knopf" href="https://search.google.com/local/writereview?placeid=" id="bewerten" target="_blank" rel="noopener">Bewerte uns bei Google</a>
+      <div class="bk-steuer rand">
+        <div class="tempo">Applaus</div>
+        <div class="bk-knoepfe">
+          <button class="knopf voll klatschen" id="klatschen" type="button">👏 Gedrückt halten: Applaus</button>
+          <a class="knopf" href="https://www.google.com/maps/search/?api=1&amp;query=Beethoven+Barbershop+Dudweilerstra%C3%9Fe+53+Saarbr%C3%BCcken" target="_blank" rel="noopener">Alle Bewertungen bei Google</a>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- IX · Capriccio: der Flügel -->
-  <section class="kapitel abschnitt fluegel rand" id="fluegel" data-satz="Capriccio" aria-labelledby="h-fluegel" style="text-align:center">
+  <!-- X · Capriccio: der Flügel -->
+  <section class="kapitel abschnitt fluegel rand" id="fluegel" data-satz="Capriccio" aria-labelledby="h-fluegel">
+    <div class="naht" aria-hidden="true"></div>
     <div class="breit">
-      <div class="tempo">Capriccio</div>
-      <h2 id="h-fluegel">Spiel deinen <em>Schnitt</em>.</h2>
-      <p class="lese" style="margin:18px auto 0;color:var(--rauch)">Jede Taste ist ein Look aus dem Laden. Spiel einzelne Töne, Dur- oder Moll-Akkorde. Und wer die ersten Takte von „Für Elise“ trifft, erlebt das Finale.</p>
-      <div class="modus" role="group" aria-label="Spielweise">
-        <button type="button" data-modus="ton" aria-pressed="true">Einzelton</button>
-        <button type="button" data-modus="dur" aria-pressed="false">Dur</button>
-        <button type="button" data-modus="moll" aria-pressed="false">Moll</button>
+      <div class="kopfzeile mitte" data-hut-ziel="0.5,0.0">
+        <div class="tempo">Capriccio · der Flügel</div>
+        <h2 id="h-fluegel">Spiel deinen <em>Schnitt</em>.</h2>
+        <p class="lese" style="color:var(--rauch);margin:0 auto">Jede Taste ist ein Look aus dem Laden. Einzelne Töne, Dur oder Moll. Wer die ersten Takte von „Für Elise“ trifft, erlebt das Finale.</p>
       </div>
-      <div class="tastatur-rahmen" id="tastatur-rahmen"><div class="tastatur" id="tastatur" role="group" aria-label="Klaviatur"></div></div>
-      <div class="akkord-anzeige" id="akkord" aria-live="polite"></div>
-      <div class="look" id="look"><div class="look-bild" id="look-bild"></div><div><b id="look-titel">Bühne frei</b><span id="look-text">Tippe eine Taste. Ton an für den Klang des Flügels.</span></div></div>
-      <div class="tipp" id="tipp">Tipp: E – Dis – E – Dis – E – H – D – C – A</div>
+      <div class="fluegel-koerper">
+        <div class="pult" id="pult"><div class="pult-blatt"><div class="pult-bild" id="look-bild"></div><div class="pult-text"><b id="look-titel">Bühne frei</b><span id="look-text">Tipp eine Taste an.</span></div></div></div>
+        <div class="modus" role="group" aria-label="Spielweise">
+          <button type="button" data-modus="ton" aria-pressed="true">Einzelton</button>
+          <button type="button" data-modus="dur" aria-pressed="false">Dur</button>
+          <button type="button" data-modus="moll" aria-pressed="false">Moll</button>
+        </div>
+        <div class="klaviatur"><div class="filz"></div><div class="tastatur" id="tastatur" role="group" aria-label="Klaviatur, zwei Oktaven"></div></div>
+        <div class="akkord-anzeige" id="akkord" aria-live="polite"></div>
+        <div class="tipp" id="tipp">Für Elise: E – Dis – E – Dis – E – H – D – C – A</div>
+      </div>
     </div>
   </section>
   <div class="finale" id="finale" aria-hidden="true"><canvas id="regen"></canvas><div class="wort">Fresh Fresh.</div></div>
 
-  <!-- X · Da capo: Besuch -->
+  <!-- XI · Da capo: Besuch -->
   <section class="kapitel abschnitt besuch rand" id="besuch" data-satz="Da capo" aria-labelledby="h-besuch">
+    <div class="naht" aria-hidden="true"></div>
     <div class="breit">
-      <div class="kopfzeile">
+      <div class="kopfzeile" data-hut-ziel="0.02,0.0">
         <div class="tempo">Da capo</div>
-        <h2 id="h-besuch">Komm <em>wieder</em>.<br>Oder zum ersten Mal.</h2>
+        <h2 id="h-besuch">Ruf an.<br><em>Komm vorbei.</em></h2>
       </div>
       <div class="besuch-raster">
         <div>
+          <a class="gross-anruf" href="tel:+4968168629267"><span class="ga-ring" aria-hidden="true">☎</span><span><small>Jetzt anrufen</small>0681 68629267</span></a>
+          <div class="besuch-status" id="besuch-status"><i></i><span>…</span></div>
           <div class="adresse">Dudweilerstraße 53<br>66111 Saarbrücken</div>
           <ul class="zeiten" id="zeiten">
             <li data-tag="1"><span>Montag</span><span>9–19 Uhr</span></li>
@@ -270,8 +363,7 @@
           </ul>
           <div class="merkmale"><span>Mit und ohne Termin</span><span>Kartenzahlung</span><span>Kinderfreundlich</span><span>Rollstuhlgerechter Eingang</span></div>
           <div class="knoepfe">
-            <a class="knopf voll" href="tel:+4968168629267">☎ 0681 68629267</a>
-            <a class="knopf" href="https://www.google.com/maps/dir/?api=1&amp;destination=Beethoven+Barbershop+Dudweilerstra%C3%9Fe+53+66111+Saarbr%C3%BCcken" target="_blank" rel="noopener">Route planen</a>
+            <a class="knopf" href="https://www.google.com/maps/dir/?api=1&amp;destination=Beethoven+Barbershop+Dudweilerstra%C3%9Fe+53+66111+Saarbr%C3%BCcken" target="_blank" rel="noopener">➤ Route planen</a>
             <a class="knopf" href="https://www.instagram.com/beethoven_barber/" target="_blank" rel="noopener">Instagram</a>
           </div>
         </div>
@@ -284,10 +376,14 @@
         </div>
       </div>
     </div>
-    <div class="schluss"><div class="wort">Fresh Fresh.</div></div>
+    <div class="schluss"><img class="schluss-wappen" src="medien/wappen-gold.svg" alt="" width="2160" height="1356"><div class="wort" data-hut-ziel="0.08,0.08">Fresh Fresh.</div></div>
     <footer class="fuss breit">
       <span>© Beethoven Barbershop · Saarbrücken</span>
-      <span><a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a></span>
+      <span><a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a> · <a href="offene-fragen.html">Offene Fragen</a></span>
+      <a class="falke" href="https://falcon-eye.de/webdesign.html" target="_blank" rel="noopener" aria-label="Website von Falcon Eye – Websites, die fliegen">
+        <span class="falke-vogel" aria-hidden="true"><span class="fv-fluegel"></span><span class="fv-kopf"></span></span>
+        <span class="falke-wort"><small>Website von</small>Falcon Eye <em>Websites, die fliegen</em></span>
+      </a>
     </footer>
   </section>
 </main>
