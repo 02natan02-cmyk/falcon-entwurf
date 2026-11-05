@@ -417,7 +417,8 @@ h2 em,h1 em{font-style:italic;color:var(--gold-hell)}
 .falke:hover .fv-fluegel{animation-duration:.45s}
 
 /* ---------- Tablet und Handy ---------- */
-@media (max-width:1180px){
+@media (max-width:1400px){.nav a{padding:8px 8px;font-size:14px}.status-pille{padding:8px 11px;font-size:13px}}
+@media (max-width:1250px){
   .nav{display:none}
   .nav.offen-menue{display:flex;position:fixed;top:calc(var(--kopf) + 22px + env(safe-area-inset-top,0px));left:0;right:0;flex-direction:column;background:var(--lack);padding:16px max(20px,env(safe-area-inset-left,0px)) 24px;border-bottom:1px solid var(--linie);max-height:calc(100svh - var(--kopf) - 22px);overflow:auto}
   .nav.offen-menue a{font-family:var(--display);font-size:clamp(26px,7vw,34px);padding:10px 0;border-radius:0}
@@ -511,7 +512,7 @@ body{position:relative}
 .bk-steuer .bk-zitate{flex:1 0 100%;position:relative;min-height:0;max-width:36ch;margin:0 auto 2px}
 .bk-steuer .bk-zitate blockquote{font-size:clamp(17px,4.4vw,20px);text-align:center;border-left:0;padding-left:0;margin:0}
 .bk-steuer .bk-zitate cite{font-size:11px}
-@media (max-width:900px){.heft-seite{margin-top:150px}}
+@media (max-width:900px){.heft-seite{margin-top:40px}}
 @media (orientation:portrait) and (max-width:900px){
   .bk-szene{width:118vw;justify-self:start;margin-left:-9vw}
   .bk-sterne{font-size:5.2cqw}
@@ -521,4 +522,58 @@ body{position:relative}
 @media (orientation:portrait) and (max-height:720px) and (max-width:700px){
   .hero h1{font-size:clamp(34px,10vw,50px)}
   .hero .unter{font-size:15px;margin:8px 0 12px}
+}
+
+/* ---------- Intermezzo: das Foyer mit echten Instagram-Bildern ---------- */
+.foyer{background:#0a0707}
+.foyer-buehne{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr auto;padding-top:calc(var(--kopf) + 34px + env(safe-area-inset-top,0px));background:radial-gradient(90% 60% at 50% 100%,rgba(125,23,39,.38),transparent 70%),linear-gradient(180deg,#0d0a0a,#140d0c)}
+.foyer-licht{position:absolute;inset:0;pointer-events:none;background:radial-gradient(32% 42% at var(--lx,62%) 60%,rgba(255,236,190,.13),transparent 70%);z-index:3;mix-blend-mode:screen}
+.foyer-kopf{position:relative;z-index:4}
+.foyer-kopf h2{font-size:clamp(34px,4.6vw,70px);margin:10px 0 10px}
+.foyer-kopf .lese{color:var(--rauch);max-width:58ch;margin:0}
+.foyer-knoepfe{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.ig{width:17px;height:17px;border-radius:5px;border:2px solid currentColor;position:relative;display:inline-block;flex:none}
+.ig::before{content:"";position:absolute;inset:2.5px;border-radius:50%;border:2px solid currentColor}
+.ig::after{content:"";position:absolute;right:1px;top:1px;width:2.5px;height:2.5px;border-radius:50%;background:currentColor}
+.foyer-raum{position:relative;min-width:0;perspective:1300px;perspective-origin:28% 50%;min-height:0;display:flex;align-items:center;z-index:2}
+.foyer-wand{--fh:clamp(120px,18.5svh,210px);display:grid;grid-auto-flow:column;grid-template-rows:repeat(3,var(--fh));grid-auto-columns:calc(var(--fh)*.8);gap:calc(var(--fh)*.15) calc(var(--fh)*.15);padding:0 max(20px,6vw);transform-origin:0 50%;transform:rotateY(20deg) translate3d(var(--x,0px),0,0);will-change:transform;transform-style:preserve-3d}
+.foyer-bild{position:relative;display:block;border-radius:2px;background:#1a1210;box-shadow:0 0 0 3px #3a2a14,0 0 0 4px var(--gold-dunkel),0 0 0 7px #1d140e,0 0 0 8px rgba(201,163,90,.55),0 22px 30px -10px rgba(0,0,0,.9);transition:transform .45s var(--weich);outline-offset:12px;text-decoration:none}
+.foyer-bild img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .7s;border-radius:2px}
+.foyer-bild img.da{opacity:1}
+.foyer-bild .plakette{position:absolute;left:50%;bottom:-16px;transform:translateX(-50%);white-space:nowrap;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--lack);background:linear-gradient(180deg,#ecd59f,#b48e4a);padding:2px 8px;border-radius:2px;box-shadow:0 2px 6px rgba(0,0,0,.5);z-index:2}
+.foyer-bild .auf{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:10px;background:rgba(13,10,10,.58);color:var(--gold-hell);font-size:12px;letter-spacing:.12em;text-transform:uppercase;opacity:0;transition:opacity .3s;z-index:1}
+.foyer-bild:hover,.foyer-bild:focus-visible{transform:translateZ(70px) scale(1.07)}
+.foyer-bild:hover .auf,.foyer-bild:focus-visible .auf{opacity:1}
+.foyer-lauf{position:relative;z-index:4;padding-bottom:calc(18px + var(--leiste) + env(safe-area-inset-bottom,0px))}
+.foyer-lauf .breit{display:flex;align-items:center;gap:14px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--rauch)}
+.foyer-lauf b{flex:1;height:2px;background:var(--linie);position:relative;max-width:420px}
+.foyer-lauf i{position:absolute;inset:0 auto 0 0;width:0;background:var(--gold-hell)}
+@media (max-width:700px),(orientation:portrait) and (max-width:1000px){
+  .foyer-wand{--fh:clamp(96px,16.5svh,180px);grid-template-rows:repeat(2,var(--fh));transform:rotateY(14deg) translate3d(var(--x,0px),0,0)}
+  .foyer-kopf h2{font-size:clamp(30px,8.6vw,46px)}
+  .foyer-kopf .lese{font-size:15px}
+  .foyer-lauf .fl-wort{display:none}
+}
+@media (orientation:landscape) and (max-height:500px){
+  .foyer-buehne{padding-top:calc(var(--kopf) + 26px)}
+  .foyer-wand{--fh:clamp(60px,27svh,110px);grid-template-rows:repeat(1,var(--fh))}
+  .foyer-kopf .lese{display:none}
+  .foyer-kopf h2{font-size:28px}
+  .foyer-knoepfe{margin-top:8px}
+  .foyer-knoepfe .knopf{padding:9px 14px;font-size:14px}
+}
+
+.hut-bahn{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:45}
+.hut-bahn .hut-reise{pointer-events:auto}
+.hut-reise #hut-b{width:100%;height:100%;object-fit:contain}
+@media (max-width:900px){
+  .spielplan{padding:14px 16px 12px}
+  .sp-zeit{font-size:30px;margin-top:2px}
+  .sp-status{margin-top:4px;font-size:14px}
+  .sp-woche,.sp-wochentext,.sp-fuss{display:none}
+  .sp-tagbahn{margin:10px 0 2px}
+  .sp-knoepfe{margin-top:12px;flex-wrap:nowrap;gap:8px}
+  .sp-knoepfe .knopf{flex:1;padding:11px 10px;font-size:14px}
+  .foyer-knoepfe{gap:8px;margin-top:12px}
+  .foyer-knoepfe .knopf{padding:10px 13px;font-size:13px}
 }

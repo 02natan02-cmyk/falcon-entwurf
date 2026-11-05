@@ -51,6 +51,7 @@
       <a href="#leistungen">Preise</a>
       <a href="#kinder">Kinder</a>
       <a href="#team">Team</a>
+      <a href="#instagram">Instagram</a>
       <a href="#bewertungen">Bewertungen</a>
       <a href="#fluegel">Flügel</a>
       <a href="#besuch">Besuch</a>
@@ -88,7 +89,7 @@
 </div>
 
 <!-- Der Hut von Mr Fresh fällt durch die ganze Seite -->
-<button class="hut-reise" id="hut-reise" type="button" aria-label="Hut ab! Der Hut von Mr Fresh"><img id="hut-a" src="medien/foto/hut.webp" alt="" width="700" height="399"><img id="hut-b" src="medien/foto/hut-b.webp" alt="" width="700" height="420"></button>
+<button class="hut-reise" id="hut-reise" type="button" aria-label="Hut ab! Der Hut von Mr Fresh"><img id="hut-a" src="medien/foto/hut-film.webp" alt="" width="400" height="217"><img id="hut-b" src="medien/foto/hut-b.webp" alt="" width="700" height="420"></button>
 
 <main id="start">
 
@@ -201,14 +202,14 @@
           <li><span class="titel">Kinder-Haarschnitt<small>mit Seiten auf null</small></span><span class="punkte-linie"></span><span class="preis">17</span></li>
         </ol>
         <div class="heft-seite">
+          <div class="notenblatt" id="notenblatt">
+            <div class="nb-unter"><b>Hier brennt nur das Notenblatt.</b><span>Mit und ohne Termin · Bar oder mit Karte</span></div>
+            <canvas id="nb-leinwand" aria-hidden="true"></canvas>
+          </div>
           <div class="feuer-buehne" id="feuer-buehne">
             <div class="heft-bild" data-medium="flamme"></div>
             <canvas class="feuer" id="feuer" aria-hidden="true"></canvas>
             <div class="feuer-schild">Die Flamme <span>für die Ohrhärchen</span></div>
-          </div>
-          <div class="notenblatt" id="notenblatt">
-            <div class="nb-unter"><b>Hier brennt nur das Notenblatt.</b><span>Mit und ohne Termin · Bar oder mit Karte</span></div>
-            <canvas id="nb-leinwand" aria-hidden="true"></canvas>
           </div>
         </div>
       </div>
@@ -284,6 +285,24 @@
   </section>
 
   <!-- IX · Applaus: die Bühne -->
+  <section class="kapitel foyer" id="instagram" data-satz="Intermezzo" aria-labelledby="h-foyer" style="height:340vh">
+    <div class="naht" aria-hidden="true"></div>
+    <div class="foyer-buehne">
+      <div class="foyer-licht" aria-hidden="true"></div>
+      <div class="foyer-kopf rand"><div class="breit">
+        <div class="tempo">Intermezzo · das Foyer</div>
+        <h2 id="h-foyer">Unser Foyer hängt voller <em>Gesichter</em>.</h2>
+        <p class="lese">Jeder frische Schnitt landet auf Instagram. Hier hängt eine Auswahl, die neuesten zuerst. Tipp ein Bild an, dann öffnet sich der Beitrag.</p>
+        <div class="foyer-knoepfe">
+          <a class="knopf voll" href="https://www.instagram.com/beethoven_barber/" target="_blank" rel="noopener"><span class="ig" aria-hidden="true"></span>@beethoven_barber folgen</a>
+          <a class="knopf" href="https://www.instagram.com/mrfresh_barber/" target="_blank" rel="noopener"><span class="ig" aria-hidden="true"></span>@mrfresh_barber</a>
+        </div>
+      </div></div>
+      <div class="foyer-raum"><div class="foyer-wand" id="foyer-wand" role="list" aria-label="Fotos von Instagram"></div></div>
+      <div class="foyer-lauf rand" aria-hidden="true"><div class="breit"><span class="fl-wort">Weiter scrollen, die Galerie läuft mit</span><b><i id="foyer-lauf"></i></b></div></div>
+    </div>
+  </section>
+
   <section class="kapitel buehne-kap" id="bewertungen" data-satz="Applaus" aria-labelledby="h-applaus" style="height:260vh">
     <div class="naht" aria-hidden="true"></div>
     <div class="bk-buehne">
