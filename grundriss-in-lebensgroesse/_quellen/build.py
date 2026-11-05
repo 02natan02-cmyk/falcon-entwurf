@@ -133,7 +133,7 @@ INDEX = head('Grundriss in Lebensgröße Saarlouis – Küchenstudio & Events', 
 KPC = dict(
     film_erf='mit Planung, Verkauf und Montage aus einer Hand', mail=MAIL, wa=WA, form_mail=FORM_MAIL,
     studio='Grundriss in Lebensgröße · Saarlouis', greet='Hallo Florian', acc=ORANGE,
-    person='Florian', person_short='Florian', pl_name='Planungstisch Saarlouis', pl_theme='blueprint', herst='ballerina,nobilia',
+    person='Florian', person_short='Florian', pl_name='Planungstisch Saarlouis', pl_theme='blueprint', herst='ballerina,nobilia', filmclips=('img/kpfilm/' if os.path.isdir(HERE + 'kpfilm/k') else ''),
     ki_name='Raum-Vorschau', ki_kick='Neu · Raum-Vorschau per Foto', ki_h1='Ihr Raum heute.', ki_h2='Ihre Küche morgen.',
     ki_p='Ein Handyfoto vom leeren Raum oder Ihrer alten Küche genügt. Der Planer stellt die Küche, die Sie gerade geplant haben, in 3D direkt in Ihr Foto – mit Vorher/Nachher-Regler. Danach erleben Sie sie bei uns in der Halle in Originalgröße.',
     ah_kick='Planung in Lebensgröße', ah_h1='Gebaut für', ah_h2='Ihre Größe.', ah_p='Stellen Sie Ihre Größe ein – wir finden die Arbeitshöhe, die zu Ihnen passt.')
@@ -171,6 +171,9 @@ for n, h in [('index.html', INDEX), ('planer.html', PLANER), ('impressum.html', 
 for f in os.listdir(HERE + 'src/fonts'): shutil.copy(HERE + 'src/fonts/' + f, OUT + 'fonts/' + f)
 for f in ['gil.css', 'gil-kp.css', 'gil.js', 'gil-pre.js']: shutil.copy(HERE + 'src/' + f, OUT + 'assets/' + f)
 os.makedirs(OUT + 'media', exist_ok=True)
+if os.path.isdir(HERE + 'kpfilm/k'):
+    os.makedirs(OUT + 'img/kpfilm/k', exist_ok=True)
+    for f in os.listdir(HERE + 'kpfilm/k'): shutil.copy(HERE + 'kpfilm/k/' + f, OUT + 'img/kpfilm/k/' + f)
 for f in (os.listdir(HERE + 'media') if os.path.isdir(HERE + 'media') else []): shutil.copy(HERE + 'media/' + f, OUT + 'media/' + f)
 for f in os.listdir(HERE + 'src/out-img'): shutil.copy(HERE + 'src/out-img/' + f, OUT + 'img/' + f)
 # Planer (eigene Kopie)

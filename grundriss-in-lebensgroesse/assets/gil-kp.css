@@ -13,3 +13,6 @@
 .kp-steps button.on i,.kp-steps button.done i{background:var(--orange)!important;color:#fff!important}
 .kp-live i{background:var(--orange)!important}
 .kp-ki,.ki{scroll-margin-top:80px}
+/* Erklärmodus vor dem ersten Planen: schwarz mit orangem Grundriss-Raster wie die Projektion im Studio */
+.kpfm{background:radial-gradient(90% 70% at 30% 35%,rgba(240,123,79,.16),transparent 70%),linear-gradient(rgba(240,123,79,.07) 1px,transparent 1px) 0 0/48px 48px,linear-gradient(90deg,rgba(240,123,79,.07) 1px,transparent 1px) 0 0/48px 48px,#050505!important}
+.kpfm .kpk-tabs button[aria-selected="true"] b,.kpfm .kpk-tabs button.on b{background:#f07b4f;color:#fff}
