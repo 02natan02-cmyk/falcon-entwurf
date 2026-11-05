@@ -69,11 +69,10 @@
 <!-- Spielplan: die Öffnungszeiten von heute -->
 <div class="spielplan" id="spielplan" role="dialog" aria-label="Öffnungszeiten heute" aria-hidden="true">
   <button class="sp-zu" id="sp-zu" type="button" aria-label="Spielplan schließen">✕</button>
-  <div class="sp-kopf">Spielplan · <span id="sp-tag">heute</span></div>
-  <div class="sp-zeit" id="sp-zeit">9 – 19 Uhr</div>
+  <div class="sp-kopf">Spielplan · Öffnungszeiten</div>
+  <ul class="sp-plan" id="sp-plan"><li data-tage="1,2,3,4,5,6"><span>Montag bis Samstag</span><b>9 – 19 Uhr</b></li><li data-tage="0"><span>Sonntag</span><b>Ruhetag</b></li></ul>
   <div class="sp-status" id="sp-status"><i></i><span>…</span></div>
   <div class="sp-tagbahn" aria-hidden="true"><span>9</span><div class="sp-bahn"><b id="sp-fuell"></b><i id="sp-jetzt"></i></div><span>19</span></div>
-  <ol class="sp-woche" id="sp-woche" aria-label="Wochenplan"></ol>
   <div class="sp-knoepfe">
     <a class="knopf voll" href="tel:+4968168629267">☎ Jetzt anrufen</a>
     <a class="knopf" href="https://www.google.com/maps/dir/?api=1&amp;destination=Beethoven+Barbershop+Dudweilerstra%C3%9Fe+53+66111+Saarbr%C3%BCcken" target="_blank" rel="noopener">Route</a>
@@ -89,7 +88,7 @@
 </div>
 
 <!-- Der Hut von Mr Fresh fällt durch die ganze Seite -->
-<button class="hut-reise" id="hut-reise" type="button" aria-label="Hut ab! Der Hut von Mr Fresh"><img id="hut-a" src="medien/foto/hut-film.webp" alt="" width="400" height="217"><img id="hut-b" src="medien/foto/hut-b.webp" alt="" width="700" height="420"></button>
+<button class="hut-reise" id="hut-reise" type="button" aria-label="Hut ab! Der Hut von Mr Fresh"><img id="hut-a" src="medien/foto/hut-film.webp" alt="" width="401" height="183"><img id="hut-b" src="medien/foto/hut-b.webp" alt="" width="700" height="420"></button>
 
 <main id="start">
 
@@ -372,13 +371,8 @@
           <div class="besuch-status" id="besuch-status"><i></i><span>…</span></div>
           <div class="adresse">Dudweilerstraße 53<br>66111 Saarbrücken</div>
           <ul class="zeiten" id="zeiten">
-            <li data-tag="1"><span>Montag</span><span>9–19 Uhr</span></li>
-            <li data-tag="2"><span>Dienstag</span><span>9–19 Uhr</span></li>
-            <li data-tag="3"><span>Mittwoch</span><span>9–19 Uhr</span></li>
-            <li data-tag="4"><span>Donnerstag</span><span>9–19 Uhr</span></li>
-            <li data-tag="5"><span>Freitag</span><span>9–19 Uhr</span></li>
-            <li data-tag="6"><span>Samstag</span><span>9–19 Uhr</span></li>
-            <li data-tag="0"><span>Sonntag</span><span>geschlossen</span></li>
+            <li data-tage="1,2,3,4,5,6"><span>Montag bis Samstag</span><span>9–19 Uhr</span></li>
+            <li data-tage="0"><span>Sonntag</span><span>Ruhetag</span></li>
           </ul>
           <div class="merkmale"><span>Mit und ohne Termin</span><span>Kartenzahlung</span><span>Kinderfreundlich</span><span>Rollstuhlgerechter Eingang</span></div>
           <div class="knoepfe">

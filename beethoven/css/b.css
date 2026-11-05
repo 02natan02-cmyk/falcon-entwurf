@@ -393,7 +393,7 @@ h2 em,h1 em{font-style:italic;color:var(--gold-hell)}
 .zeiten{list-style:none;padding:0;margin:20px 0 0;max-width:440px}
 .zeiten li{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--linie);font-variant-numeric:tabular-nums}
 .zeiten li.heute{color:var(--gold-hell);font-weight:600}
-.zeiten li.heute span:first-child::after{content:" · heute";color:var(--gold);font-weight:400}
+
 .merkmale{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
 .merkmale span{border:1px solid var(--linie);border-radius:999px;padding:6px 12px;font-size:14px;color:var(--rauch)}
 .karte-platz{aspect-ratio:4/3;border:1px solid var(--linie);border-radius:4px;display:grid;place-items:center;text-align:center;padding:24px;background:linear-gradient(135deg,var(--lack-2),var(--bordeaux-tief))}
@@ -577,3 +577,16 @@ body{position:relative}
   .foyer-knoepfe{gap:8px;margin-top:12px}
   .foyer-knoepfe .knopf{padding:10px 13px;font-size:13px}
 }
+
+.sp-plan{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:2px}
+.sp-plan li{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:7px 0;border-bottom:1px solid var(--linie);font-family:var(--display);font-size:21px;color:var(--creme)}
+.sp-plan li b{font-weight:500;color:var(--gold-hell);font-variant-numeric:lining-nums;white-space:nowrap}
+.sp-plan li span{display:inline-flex;align-items:center;gap:8px}
+.zeiten li.heute span:first-child::after{content:"heute";font-family:var(--text);font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--lack);background:var(--gold);padding:2px 7px;border-radius:999px;margin-left:8px;vertical-align:middle}
+.sp-status{margin-top:12px}
+@media (max-width:900px){.sp-plan li{font-size:19px;padding:5px 0}}
+.sp-plan li span{white-space:nowrap}
+.sp-plan li.heute span,.sp-plan li.heute b{color:var(--gold-hell)}
+.sp-plan li.heute span::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--gold-hell);box-shadow:0 0 10px var(--gold);flex:none}
+.sp-plan li:not(.heute) span::before{content:"";width:8px;height:8px;flex:none}
+@media (max-width:420px){.sp-plan li{font-size:18px}}

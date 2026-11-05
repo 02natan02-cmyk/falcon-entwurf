@@ -78,20 +78,19 @@ function lage(){
 }
 var sp=$('#spielplan'),spOffen=false,spAutoZu=null;
 (function baueWoche(){
-  var ol=$('#sp-woche');if(!ol)return;var reihe=[1,2,3,4,5,6,0];
-  reihe.forEach(function(t){var li=document.createElement('li');li.dataset.tag=t;li.setAttribute('aria-label',TAGE[t]+': '+(ZEITEN[t]?uhr(ZEITEN[t][0])+' bis '+uhr(ZEITEN[t][1]):'Ruhetag'));if(!ZEITEN[t])li.className='pause';li.innerHTML='<span>heute</span><b></b>';ol.appendChild(li)});
-  var tx=document.createElement('div');tx.className='sp-wochentext';tx.textContent='Montag bis Samstag 9 bis 19 Uhr · Sonntag Ruhetag';ol.after(tx);
+  /* auf den ersten Blick die ganze Woche: gleiche Zeiten werden zusammengefasst („Montag bis Samstag“) */
+  var reihe=[1,2,3,4,5,6,0],gruppen=[];
+  reihe.forEach(function(t){var z=ZEITEN[t],k=z?z.join('-'):'zu',g=gruppen[gruppen.length-1];if(g&&g.k===k)g.tage.push(t);else gruppen.push({k:k,z:z,tage:[t]})});
+  var html=gruppen.map(function(g){var n=g.tage.length>1?TAGE[g.tage[0]]+' bis '+TAGE[g.tage[g.tage.length-1]]:TAGE[g.tage[0]];return '<li data-tage="'+g.tage.join(',')+'"><span>'+n+'</span><b>'+(g.z?uhr(g.z[0]).replace(' Uhr','')+' – '+uhr(g.z[1]):'Ruhetag')+'</b></li>'}).join('');
+  var pl=$('#sp-plan');if(pl)pl.innerHTML=html;
 })();
 function zeitenMalen(){
   var L=lage(),b=L.b;
-  $('#sp-tag').textContent=TAGE[b.tag];
-  $('#sp-zeit').textContent=L.z?uhr(L.z[0]).replace(' Uhr','')+' – '+uhr(L.z[1]):'Ruhetag';
   [['#sp-status',L.lang],['#besuch-status',L.lang],['#status-pille',L.pille],['#leiste-status',L.kurz]].forEach(function(p){var el=$(p[0]);if(!el)return;el.classList.toggle('ja',L.auf);el.lastElementChild.textContent=p[1]});
   var fuell=L.z?klemm((b.min-L.z[0])/(L.z[1]-L.z[0]),0,1):0;
   if(spOffen){$('#sp-fuell').style.width=(fuell*100)+'%';$('#sp-jetzt').style.left=(fuell*100)+'%'}
   $('#sp-jetzt').style.opacity=L.auf?1:.35;
-  $$('#sp-woche li').forEach(function(li){li.classList.toggle('heute',+li.dataset.tag===b.tag)});
-  $$('#zeiten li').forEach(function(li){li.classList.toggle('heute',+li.dataset.tag===b.tag)});
+  $$('#sp-plan li,#zeiten li').forEach(function(li){li.classList.toggle('heute',(li.dataset.tage||'').split(',').indexOf(String(b.tag))>=0)});
   sp._fuell=fuell;
 }
 zeitenMalen();setInterval(zeitenMalen,30000);
@@ -233,8 +232,8 @@ function punkteLauf(st){
 })();
 
 /* ===================== Der Hut von Mr Fresh reist durch die Seite ===================== */
-var HUT={el:$('#hut-reise'),ziele:[],klick:-9e9,feier:-9e9,blase:null,zuletzt:'',asp:217/400};
-var HUT_IM_FILM={x:.73485,y:.2024,w:.2083}; /* Lage des echten Huts im letzten Bild der „Neunten“ (Ausschnitt hut-film.webp) */
+var HUT={el:$('#hut-reise'),ziele:[],klick:-9e9,feier:-9e9,blase:null,zuletzt:'',asp:183/401};
+var HUT_IM_FILM={x:.7357,y:.1754,w:.2089}; /* Lage des echten Huts im letzten Bild der „Neunten“ (Ausschnitt hut-film.webp) */
 function hutGroesse(){return klemm(innerWidth*.08,64,120)*(innerWidth<520?.9:1)}
 function hutZiele(){
   var z=[];
