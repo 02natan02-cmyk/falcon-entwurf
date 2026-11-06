@@ -563,7 +563,9 @@ body{position:relative}
   .foyer-knoepfe .knopf{padding:9px 14px;font-size:14px}
 }
 
-.hut-bahn{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:45}
+.hut-bahn{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:45}
+/* Gegenlicht wie auf der Bühne: goldene Kante und warmer Schein, damit der schwarze Hut auch auf dunklen Abschnitten klar zu sehen ist */
+.hut-bahn .hut-reise{filter:drop-shadow(0 0 1.2px rgba(242,222,170,.95)) drop-shadow(0 0 12px rgba(236,213,159,.38)) drop-shadow(0 14px 12px rgba(0,0,0,.55))}
 .hut-bahn .hut-reise{pointer-events:auto}
 .hut-reise #hut-b{width:100%;height:100%;object-fit:contain}
 @media (max-width:900px){

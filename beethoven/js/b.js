@@ -234,7 +234,7 @@ function punkteLauf(st){
 /* ===================== Der Hut von Mr Fresh reist durch die Seite ===================== */
 var HUT={el:$('#hut-reise'),ziele:[],klick:-9e9,feier:-9e9,blase:null,zuletzt:'',asp:183/401};
 var HUT_IM_FILM={x:.7357,y:.1754,w:.2089}; /* Lage des echten Huts im letzten Bild der „Neunten“ (Ausschnitt hut-film.webp) */
-function hutGroesse(){return klemm(innerWidth*.08,64,120)*(innerWidth<520?.9:1)}
+function hutGroesse(){var w=innerWidth;return w<700?klemm(w*.19,66,92):klemm(w*.075,80,120)}
 function hutZiele(){
   var z=[];
   $$('[data-hut-ziel]').forEach(function(el){
@@ -245,8 +245,10 @@ function hutZiele(){
     z.push({x:lx+w*v[0],y:ly+h*v[1]});
   });
   z.sort(function(a,b){return a.y-b.y});HUT.ziele=z;HUT.zuletzt='';
+  /* freie Fläche im Bildschirm: unter der Kopfzeile, über der Leiste unten */
+  var k=$('#kopf'),l=$('.leiste');HUT.oben=k?k.getBoundingClientRect().bottom:0;HUT.unten=l&&getComputedStyle(l).display!=='none'?l.offsetHeight:0;
 }
-function hutBahn(){var w=innerWidth;return w>1320?(w+1200)/2+(w-1200)/4:w+hutGroesse()*.12} /* schmale Bildschirme: zwischen den Stationen fällt der Hut halb außerhalb am Rand, damit er Text und Preise nicht verdeckt */
+function hutBahn(){var w=innerWidth,N=hutGroesse(),rand=w>1320?(w+1200)/2+(w-1200)/4:1e9;return Math.min(rand,w-N*.55-6)} /* breit: im Rand neben dem Inhalt · schmal: ganz sichtbar am rechten Rand */
 function hutLage(){
   var vh=innerHeight,N=hutGroesse(),hero=filme[0];
   var heroEnde=hero?hero.sek.offsetTop+hero.sek.offsetHeight:0,pts=[];
@@ -264,13 +266,14 @@ function hutLage(){
   var letzte=pts[pts.length-1];if(s>=letzte.y){L.x=letzte.x;L.y=letzte.y;L.w=letzte.w;return L}
   while(i<pts.length-2&&s>=pts[i+1].y)i++;
   var A=pts[i],B=pts[i+1],gap=Math.max(1,B.y-A.y),H=Math.min(vh*.16,gap*.22),d=s-A.y;
+  L.reise=true;
   if(d<H){var k0=d/H;L.x=A.x;L.y=A.y-Math.sin(k0*Math.PI)*8;L.w=A.w;L.rot=misch(A.film?0:-6,-16,k0);return L}
   var u=(d-H)/(gap-H),weit=klemm((gap/vh-.5)/.7,0,1),k=glatt(u/.16)*(1-glatt((u-.84)/.16))*weit;
   var bahn=hutBahn(),schwung=Math.min(46,Math.max(10,(innerWidth-1200)/6))*(innerWidth<700?.35:1);
   var dreh=Math.max(1,Math.round(gap/vh*1.3));
   L.x=misch(misch(A.x,B.x,glatt(u)),bahn,k)+Math.sin(u*Math.PI*2*dreh*.8)*schwung*k;
   L.y=A.y+u*gap+(u>.93?-Math.sin((u-.93)/.07*Math.PI)*14:0);
-  L.w=misch(A.w,B.w,glatt(u/.25))*misch(1,innerWidth<700?.82:1,k);
+  L.w=misch(A.w,B.w,glatt(u/.25));
   L.rot=misch(misch(-16,-6,glatt(u)),Math.sin(u*Math.PI*2*dreh)*30,k);
   L.flip=Math.cos(glatt(u)*Math.PI*2*dreh);
   return L;
@@ -278,29 +281,30 @@ function hutLage(){
 function hutMalen(jetzt){
   var el=HUT.el;if(!el||ruhig)return;
   var Z=hutLage();if(!Z){el.classList.remove('da');return}
-  /* weich nachziehen: im Dokument geglättet, damit der Hut beim Fallen fließt und an den Stationen exakt sitzt */
-  var dt=Math.min(.1,(jetzt-(HUT.t||jetzt))/1000);HUT.t=jetzt;var C=HUT.cur;
-  if(!C||Z.fest||Math.abs(C.y-Z.y)>innerHeight*3){C=HUT.cur={x:Z.x,y:Z.y,w:Z.w,rot:Z.rot,flip:Z.flip}}
-  else{var k=1-Math.exp(-dt*9),kr=1-Math.exp(-dt*7);C.x+=(Z.x-C.x)*k;C.y+=(Z.y-C.y)*k;C.w+=(Z.w-C.w)*k;C.rot+=(Z.rot-C.rot)*kr;C.flip+=(Z.flip-C.flip)*kr}
+  /* weich nachziehen, im Bildschirm gerechnet: der Hut hängt nie hinter dem Scrollen her und bleibt auf der Reise immer ganz im Bild */
+  var vh=innerHeight,zy=Z.y-scrollY,dt=Math.min(.1,(jetzt-(HUT.t||jetzt))/1000);HUT.t=jetzt;var C=HUT.cur;
+  if(!C||Z.fest||Math.abs(C.y-zy)>vh*1.5){C=HUT.cur={x:Z.x,y:zy,w:Z.w,rot:Z.rot,flip:Z.flip}}
+  else{var k=1-Math.exp(-dt*10),kr=1-Math.exp(-dt*7);C.x+=(Z.x-C.x)*k;C.y+=(zy-C.y)*k;C.w+=(Z.w-C.w)*k;C.rot+=(Z.rot-C.rot)*kr;C.flip+=(Z.flip-C.flip)*kr}
+  if(Z.reise){var hh=C.w*HUT.asp;C.y=klemm(C.y,(HUT.oben||0)+hh+10,vh-(HUT.unten||0)-12)}
   var L={x:C.x,y:C.y,w:C.w,rot:C.rot,flip:C.flip,sicht:Z.sicht,glanz:Z.glanz};
-  var vh=innerHeight;
   /* „Hut ab!“ beim Antippen und beim Finale am Flügel */
   var kl=(jetzt-HUT.klick)/750,extraRot=0,extraS=1,hop=0;
   if(kl>=0&&kl<1){extraRot=360*glatt(kl);extraS=1+Math.sin(kl*Math.PI)*.35;hop=Math.sin(kl*Math.PI)*60}
   var fe=(jetzt-HUT.feier)/2800;
-  if(fe>=0&&fe<1){var e=glatt(fe/.25)*(1-glatt((fe-.75)/.25));L.x=misch(L.x,innerWidth/2,e);L.y=misch(L.y,scrollY+vh*.62,e);L.w=misch(L.w,Math.min(innerWidth*.5,320),e);extraRot+=720*glatt(fe);L.flip=misch(L.flip,1,e);L.sicht=Math.max(L.sicht,e)}
-  var w=L.w,hgt=w*HUT.asp,f=L.flip,b=f<0,sx=Math.max(.14,Math.abs(f));
+  if(fe>=0&&fe<1){var e=glatt(fe/.25)*(1-glatt((fe-.75)/.25));L.x=misch(L.x,innerWidth/2,e);L.y=misch(L.y,vh*.62,e);L.w=misch(L.w,Math.min(innerWidth*.5,320),e);extraRot+=720*glatt(fe);L.flip=misch(L.flip,1,e);L.sicht=Math.max(L.sicht,e)}
+  var w=L.w,hgt=w*HUT.asp,f=L.flip,b=f<0,sx=Math.max(.4,Math.abs(f));
+  L.x=klemm(L.x,w*.5+6,innerWidth-w*.5-6); /* nie über den Bildschirmrand hinaus */
   var key=[L.x|0,L.y|0,w|0,(L.rot+extraRot)|0,(sx*50)|0,b,(extraS*20)|0,(L.sicht*20)|0].join();
   if(key===HUT.zuletzt)return;HUT.zuletzt=key;
   el.style.width=w+'px';
   el.style.transform='translate3d('+(L.x-w/2).toFixed(1)+'px,'+(L.y-hgt-hop).toFixed(1)+'px,0) rotate('+(L.rot+extraRot).toFixed(1)+'deg) scale('+(sx*extraS).toFixed(3)+','+extraS.toFixed(3)+')';
   el.classList.toggle('b',b);el.classList.add('da');el.style.opacity=L.sicht.toFixed(2);
-  el.style.filter=L.glanz>0?'drop-shadow(0 0 '+(18*L.glanz).toFixed(0)+'px rgba(236,213,159,'+(.8*L.glanz).toFixed(2)+')) drop-shadow(0 16px 14px rgba(0,0,0,.55))':'';
+  el.style.filter=L.glanz>0?'drop-shadow(0 0 1.2px rgba(242,222,170,.95)) drop-shadow(0 0 '+(12+18*L.glanz).toFixed(0)+'px rgba(236,213,159,'+(.38+.5*L.glanz).toFixed(2)+')) drop-shadow(0 16px 14px rgba(0,0,0,.55))':'';
   el.style.pointerEvents=L.sicht>.5?'auto':'none';
-  if(HUT.blase&&HUT.blase.classList.contains('an')){HUT.blase.style.left=(L.x+w*.4)+'px';HUT.blase.style.top=(L.y-scrollY-hgt-30-hop)+'px'}
+  if(HUT.blase&&HUT.blase.classList.contains('an')){HUT.blase.style.left=(L.x+w*.4)+'px';HUT.blase.style.top=(L.y-hgt-30-hop)+'px'}
 }
 if(HUT.el){
-  /* eigene Bahn über der ganzen Seite, die alles abschneidet, was über den Rand hinausragt: kein seitliches Scrollen */
+  /* eigene feste Ebene über dem Bildschirm, die alles abschneidet, was über den Rand hinausragt: kein seitliches Scrollen */
   var hb=document.createElement('div');hb.className='hut-bahn';document.body.appendChild(hb);hb.appendChild(HUT.el);
   if(ruhig){HUT.el.style.display='none'}
   HUT.blase=document.createElement('div');HUT.blase.className='hut-sprechblase';HUT.blase.textContent='Hut ab!';HUT.blase.setAttribute('aria-hidden','true');document.body.appendChild(HUT.blase);
