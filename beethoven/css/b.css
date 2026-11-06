@@ -153,9 +153,9 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:70;opa
 /* ---------- Naht mit Schere zwischen den Abschnitten ---------- */
 .naht{position:absolute;left:0;right:0;top:-1px;height:2px;z-index:6;pointer-events:none}
 .naht svg.linie{position:absolute;left:0;top:0;width:100%;height:2px;overflow:visible}
-.naht .schere{position:absolute;top:-17px;left:0;width:56px;height:34px;transform:translateX(-50%);filter:drop-shadow(0 4px 6px rgba(0,0,0,.5))}
-.naht .schere .klinge-o{transform-origin:22px 17px;transition:transform .08s}
-.naht .schere .klinge-u{transform-origin:22px 17px;transition:transform .08s}
+.naht .schere{position:absolute;top:-18px;left:0;width:64px;height:36px;overflow:visible;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5))}
+.naht .schere .klinge-o{transition:transform .08s}
+.naht .schere .klinge-u{transition:transform .08s}
 
 /* ---------- gemeinsame Teile ---------- */
 .kapitel{position:relative}

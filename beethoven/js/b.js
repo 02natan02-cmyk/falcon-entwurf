@@ -163,16 +163,16 @@ function lageNoten(){var h=root.scrollHeight-innerHeight;saetze.forEach(function
 
 /* ===================== Nähte: die Schere schneidet den nächsten Satz frei ===================== */
 document.body.insertAdjacentHTML('afterbegin','<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><linearGradient id="schere-k" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbf0cc"/><stop offset=".45" stop-color="#d9b56c"/><stop offset="1" stop-color="#6e5122"/></linearGradient></defs></svg>');
-var SCHERE='<svg class="schere" viewBox="0 0 56 34" aria-hidden="true" focusable="false"><g class="klinge-u"><path d="M20 16.6 L55.2 17.4 L54.4 18.7 L20 19.6 Z" fill="url(#schere-k)"/><path d="M21 18.6 L13.6 23" stroke="#c9a35a" stroke-width="2.6" stroke-linecap="round"/><circle cx="9" cy="25" r="5.4" fill="rgba(13,10,10,.4)" stroke="#d9b56c" stroke-width="2.3"/></g><g class="klinge-o"><path d="M20 14.4 L54.4 15.3 L55.2 16.6 L20 17.4 Z" fill="url(#schere-k)"/><path d="M21 15.4 L13.6 11" stroke="#c9a35a" stroke-width="2.6" stroke-linecap="round"/><circle cx="9" cy="9" r="5.4" fill="rgba(13,10,10,.4)" stroke="#d9b56c" stroke-width="2.3"/></g><circle cx="21" cy="17" r="1.8" fill="#3c0b14" stroke="#ecd59f" stroke-width=".8"/></svg>';
+var SCHERE='<svg class="schere" viewBox="0 0 64 36" aria-hidden="true" focusable="false"><g class="klinge-u"><path d="M17 18 C 28 18.6, 46 19.6, 63 18.4 C 50 21.2, 32 22.4, 21 21.6 Z" fill="url(#schere-k)" stroke="#6b5326" stroke-width=".5"/><path d="M22 20.4 C 18.5 22.5, 16 25, 14.2 27" stroke="#c9a35a" stroke-width="3" stroke-linecap="round" fill="none"/><ellipse cx="9.6" cy="28.4" rx="6.6" ry="5.2" fill="rgba(13,10,10,.55)" stroke="#d9b56c" stroke-width="2.4"/></g><g class="klinge-o"><path d="M17 18 C 28 17.4, 46 16.4, 63 17.6 C 50 14.8, 32 13.6, 21 14.4 Z" fill="url(#schere-k)" stroke="#6b5326" stroke-width=".5"/><path d="M22 15.6 C 18.5 13.5, 16 11, 14.2 9" stroke="#c9a35a" stroke-width="3" stroke-linecap="round" fill="none"/><ellipse cx="9.6" cy="7.6" rx="6.6" ry="5.2" fill="rgba(13,10,10,.55)" stroke="#d9b56c" stroke-width="2.4"/></g><circle cx="24" cy="18" r="2" fill="#3c0b14" stroke="#ecd59f" stroke-width=".9"/></svg>';
 var naehte=$$('.naht').map(function(n){n.innerHTML='<div class="naht-strich"></div><div class="naht-schnitt"></div>'+SCHERE;return {el:n,schere:$('.schere',n),o:$('.klinge-o',n),u:$('.klinge-u',n),schnitt:$('.naht-schnitt',n),phase:0,p:-1}});
 function naehteLauf(){
   var vh=innerHeight;
   naehte.forEach(function(N){
     var r=N.el.getBoundingClientRect();if(r.top>vh*1.1||r.top<-vh*.3)return;
     var p=klemm((vh*.94-r.top)/(vh*.62),0,1);if(Math.abs(p-N.p)<.0005)return;
-    var w=r.width,x=misch(30,w-30,p),offen=(p>0&&p<1)?Math.abs(Math.sin(p*Math.PI*8))*16:(p>=1?0:12);
-    N.schere.style.transform='translateX('+(x-28)+'px)';N.schnitt.style.width=x+'px';
-    N.o.setAttribute('transform','rotate('+(-offen)+' 21 17)');N.u.setAttribute('transform','rotate('+offen+' 21 17)');
+    var w=r.width,x=misch(30,w-44,p),offen=(p>0&&p<1)?Math.abs(Math.sin(p*Math.PI*8))*13:(p>=1?0:10);
+    N.schere.style.transform='translateX('+(x-24)+'px)';N.schnitt.style.width=x+'px';
+    N.o.setAttribute('transform','rotate('+(-offen)+' 24 18)');N.u.setAttribute('transform','rotate('+offen+' 24 18)');
     N.p=p;
   });
 }
@@ -345,11 +345,14 @@ if(HUT.el){
   var b=berlin(),n=(b.jahr-2020)*12+(b.monat-10)+1;n=klemm(n,1,400);
   var MEL=[7,6,7,6,7,4,6,5,3,0,1,3,4,1,3,4,5,1,7,6,7,6,7,4,6,5,3];
   var MIDI=[76,75,76,75,76,71,74,72,69,64,65,69,71,65,69,71,72,65,76,75,76,75,76,71,74,72,69];
-  var punkte=[];
+  var punkte=[],spanne={};
   for(var i=0;i<n;i++){var monat=(9+i)%12+1,jahr=2020+Math.floor((9+i)/12),st=MEL[i%MEL.length];
     var e=document.createElement('b');e.style.left=(2+i/(Math.max(1,n-1))*96)+'%';e.style.top=(40-st*4.5)+'px';
-    if(monat===1||i===0){e.className='jahr';var l=document.createElement('span');l.textContent=jahr;l.style.left=e.style.left;jahre.appendChild(l)}
+    if(monat===1||i===0)e.className='jahr';
+    (spanne[jahr]=spanne[jahr]||[i,i])[1]=i;
     box.appendChild(e);punkte.push({el:e,m:MIDI[i%MIDI.length]})}
+  /* Jahreszahl mittig unter den Noten ihres Jahres – so stoßen 2020 (nur drei Monate) und 2021 nicht zusammen */
+  Object.keys(spanne).forEach(function(j){var a=spanne[j],m=(a[0]+a[1])/2,l=document.createElement('span');l.textContent=j;l.style.left=(2+m/(Math.max(1,n-1))*96)+'%';jahre.appendChild(l)});
   beobachte($('#lebenslied'),function(an){if(!an)return;punkte.forEach(function(p,i){setTimeout(function(){p.el.classList.add('da');if(ton&&i%2===0)spiele(p.m,.14,.5)},ruhig?0:i*28)})},.5,true);
 })();
 
