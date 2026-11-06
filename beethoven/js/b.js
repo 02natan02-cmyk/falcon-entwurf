@@ -86,7 +86,7 @@ var sp=$('#spielplan'),spOffen=false,spAutoZu=null;
 })();
 function zeitenMalen(){
   var L=lage(),b=L.b;
-  [['#sp-status',L.lang],['#besuch-status',L.lang],['#status-pille',L.pille],['#leiste-status',L.kurz]].forEach(function(p){var el=$(p[0]);if(!el)return;el.classList.toggle('ja',L.auf);el.lastElementChild.textContent=p[1]});
+  [['#sp-status',L.lang],['#besuch-status',L.lang],['#status-pille',L.pille],['#leiste-status',L.kurz]].forEach(function(p){var el=$(p[0]);if(!el)return;el.classList.toggle('ja',L.auf);(el.querySelector('.ls-text')||el.lastElementChild).textContent=p[1]});
   var fuell=L.z?klemm((b.min-L.z[0])/(L.z[1]-L.z[0]),0,1):0;
   if(spOffen){$('#sp-fuell').style.width=(fuell*100)+'%';$('#sp-jetzt').style.left=(fuell*100)+'%'}
   $('#sp-jetzt').style.opacity=L.auf?1:.35;
@@ -94,14 +94,40 @@ function zeitenMalen(){
   sp._fuell=fuell;
 }
 zeitenMalen();setInterval(zeitenMalen,30000);
+/* Schließen: der Spielplan rollt sich zu einer goldenen Rolle zusammen und fliegt in seinen Knopf (Handy: unten in die Leiste, PC: oben in die Pille) */
+var spRoll=null;
+function rollStopp(){if(!spRoll)return;spRoll.anim.forEach(function(a){try{a.cancel()}catch(e){}});if(spRoll.rolle.parentNode)spRoll.rolle.remove();sp.style.transition='';sp.style.visibility='';sp.style.clipPath='';spRoll=null}
+function einrollen(){
+  var handy=innerWidth<=900,ziel=$(handy?'#leiste-status':'#status-pille'),r=sp.getBoundingClientRect(),zr=ziel&&ziel.getBoundingClientRect();
+  if(ruhig||!sp.animate||!zr||!zr.width||!r.width||getComputedStyle(sp).visibility==='hidden'){sp.classList.remove('auf');return}
+  rollStopp();
+  var H=16,runter=handy,dy=runter?r.height-H:-(r.height-H),y0=runter?r.top:r.bottom-H;
+  var rolle=document.createElement('div');rolle.className='sp-rolle';rolle.setAttribute('aria-hidden','true');
+  rolle.style.left=r.left+'px';rolle.style.top=y0+'px';rolle.style.width=r.width+'px';rolle.style.height=H+'px';document.body.appendChild(rolle);
+  var kurve='cubic-bezier(.55,0,.35,1)',t1=520;
+  var a1=sp.animate([{clipPath:'inset(0 0 0 0 round 6px)'},{clipPath:runter?'inset(calc(100% - '+H+'px) 0 0 0 round 6px)':'inset(0 0 calc(100% - '+H+'px) 0 round 6px)'}],{duration:t1,easing:kurve,fill:'forwards'});
+  var a2=rolle.animate([{transform:'translateY(0) rotateX(0deg)'},{transform:'translateY('+dy+'px) rotateX(720deg)'}],{duration:t1,easing:kurve,fill:'forwards'});
+  spRoll={rolle:rolle,anim:[a1,a2]};
+  a2.onfinish=function(){
+    if(!spRoll||spRoll.rolle!==rolle)return;
+    sp.style.transition='none';sp.classList.remove('auf');sp.style.visibility='hidden';void sp.offsetWidth;a1.cancel();
+    var zx=zr.left-r.left,zy=zr.top+zr.height/2-H/2-y0,sx=zr.width/r.width;
+    var a3=rolle.animate([{transform:'translate(0,'+dy+'px) scale(1,1)',opacity:1},{transform:'translate('+zx*.6+'px,'+(dy+(zy-dy)*.55)+'px) scale('+((1+sx)/2)+',.9)',opacity:1,offset:.6},{transform:'translate('+zx+'px,'+zy+'px) scale('+sx+',.7)',opacity:0}],{duration:460,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'});
+    spRoll.anim.push(a3);
+    a3.onfinish=function(){rolle.remove();sp.style.transition='';sp.style.visibility='';spRoll=null;
+      ziel.classList.remove('angekommen');void ziel.offsetWidth;ziel.classList.add('angekommen');setTimeout(function(){ziel.classList.remove('angekommen')},1000)};
+  };
+}
 function spielplan(auf,vonKlick){
-  if(auf===spOffen)return;spOffen=auf;clearTimeout(spAutoZu);if(!auf&&ZUCK)ZUCK.letzt=performance.now()-800;
-  sp.classList.toggle('auf',auf);sp.setAttribute('aria-hidden',!auf);
+  if(auf===spOffen)return;spOffen=auf;clearTimeout(spAutoZu);if(!auf&&ZUCK)ZUCK.letzt=performance.now();
+  if(auf)rollStopp();
+  if(auf)sp.classList.add('auf');else einrollen();
+  sp.setAttribute('aria-hidden',!auf);
   ['#status-pille','#leiste-status'].forEach(function(s){var e=$(s);if(e)e.setAttribute('aria-expanded',auf)});
   if(auf){spScrollStart=scrollY;$('#sp-fuell').style.width='0';$('#sp-jetzt').style.left='0';setTimeout(function(){$('#sp-fuell').style.width=(sp._fuell*100)+'%';$('#sp-jetzt').style.left=(sp._fuell*100)+'%'},380);
     if(ton){[72,76,79].forEach(function(m,i){setTimeout(function(){spiele(m,.35,1.2)},i*110)})}
     if(vonKlick)setTimeout(function(){$('#sp-zu').focus({preventScroll:true})},60);
-    else{spAutoZu=setTimeout(function(){spielplan(false)},innerWidth<900?8000:14000)}
+    else{spAutoZu=setTimeout(function(){spielplan(false)},innerWidth<900?4500:7000)}
   }
 }
 $('#sp-zu').addEventListener('click',function(){spielplan(false)});

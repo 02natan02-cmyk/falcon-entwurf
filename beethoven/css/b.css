@@ -127,7 +127,18 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:70;opa
 .leiste a,.leiste button{display:flex;align-items:center;justify-content:center;gap:7px;min-height:48px;border-radius:999px;text-decoration:none;font-weight:600;font-size:15px;padding:0 13px;white-space:nowrap;min-width:0}
 .leiste-an{background:var(--gold);color:var(--lack)}
 .leiste-status{background:none;border:1px solid var(--linie);color:var(--creme);cursor:pointer;overflow:hidden;font-weight:500!important;font-size:14px!important}
-.leiste-status span{overflow:hidden;text-overflow:ellipsis}
+.leiste-status{flex-direction:column;gap:1px!important;line-height:1.15;padding:4px 10px!important}
+.leiste-status .ls-oben{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--rauch);max-width:100%;min-width:0}
+.leiste-status.ja .ls-oben{color:#bfe8c9}
+.leiste-status .ls-oben i{width:7px;height:7px}
+.leiste-status .ls-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.leiste-status .ls-unten{font-size:14px;font-weight:600;color:var(--gold-hell);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* der Spielplan rollt sich zusammen und fliegt in seinen Knopf */
+.sp-rolle{position:fixed;z-index:57;pointer-events:none;border-radius:8px;transform-origin:0 50%;background:linear-gradient(180deg,#5a431d 0%,#c9a35a 22%,#fff3cf 46%,#e9cf8f 58%,#8a6a2e 82%,#3d2c12 100%);box-shadow:0 8px 18px rgba(0,0,0,.6),0 0 14px rgba(236,213,159,.35)}
+.sp-rolle::before,.sp-rolle::after{content:"";position:absolute;top:-3px;bottom:-3px;width:8px;border-radius:4px;background:linear-gradient(180deg,#3d2c12,#c9a35a 45%,#3d2c12)}
+.sp-rolle::before{left:-4px}.sp-rolle::after{right:-4px}
+.angekommen{animation:angekommen 1s ease-out}
+@keyframes angekommen{0%{box-shadow:0 0 0 0 rgba(236,213,159,.75);border-color:var(--gold-hell)}100%{box-shadow:0 0 0 16px rgba(236,213,159,0)}}
 .leiste-route{border:1px solid var(--gold);color:var(--gold-hell)}
 
 /* ---------- Der Hut auf Reisen ---------- */
@@ -594,3 +605,4 @@ body{position:relative}
 .sp-plan li.heute span::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--gold-hell);box-shadow:0 0 10px var(--gold);flex:none}
 .sp-plan li:not(.heute) span::before{content:"";width:8px;height:8px;flex:none}
 @media (max-width:420px){.sp-plan li{font-size:18px}}
+@media (max-width:380px){.leiste{gap:6px}.leiste a{padding:0 10px!important;font-size:14px!important}.leiste-status{padding:4px 6px!important}.leiste-status .ls-unten{font-size:13px}.leiste-status .ls-oben{font-size:11px}}
