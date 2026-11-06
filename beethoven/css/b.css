@@ -404,6 +404,7 @@ h2 em,h1 em{font-style:italic;color:var(--gold-hell)}
 .schluss .wort{display:inline-block;font-family:var(--display);font-style:italic;font-size:clamp(60px,11vw,160px);color:var(--gold-hell);line-height:1;position:relative}
 .fuss{border-top:1px solid var(--linie);padding-block:28px calc(28px + env(safe-area-inset-bottom,0px) + var(--leiste));display:flex;flex-wrap:wrap;gap:16px 28px;justify-content:space-between;align-items:center;font-size:14px;color:var(--rauch)}
 .fuss a{color:var(--rauch)}
+.fuss-ki{display:block;margin-top:6px;font-size:12px;letter-spacing:.02em;opacity:.7}
 .falke{display:inline-flex;align-items:center;gap:14px;text-decoration:none;color:var(--creme)!important}
 .falke-vogel{position:relative;width:118px;height:26px;flex:none;animation:gleiten 4s ease-in-out infinite}
 .fv-fluegel,.fv-kopf{position:absolute;inset:0;background:url(../medien/falke.png) 0 0/100% 100% no-repeat}

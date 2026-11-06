@@ -12,6 +12,8 @@ window.MEDIEN = {
   filme: {
     /* mittel = 1280 px für Handys, breit = 1920 px, hoch = 4:5-Ausschnitt */
     'neunte': {breit:'medien/film/neunte/breit/', mittel:'medien/film/neunte/mittel/', anzahl:121, ganz:true, mitte:.54, halt:.88,
+               /* schnell bis kurz vor dem Hut (2–3 Wischer), ab dem Hut normales Tempo: rohe Scroll-Strecke .72 = Film-Fortschritt .88 */
+               tempo:{roh:.72, p:.88},
                /* letztes Bild ohne Hut (Hut per Bildbearbeitung entfernt, Haare ergänzt): der echte Hut fällt dann als Element durch die Seite */
                ohneHut:{src:'medien/foto/neunte-ohne-hut.webp', ab:.9}},
     'saal':   {breit:'medien/film/saal/breit/', mittel:'medien/film/saal/mittel/', hoch:'medien/film/saal/hoch/', hochMitte:.40, anzahl:81}

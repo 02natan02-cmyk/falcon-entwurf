@@ -95,7 +95,7 @@ function zeitenMalen(){
 }
 zeitenMalen();setInterval(zeitenMalen,30000);
 function spielplan(auf,vonKlick){
-  if(auf===spOffen)return;spOffen=auf;clearTimeout(spAutoZu);
+  if(auf===spOffen)return;spOffen=auf;clearTimeout(spAutoZu);if(!auf&&ZUCK)ZUCK.letzt=performance.now()-800;
   sp.classList.toggle('auf',auf);sp.setAttribute('aria-hidden',!auf);
   ['#status-pille','#leiste-status'].forEach(function(s){var e=$(s);if(e)e.setAttribute('aria-expanded',auf)});
   if(auf){spScrollStart=scrollY;$('#sp-fuell').style.width='0';$('#sp-jetzt').style.left='0';setTimeout(function(){$('#sp-fuell').style.width=(sp._fuell*100)+'%';$('#sp-jetzt').style.left=(sp._fuell*100)+'%'},380);
@@ -200,7 +200,9 @@ function filmLauf(){
   filme.forEach(function(st){
     var r=st.sek.getBoundingClientRect(),hoehe=st.sek.offsetHeight-vh;
     if(r.top<vh*2.5&&r.bottom>-vh)laden(st);
-    var p=hoehe>0?klemm(-r.top/hoehe,0,1):0;st.p=p;
+    var p=hoehe>0?klemm(-r.top/hoehe,0,1):0,tp=st.cfg&&st.cfg.tempo;
+    if(tp)p=p<tp.roh?p/tp.roh*tp.p:tp.p+(p-tp.roh)/(1-tp.roh)*(1-tp.p);
+    st.p=p;
     if(st.cfg)st.soll=Math.min(1,p/(st.cfg.halt||1))*(st.cfg.anzahl-1);
     st.takte.forEach(function(tk){var an=p>=+tk.dataset.von&&p<=+tk.dataset.bis;if(an!==tk.classList.contains('an')){tk.classList.toggle('an',an);if(an&&tk._beimAn)tk._beimAn()}});
     if(st.lauf)st.lauf.style.width=(p*100)+'%';
@@ -754,7 +756,33 @@ if(document.fonts&&document.fonts.ready)document.fonts.ready.then(neuMessen);
 lageNoten();hutZiele();scrollen();requestAnimationFrame(schleife);
 
 /* ===================== Intro: das Wappen vom Schaufenster ===================== */
+/* ===================== Hinweis „weiter scrollen“: die Seite zuckt kurz nach oben ===================== */
+/* Wer in der Ouvertüre stehen bleibt, sieht die Seite einmal kurz hochrucken und zurückfallen (höchstens zweimal) */
+var ZUCK={an:false,zahl:0,letzt:performance.now(),frei:false,abbruch:false};
+['wheel','touchstart','pointerdown','keydown'].forEach(function(t){addEventListener(t,function(){ZUCK.letzt=performance.now();if(ZUCK.an)ZUCK.abbruch=true},{passive:true})});
+addEventListener('scroll',function(){if(!ZUCK.an)ZUCK.letzt=performance.now()},{passive:true});
+setInterval(function(){
+  if(ruhig||!ZUCK.frei||ZUCK.an||ZUCK.zahl>=2||spOffen||document.hidden)return;
+  var h=filme[0];if(!h)return;var ende=h.sek.offsetTop+h.sek.offsetHeight-innerHeight;
+  if(scrollY>ende-innerHeight*.15)return;
+  if(performance.now()-ZUCK.letzt<(ZUCK.zahl?3500:2000))return;
+  zucken();
+},300);
+function zucken(){
+  ZUCK.an=true;ZUCK.abbruch=false;ZUCK.zahl++;
+  var y0=scrollY,weit=Math.round(innerHeight*.2),t0=performance.now(),T1=420,T2=160,T3=560;
+  (function f(t){
+    if(ZUCK.abbruch){ZUCK.an=false;ZUCK.letzt=performance.now();return}
+    var d=t-t0,y;
+    if(d<T1){var k=d/T1;y=y0+weit*(1-Math.pow(1-k,3))}
+    else if(d<T1+T2){y=y0+weit}
+    else if(d<T1+T2+T3){var k2=(d-T1-T2)/T3;y=y0+weit*(1-(k2<.5?2*k2*k2:1-Math.pow(-2*k2+2,2)/2))}
+    else{scrollTo(0,y0);ZUCK.an=false;ZUCK.letzt=performance.now();return}
+    scrollTo(0,Math.round(y));requestAnimationFrame(f);
+  })(t0);
+}
 function nachIntro(von){
+  ZUCK.frei=true;ZUCK.letzt=performance.now();
   setTimeout(function(){var l=$('#leiste');if(l)l.classList.add('da')},500);
   setTimeout(function(){noteFliegt(von,function(){spielplan(true)})},von?50:700);
 }
