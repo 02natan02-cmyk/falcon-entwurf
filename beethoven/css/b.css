@@ -501,13 +501,14 @@ body{position:relative}
 .sp-woche li.heute span{visibility:visible}
 .sp-wochentext{font-size:13px;color:var(--rauch);margin-top:12px;text-align:center}
 .schnitt-zeile{position:relative;display:inline-block}
-.schnitt-zeile.geschnitten{color:transparent;text-shadow:none;background:linear-gradient(var(--gold-hell),var(--gold-hell)) no-repeat 0 52%/0 2px;animation:schnitt-linie .45s ease-out forwards}
+.schnitt-zeile.geschnitten{color:transparent;text-shadow:none;background:linear-gradient(var(--gold-hell),var(--gold-hell)) no-repeat 0 52%/0 2px;animation:schnitt-linie 1.4s ease-out forwards}
 .schnitt-zeile.geschnitten::before,.schnitt-zeile.geschnitten::after{content:attr(data-text);position:absolute;left:0;top:0;width:100%;color:var(--gold-hell);text-shadow:0 4px 34px rgba(0,0,0,.65)}
 .schnitt-zeile.geschnitten::before{clip-path:inset(0 0 50% 0);animation:schnitt-o 1.3s .35s cubic-bezier(.2,.8,.2,1) both}
 .schnitt-zeile.geschnitten::after{clip-path:inset(50% 0 0 0);animation:schnitt-u 1.3s .35s cubic-bezier(.2,.8,.2,1) both}
-@keyframes schnitt-linie{60%{background-size:100% 2px;opacity:1}100%{background-size:100% 2px;background-position:0 52%}}
-@keyframes schnitt-o{0%{transform:none}35%{transform:translate(12px,-4px)}100%{transform:translate(5px,-1px)}}
-@keyframes schnitt-u{0%{transform:none}35%{transform:translate(-8px,3px)}100%{transform:translate(-2px,1px)}}
+/* Schnitt: Linie fährt durch, die Hälften springen kurz auseinander und setzen sich wieder sauber zusammen (kein Durchgestrichen am Ende) */
+@keyframes schnitt-linie{0%{background-size:0 2px}45%{background-size:100% 2px}70%{background-size:100% 2px}100%{background-size:100% 0}}
+@keyframes schnitt-o{0%{transform:none}30%{transform:translate(12px,-4px)}100%{transform:none}}
+@keyframes schnitt-u{0%{transform:none}30%{transform:translate(-8px,3px)}100%{transform:none}}
 .heft{overflow-x:clip}
 .nb-funken{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .bk-steuer .bk-zitate{flex:1 0 100%;position:relative;min-height:0;max-width:36ch;margin:0 auto 2px}
