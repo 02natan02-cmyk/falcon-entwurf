@@ -1,0 +1,11 @@
+<!doctype html><meta charset="utf-8"><title>tr</title><meta name="robots" content="noindex">
+<body><pre id="s">warte</pre><article id="t"></article>
+<script type="module">
+import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2';
+const s=document.getElementById('s');let asr=null;
+async function load(){s.textContent='lade Modell';asr=await pipeline('automatic-speech-recognition','onnx-community/whisper-small',{dtype:'q8'});s.textContent='bereit';}
+const ready=load().catch(e=>s.textContent='FEHLER '+e);
+window.addEventListener('message',async e=>{if(!e.data||!e.data.audio)return;await ready;s.textContent='transkribiere';
+ try{const r=await asr(e.data.audio,{language:'german',task:'transcribe',chunk_length_s:30,stride_length_s:5});document.getElementById('t').textContent=r.text;s.textContent='FERTIG';}catch(err){s.textContent='FEHLER '+err}});
+if(window.opener)window.opener.postMessage({trReady:1},'*');
+</script>
